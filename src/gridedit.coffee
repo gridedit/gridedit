@@ -293,6 +293,11 @@ class Cell
         , 0)
       else
         if @type is 'date' then @control.valueAsDate = new Date(@value()) else @control.value = @value()
+        if @type is 'select'
+          @control = @toSelect()
+          cell = @
+          @control.onchange = (e) ->
+            cell.edit e.target.value
       @control.style.position = "fixed"
       Utilities::setStyles @control, @position()
       @table.element.appendChild @control
@@ -339,6 +344,7 @@ class Cell
           option.text = subchoice if index is 1
       else
         option.value = option.text = choice
+      option.selected = true if @value() is choice
       select.add option
     select.classList.add 'form-control'
     select
