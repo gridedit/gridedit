@@ -7,7 +7,7 @@
   ],
   "main": "dist/gridedit.js",
   "version": "0.0.0",
-  "homepage": "https://github.com/gridedit/gridedit.git"
+  "homepage": "https://github.com/gridedit/gridedit.git",
   "dependencies": {}
 }
 
