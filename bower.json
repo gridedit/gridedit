@@ -6,7 +6,7 @@
     {"name": "Chuck Guilbert", "email": "chuck.guilbert@gmail.com"}
   ],
   "main": "dist/gridedit.js",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "homepage": "https://github.com/gridedit/gridedit.git",
   "dependencies": {}
 }
