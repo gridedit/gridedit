@@ -568,7 +568,7 @@
     };
 
     Cell.prototype.showControl = function(value) {
-      var beforeControlInitReturnVal, control;
+      var beforeControlInitReturnVal, cell, control;
       if (value == null) {
         value = null;
       }
@@ -587,6 +587,13 @@
             this.control.valueAsDate = new Date(this.value());
           } else {
             this.control.value = this.value();
+          }
+          if (this.type === 'select') {
+            this.control = this.toSelect();
+            cell = this;
+            this.control.onchange = function(e) {
+              return cell.edit(e.target.value);
+            };
           }
         }
         this.control.style.position = "fixed";
@@ -695,6 +702,9 @@
           }
         } else {
           option.value = option.text = choice;
+        }
+        if (this.value() === choice) {
+          option.selected = true;
         }
         select.add(option);
       }
