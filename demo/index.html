@@ -1,9 +1,283 @@
 <!doctype html>
 <html>
   <head>
-    <script src="dist/gridedit.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+    <style type="text/css">
+      * {
+        -webkit-box-sizing: border-box;
+        -moz-box-sizing: border-box;
+        box-sizing: border-box; }
+
+      body {
+        font-family: Verdana, Helvetica, Geneva, sans-serif;
+        font-size: 120%; }
+
+      .table thead > tr > th, .table tbody > tr > th, .table tfoot > tr > th, .table thead > tr > td, .table tbody > tr > td, .table tfoot > tr > td {
+        padding: 4px; }
+
+      #editable-grid {
+        border-collapse: collapse;
+      }
+
+      #editable-grid thead {
+        background-color: white; }
+
+      #editable-grid thead th {
+        border-bottom-width: 1px;
+        border-left: 1px;
+        height: 60px;
+        text-align: center;
+      }
+
+      #editable-grid td {
+        padding: 3px;
+        margin: 0;
+        text-align: center;
+      }
+
+      #editable-grid td .highlighted {
+        background: #fff7d6; }
+
+      #editable-grid tbody {
+        background-color: white; }
+
+      #editable-grid .header-fixed {
+        position: fixed;
+        top: 0px;
+        z-index: 1020;
+        -webkit-border-radius: 0;
+        -moz-border-radius: 0;
+        border-radius: 0; }
+
+      #container {
+        position: relative; }
+
+      #container thead th {
+        background-color: #FFF;
+        text-align: center; }
+
+      #container td {
+        text-align: center; }
+
+      .e_control {
+        display: none;
+        position: absolute;
+        z-index: 5; }
+
+      .e_control * {
+        border: 2px solid #fff7d6; }
+
+      .ui-selectee {
+        text-align: center; }
+
+      .ui-selecting {
+        background: #FFE88E;
+        opacity: 0.6; }
+
+      .ui-selected {
+        background: #FFE88E;
+        border: 3px solid #FFCC00;
+        opacity: 0.6; }
+
+      .ui-state-disabled, .ui-widget-content .ui-state-disabled, .ui-widget-header .ui-state-disabled {
+        opacity: 100;
+        filter: Alpha(Opacity=100);
+        background-image: none; }
+
+      input[type="checkbox"] {
+        margin-left: auto;
+        margin-right: auto;
+        margin-top: 15%; }
+
+      .ui-selectable-helper {
+        position: absolute;
+        z-index: 100;
+        border: none; }
+
+      .border-left {
+        border-left: 3px solid #FFCC00 !important;
+        opacity: 0.6; }
+
+      .border-right {
+        border-right: 3px solid #FFCC00 !important;
+        opacity: 0.6; }
+
+      .border-top {
+        border-top: 3px solid #FFCC00 !important;
+        opacity: 0.6; }
+
+      .border-bottom {
+        border-bottom: 3px solid #FFCC00 !important;
+        opacity: 0.6; }
+
+      .column-selected {
+        background: #FFCC00;
+        border-top: none !important;
+        opacity: 0.9; }
+
+      .context-menu-list {
+        box-shadow: 5px 5px 5px #3a3a3a;
+        padding: 3px 0px 3px 3px;
+        margin: 5px 1px 3px 0px;
+        border: 1px solid #3a3a3a; }
+
+      .context-menu-item {
+        padding: 1px 1px 1px 12px; }
+
+      .alert-danger .close {
+        font-size: 14px; }
+
+      #contextMenu {
+        position: absolute;
+        /*display: none;*/
+      }
+
+      #contextMenu .disabled {
+        color: #C0C0C0;
+        background: none;
+      }
+
+      #contextMenu li a {
+        cursor: pointer;
+      }
+
+      td[field-type="date"] {
+        white-space: nowrap; }
+
+      #pred-modal .modal-header {
+        padding-bottom: 40px; }
+
+      #pred-modal .modal-header .btn {
+        margin-bottom: 0;
+        margin-left: 10px; }
+
+      #pred-modal .modal-body {
+        height: 400px;
+        overflow: auto;
+        padding: 0; }
+
+      #pred-modal .modal-footer {
+        margin-top: 0; }
+
+      #note-modal textarea {
+        resize: vertical; }
+
+      #top-buttons {
+        padding-top: .75em;
+        height: 75px; }
+
+      #top-buttons input {
+        margin: 0 2.5px; }
+
+      #top-buttons .save {
+        margin: 1px 5px; }
+
+      #top-buttons .btn:not(.save) {
+        margin-bottom: 5px; }
+
+      #top-buttons h4 {
+        margin-left: 20px; }
+
+      body {
+        padding-top: 75px; }
+
+      .navbar {
+        margin-bottom: 0; }
+
+      #resource-modal thead tr th {
+        background: white; }
+
+      #resource-modal .modal-wrapper {
+        position: relative;
+        overflow: auto;
+        height: 400px; }
+
+      #resource-modal .modal-header {
+        border-bottom: none; }
+
+      #resource-modal .modal-header button {
+        margin: 2.5px; }
+
+      #resource-modal .modal-body {
+        padding: 0;
+        height: 400px; }
+
+      #resource-modal .modal-footer {
+        margin-top: 10px; }
+
+      #resource-modal .modal-footer button {
+        margin-top: 12px; }
+
+      #resource-modal #resource-table_info {
+        margin-top: 20px; }
+
+      #resource-modal #resource-table_paginate .glyphicon {
+        cursor: pointer;
+        line-height: 20px; }
+
+      #resource-modal #resource-table_paginate .pagination {
+        margin: 12px; }
+
+      #resource-modal .table {
+        margin-bottom: 0; }
+
+      #resource-modal #resource-table tr {
+        cursor: pointer; }
+
+      .selected-resource {
+        background-color: #ffe88e !important; }
+
+      .selected-pred {
+        background-color: #ffe88e !important; }
+
+      .training_tracker_details tbody td {
+        background: white; }
+
+      @media all and (device-width: 768px) and (device-height: 1024px) {
+        body {
+          font-size: 10px; }
+
+        td, th {
+          -webkit-user-select: none; }
+
+        #top-buttons {
+          padding-top: 2em;
+          font-size: 0.85em; }
+
+        #top-buttons input {
+          font-size: .85em;
+          font-weight: bold; }
+
+        #top-buttons .save {
+          margin: 1px 20px 0 0; } }
+
+      .active {
+        background-color: #FFE16F !important;
+        opacity: 0.6;
+      }
+
+      .uneditable {
+        background: #FFBBB3 !important;
+        /*border: 3px solid #B24B47 !important;*/
+        opacity: 0.6;
+      }
+
+    </style>
+    <script src="../dist/gridedit.js"></script>
   </head>
   <body>
     <div id="gridedit"></div>
+    <script type="text/javascript">
+      ge = new GridEdit({
+        headers: ['AG', 'Activity Name', 'CSD', 'Calculated Start Date', 'Manual Start Date', 'RI', 'Manual Duration (Days)', 'CFD', 'Calculated Finish Date', 'Lead', 'Lag', 'DT', 'SS', 'Manual Status', 'AS', 'Notes', 'Manual Assigned To', 'Pred Picker'],
+        cols: [
+
+        ],
+        rows: [
+          "test", 'test2'
+        ],
+        initialize: true
+      });
+    </script>
   </body>
 </html>

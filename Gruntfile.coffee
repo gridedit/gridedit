@@ -2,7 +2,7 @@
 'use strict'
 
 mountFolder = (connect, dir) ->
-    connect.static require('path').resolve(dir)
+  connect.static require('path').resolve(dir)
 
 module.exports = (grunt) ->
   require('matchdep').filterDev('grunt-*').forEach(grunt.loadNpmTasks)
@@ -42,10 +42,22 @@ module.exports = (grunt) ->
         options:
           open:
             target: 'http://localhost:9000/'
-          base: ['demo']
-          keepalive: true
-          # middleware: (connect) ->
-          #   connect.static 'demo/index.html'
+          base:
+            path: '.'
+            options:
+              index: 'demo/index.html'
+    watch:
+      livereload:
+        options:
+          livereload: true
+        # tasks: ['coffee', 'uglify']
+        files: ['src/*.coffee', 'demo/*.html']
+      coffee:
+        files: 'src/*.coffee'
+        tasks: ['coffee']
+        options:
+          livereload: true
+
 
 
     grunt.registerTask 'serve', 'Compile then start a connect web server', (target) ->
@@ -53,6 +65,7 @@ module.exports = (grunt) ->
         'coffee'
         'uglify'
         'connect:livereload'
+        'watch'
       ]
 
     grunt.registerTask 'default', [
