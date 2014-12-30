@@ -271,11 +271,34 @@
       ge = new GridEdit({
         headers: ['AG', 'Activity Name', 'CSD', 'Calculated Start Date', 'Manual Start Date', 'RI', 'Manual Duration (Days)', 'CFD', 'Calculated Finish Date', 'Lead', 'Lag', 'DT', 'SS', 'Manual Status', 'AS', 'Notes', 'Manual Assigned To', 'Pred Picker'],
         cols: [
-
+          { label: 'Name', valueKey: 'name', type: 'string' },
+          { label: 'Job Title', valueKey: 'jobTitle', type: 'string', style: { textAlign: 'left' } },
+          { label: 'Number of Projects', valueKey: 'numProjects', type: 'number', editable: false }
         ],
         rows: [
-          "test", 'test2'
+          { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: '1000'},
+          { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: '2'}
         ],
+        tableClass: 'table table-bordered table-fixed-header',
+        beforeInit: function() {
+          // console.log('beforeInit');
+        },
+        afterInit: function() {
+          // console.log('afterInit');
+        },
+        beforeCellActivate: function(cell) {
+          if (cell.type === 'date' && cell.editable === true) {
+            // console.log(cell, 'This is a date field!');
+          }
+          if (cell.meta.valueKey === 'notes') {
+            // cell.element.onclick = function() {
+            //   return false;
+            // };
+          }
+        },
+        afterCellActivate: function(cell) {
+          // console.log(cell, 'afterCellActivate');
+        },
         initialize: true
       });
     </script>
