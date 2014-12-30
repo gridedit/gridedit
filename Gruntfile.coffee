@@ -33,6 +33,27 @@ module.exports = (grunt) ->
           reporter: 'spec'
           compilers: 'coffee:coffee-script'
         src: ['test/**/*.coffee']
+    connect:
+      options:
+        port: 9000
+        hostname: 'localhost'
+        livereload: 35729
+      livereload:
+        options:
+          open:
+            target: 'http://localhost:9000/'
+          base: ['demo']
+          keepalive: true
+          # middleware: (connect) ->
+          #   connect.static 'demo/index.html'
+
+
+    grunt.registerTask 'serve', 'Compile then start a connect web server', (target) ->
+      grunt.task.run [
+        'coffee'
+        'uglify'
+        'connect:livereload'
+      ]
 
     grunt.registerTask 'default', [
       'mochaTest'

@@ -2,14 +2,15 @@
   "name": "gridedit",
   "version": "0.0.1",
   "dependencies": {},
-  "devDependencies" : {
-    "mocha" : "*",
-    "chai" : "*",
-    "sinon" : "*",
-    "grunt" : "*",
+  "devDependencies": {
+    "chai": "*",
+    "grunt": "*",
     "grunt-contrib-coffee": "*",
+    "grunt-contrib-connect": "^0.9.0",
     "grunt-contrib-uglify": "*",
+    "grunt-mocha-test": "*",
     "matchdep": "*",
-    "grunt-mocha-test": "*"
+    "mocha": "*",
+    "sinon": "*"
   }
 }
