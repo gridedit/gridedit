@@ -341,7 +341,7 @@
         _ref1 = row.cells;
         for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
           cell = _ref1[_j];
-          rowData.push(cell.value());
+          rowData.push(cell.type === 'date' ? cell.control.valueAsDate : cell.value());
         }
         data.push(rowData);
       }
@@ -498,9 +498,13 @@
       }
       if (newValue !== null && newValue !== this.element.textContent) {
         if (this.type === 'date') {
-          newValue = this.toDateString(Date.parse(newValue));
+          if (newValue.length > 0) {
+            newValue = this.toDateString(Date.parse(newValue));
+          } else if (newValue.length === 0) {
+            newValue = "";
+            this.control.valueAsDate = null;
+          }
         }
-        console.log(newValue);
         oldValue = this.value();
         if (this.beforeEdit) {
           this.beforeEdit(this, oldValue, newValue);
@@ -577,17 +581,17 @@
       }
       if (this.beforeControlInit && beforeControlInitReturnVal !== false || !this.beforeControlInit) {
         if (value !== null) {
+          if (this.type === 'date') {
+            this.control.valueAsDate = new Date(this.value());
+          } else {
+            this.control.value = value;
+          }
           this.control.value = value;
           control = this.control;
           setTimeout(function() {
             return control.focus();
           }, 0);
         } else {
-          if (this.type === 'date') {
-            this.control.valueAsDate = new Date(this.value());
-          } else {
-            this.control.value = this.value();
-          }
           if (this.type === 'select') {
             this.control = this.toSelect();
             cell = this;

@@ -147,7 +147,7 @@ class GridEdit
     for row in @rows
       rowData = []
       for cell in row.cells
-        rowData.push cell.value()
+        rowData.push if cell.type is 'date' then cell.control.valueAsDate else cell.value()
       data.push rowData
     data
   copy: (selection=@activeCells) -> @copiedCells = selection
@@ -245,8 +245,12 @@ class Cell
     @element.appendChild node
   value: (newValue=null) ->
     if newValue isnt null and newValue isnt @element.textContent
-      if @type is 'date' then newValue = @toDateString(Date.parse(newValue))
-      console.log newValue
+      if @type is 'date'
+        if newValue.length > 0
+          newValue = @toDateString(Date.parse(newValue))
+        else if newValue.length is 0
+          newValue = ""
+          @control.valueAsDate = null
       oldValue = @value()
       @beforeEdit(@, oldValue, newValue) if @beforeEdit
       @previousValue = @element.textContent
@@ -286,13 +290,13 @@ class Cell
     beforeControlInitReturnVal = @beforeControlInit @ if @beforeControlInit
     if @beforeControlInit and beforeControlInitReturnVal isnt false or not @beforeControlInit
       if value isnt null
+        if @type is 'date' then @control.valueAsDate = new Date(@value()) else @control.value = value
         @control.value = value
         control = @control
         setTimeout( ->
           control.focus()
         , 0)
       else
-        if @type is 'date' then @control.valueAsDate = new Date(@value()) else @control.value = @value()
         if @type is 'select'
           @control = @toSelect()
           cell = @
