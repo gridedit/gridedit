@@ -153,10 +153,9 @@
       moveTo = table.moveTo;
       edit = table.edit;
       document.onkeydown = function(e) {
-        var cmd, ctrl, key, keypressCode, shift, valueFromKey;
+        var cmd, ctrl, key, shift, valueFromKey;
         if (table.activeCell()) {
-          key = e.which;
-          keypressCode = key - 48;
+          key = e.keyCode;
           shift = e.shiftKey;
           ctrl = e.ctrlKey;
           cmd = e.metaKey;
@@ -210,8 +209,11 @@
             case 91:
               break;
             default:
+              if (__indexOf.call([96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111], key) >= 0) {
+                key = key - 48;
+              }
               if (!table.openCell) {
-                return table.activeCell().showControl(valueFromKey(keypressCode));
+                return table.activeCell().showControl(valueFromKey(key));
               }
           }
         }

@@ -81,8 +81,7 @@ class GridEdit
     edit = table.edit
     document.onkeydown = (e) ->
       if table.activeCell()
-        key = e.which
-        keypressCode = key-48
+        key = e.keyCode
         shift = e.shiftKey
         ctrl = e.ctrlKey
         cmd = e.metaKey
@@ -109,7 +108,8 @@ class GridEdit
           when 17 then break
           when 91 then break
           else
-            if not table.openCell then table.activeCell().showControl(valueFromKey keypressCode)
+            key = key-48 if key in [96..111] # For numpad
+            if not table.openCell then table.activeCell().showControl(valueFromKey key)
     window.onresize = -> Utilities::setStyles table.openCell.control, table.openCell.position() if table.openCell
     window.onscroll = -> table.openCell.reposition() if table.openCell
     @tableEl.oncontextmenu = (e) -> false
