@@ -107,6 +107,14 @@ class GridEdit
           when 16 then break
           when 17 then break
           when 91 then break
+          when 8
+            if not table.openCell
+              e.preventDefault()
+              table.activeCell().value('')
+          when 46
+            if not table.openCell
+              e.preventDefault()
+              table.activeCell().value('')
           else
             key = key-48 if key in [96..111] # For numpad
             if not table.openCell then table.activeCell().showControl(valueFromKey key)

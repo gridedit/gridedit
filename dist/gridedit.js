@@ -208,6 +208,18 @@
               break;
             case 91:
               break;
+            case 8:
+              if (!table.openCell) {
+                e.preventDefault();
+                return table.activeCell().value('');
+              }
+              break;
+            case 46:
+              if (!table.openCell) {
+                e.preventDefault();
+                return table.activeCell().value('');
+              }
+              break;
             default:
               if (__indexOf.call([96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111], key) >= 0) {
                 key = key - 48;
