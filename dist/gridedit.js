@@ -77,6 +77,7 @@
       this.headers = [];
       this.rows = [];
       this.cols = this.config.cols;
+      this.source = this.config.rows;
       this.redCells = [];
       this.activeCells = [];
       this.copiedCells = [];
@@ -362,6 +363,26 @@
       return data;
     };
 
+    GridEdit.prototype.repopulate = function() {
+      var cell, row, _i, _len, _ref, _results;
+      _ref = this.rows;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        row = _ref[_i];
+        _results.push((function() {
+          var _j, _len1, _ref1, _results1;
+          _ref1 = row.cells;
+          _results1 = [];
+          for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+            cell = _ref1[_j];
+            _results1.push(cell.value(cell.source[cell.valueKey]));
+          }
+          return _results1;
+        })());
+      }
+      return _results;
+    };
+
     GridEdit.prototype.copy = function(selection) {
       if (selection == null) {
         selection = this.activeCells;
@@ -514,6 +535,8 @@
         if (this.type === 'date') {
           if (newValue.length > 0) {
             newValue = this.toDateString(Date.parse(newValue));
+          } else if (newValue instanceof Date) {
+            newValue = this.toDateString(newValue);
           } else if (newValue.length === 0) {
             newValue = "";
             this.control.valueAsDate = null;

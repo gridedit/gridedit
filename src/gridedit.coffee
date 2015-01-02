@@ -29,6 +29,7 @@ class GridEdit
     @headers = []
     @rows = []
     @cols = @config.cols
+    @source = @config.rows
     @redCells = []
     @activeCells = []
     @copiedCells = []
@@ -158,6 +159,10 @@ class GridEdit
         rowData.push if cell.type is 'date' then cell.control.valueAsDate else cell.value()
       data.push rowData
     data
+  repopulate: ->
+    for row in @rows
+      for cell in row.cells
+        cell.value(cell.source[cell.valueKey])
   copy: (selection=@activeCells) -> @copiedCells = selection
   paste: (selection=@activeCells) -> @activeCells = @copiedCells
   cut: ->
@@ -256,6 +261,8 @@ class Cell
       if @type is 'date'
         if newValue.length > 0
           newValue = @toDateString(Date.parse(newValue))
+        else if newValue instanceof Date
+          newValue = @toDateString newValue
         else if newValue.length is 0
           newValue = ""
           @control.valueAsDate = null
