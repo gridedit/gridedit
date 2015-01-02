@@ -578,36 +578,40 @@
       if (value == null) {
         value = null;
       }
-      if (this.beforeControlInit) {
-        beforeControlInitReturnVal = this.beforeControlInit(this);
-      }
-      if (this.beforeControlInit && beforeControlInitReturnVal !== false || !this.beforeControlInit) {
-        if (value !== null) {
-          if (this.type === 'date') {
-            this.control.valueAsDate = new Date(this.value());
-          } else {
-            this.control.value = value;
-          }
-          this.control.value = value;
-          control = this.control;
-          setTimeout(function() {
-            return control.focus();
-          }, 0);
-        } else {
-          if (this.type === 'select') {
-            this.control = this.toSelect();
-            cell = this;
-            this.control.onchange = function(e) {
-              return cell.edit(e.target.value);
-            };
-          }
+      if (!this.editable) {
+        return this.showRed();
+      } else {
+        if (this.beforeControlInit) {
+          beforeControlInitReturnVal = this.beforeControlInit(this);
         }
-        this.control.style.position = "fixed";
-        Utilities.prototype.setStyles(this.control, this.position());
-        this.table.element.appendChild(this.control);
-        this.table.openCell = this;
-        if (this.afterControlInit) {
-          return this.afterControlInit(this);
+        if (this.beforeControlInit && beforeControlInitReturnVal !== false || !this.beforeControlInit) {
+          if (value !== null) {
+            if (this.type === 'date') {
+              this.control.valueAsDate = new Date(this.value());
+            } else {
+              this.control.value = value;
+            }
+            this.control.value = value;
+            control = this.control;
+            setTimeout(function() {
+              return control.focus();
+            }, 0);
+          } else {
+            if (this.type === 'select') {
+              this.control = this.toSelect();
+              cell = this;
+              this.control.onchange = function(e) {
+                return cell.edit(e.target.value);
+              };
+            }
+          }
+          this.control.style.position = "fixed";
+          Utilities.prototype.setStyles(this.control, this.position());
+          this.table.element.appendChild(this.control);
+          this.table.openCell = this;
+          if (this.afterControlInit) {
+            return this.afterControlInit(this);
+          }
         }
       }
     };

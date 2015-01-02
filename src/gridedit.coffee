@@ -287,26 +287,29 @@ class Cell
     @addClass 'uneditable'
     @table.redCells.push @
   showControl: (value=null) ->
-    beforeControlInitReturnVal = @beforeControlInit @ if @beforeControlInit
-    if @beforeControlInit and beforeControlInitReturnVal isnt false or not @beforeControlInit
-      if value isnt null
-        if @type is 'date' then @control.valueAsDate = new Date(@value()) else @control.value = value
-        @control.value = value
-        control = @control
-        setTimeout( ->
-          control.focus()
-        , 0)
-      else
-        if @type is 'select'
-          @control = @toSelect()
-          cell = @
-          @control.onchange = (e) ->
-            cell.edit e.target.value
-      @control.style.position = "fixed"
-      Utilities::setStyles @control, @position()
-      @table.element.appendChild @control
-      @table.openCell = @
-      @afterControlInit @ if @afterControlInit
+    if not @editable
+      @showRed()
+    else
+      beforeControlInitReturnVal = @beforeControlInit @ if @beforeControlInit
+      if @beforeControlInit and beforeControlInitReturnVal isnt false or not @beforeControlInit
+        if value isnt null
+          if @type is 'date' then @control.valueAsDate = new Date(@value()) else @control.value = value
+          @control.value = value
+          control = @control
+          setTimeout( ->
+            control.focus()
+          , 0)
+        else
+          if @type is 'select'
+            @control = @toSelect()
+            cell = @
+            @control.onchange = (e) ->
+              cell.edit e.target.value
+        @control.style.position = "fixed"
+        Utilities::setStyles @control, @position()
+        @table.element.appendChild @control
+        @table.openCell = @
+        @afterControlInit @ if @afterControlInit
   hideControl: ->
     if @table.openCell isnt null
       @table.element.removeChild @control
