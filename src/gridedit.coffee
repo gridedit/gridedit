@@ -46,6 +46,7 @@ class GridEdit
     do @config.beforeInit if @config.beforeInit
     do @build
     do @events
+    do @render
     do @config.afterInit if @config.afterInit
     return
   build: ->
@@ -64,7 +65,7 @@ class GridEdit
 
     # Build Table Body
     tbody = document.createElement 'tbody'
-    for rowAttributes, i in @config.rows
+    for rowAttributes, i in @source
       row = new Row rowAttributes, @
       @rows.push row
       tbody.appendChild row.element
@@ -75,7 +76,13 @@ class GridEdit
     table.appendChild thead
     table.appendChild tbody
     @tableEl = table
-    @render()
+  rebuild: (newConfig=null) ->
+    config = Object.create @config
+    if newConfig isnt null
+      for option of newConfig
+        if newConfig[option] then config[option] = newConfig[option]
+    do @destroy
+    @constructor config
   events: ->
     table = @
     moveTo = table.moveTo
@@ -163,6 +170,10 @@ class GridEdit
     for row in @rows
       for cell in row.cells
         cell.value(cell.source[cell.valueKey])
+  destroy: ->
+    @element.removeChild @tableEl
+    for key of @
+      delete @[key]
   copy: (selection=@activeCells) -> @copiedCells = selection
   paste: (selection=@activeCells) -> @activeCells = @copiedCells
   cut: ->
@@ -189,10 +200,6 @@ class Row
       cell = new Cell @attributes[col.valueKey], @
       @cells.push cell
       @element.appendChild cell.element
-    # for cellAttributes in @attributes
-    #   cell = new Cell cellAttributes, @
-    #   @cells.push cell
-    #   @element.appendChild cell.element
     delete @attributes
   below: -> @table.rows[@id + 1]
   above: -> @table.rows[@id - 1]

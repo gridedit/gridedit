@@ -107,6 +107,7 @@
       }
       this.build();
       this.events();
+      this.render();
       if (this.config.afterInit) {
         this.config.afterInit();
       }
@@ -130,7 +131,7 @@
       thead = document.createElement('thead');
       thead.appendChild(tr);
       tbody = document.createElement('tbody');
-      _ref1 = this.config.rows;
+      _ref1 = this.source;
       for (i = _j = 0, _len1 = _ref1.length; _j < _len1; i = ++_j) {
         rowAttributes = _ref1[i];
         row = new Row(rowAttributes, this);
@@ -144,8 +145,24 @@
       });
       table.appendChild(thead);
       table.appendChild(tbody);
-      this.tableEl = table;
-      return this.render();
+      return this.tableEl = table;
+    };
+
+    GridEdit.prototype.rebuild = function(newConfig) {
+      var config, option;
+      if (newConfig == null) {
+        newConfig = null;
+      }
+      config = Object.create(this.config);
+      if (newConfig !== null) {
+        for (option in newConfig) {
+          if (newConfig[option]) {
+            config[option] = newConfig[option];
+          }
+        }
+      }
+      this.destroy();
+      return this.constructor(config);
     };
 
     GridEdit.prototype.events = function() {
@@ -379,6 +396,16 @@
           }
           return _results1;
         })());
+      }
+      return _results;
+    };
+
+    GridEdit.prototype.destroy = function() {
+      var key, _results;
+      this.element.removeChild(this.tableEl);
+      _results = [];
+      for (key in this) {
+        _results.push(delete this[key]);
       }
       return _results;
     };
