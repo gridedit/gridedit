@@ -37,6 +37,7 @@ class GridEdit
     @selectionEnd = null
     @openCell = null
     @state = "ready"
+    @mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     if @config.custom
       @set key, value for key, value of @config.custom when key of @config.custom
       delete @config.custom
@@ -429,6 +430,23 @@ class Cell
     if @type is 'select' or 'date'
       @control.onchange = (e) ->
         cell.edit e.target.value
+    if table.mobile
+      startY = null
+      @element.ontouchstart = (e) ->
+        startY = e.changedTouches[0].clientY
+        Utilities::clearActiveCells table
+        if table.openCell then table.openCell.hideControl()
+      @element.ontouchend = (e) ->
+        y = e.changedTouches[0].clientY
+        if e.changedTouches.length < 2 and (y is startY)
+          e.preventDefault()
+          do cell.edit
+      @element.ontouchmove = (e) ->
+        # clearTimeout(timer) if timer
+        # table.state = "scrolling"
+        # timer = setTimeout ->
+        #   table.state = "ready"
+        # , 100
 
 class ContextMenu
   constructor: (@actions, @table) ->

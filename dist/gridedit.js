@@ -85,6 +85,7 @@
       this.selectionEnd = null;
       this.openCell = null;
       this.state = "ready";
+      this.mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       if (this.config.custom) {
         _ref = this.config.custom;
         for (key in _ref) {
@@ -818,7 +819,7 @@
     };
 
     Cell.prototype.events = function(cell) {
-      var activeCells, redCells, table;
+      var activeCells, redCells, startY, table;
       table = cell.table;
       redCells = table.redCells;
       activeCells = table.activeCells;
@@ -866,9 +867,28 @@
         }
       };
       if (this.type === 'select' || 'date') {
-        return this.control.onchange = function(e) {
+        this.control.onchange = function(e) {
           return cell.edit(e.target.value);
         };
+      }
+      if (table.mobile) {
+        startY = null;
+        this.element.ontouchstart = function(e) {
+          startY = e.changedTouches[0].clientY;
+          Utilities.prototype.clearActiveCells(table);
+          if (table.openCell) {
+            return table.openCell.hideControl();
+          }
+        };
+        this.element.ontouchend = function(e) {
+          var y;
+          y = e.changedTouches[0].clientY;
+          if (e.changedTouches.length < 2 && (y === startY)) {
+            e.preventDefault();
+            return cell.edit();
+          }
+        };
+        return this.element.ontouchmove = function(e) {};
       }
     };
 
