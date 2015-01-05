@@ -81,6 +81,7 @@
       this.redCells = [];
       this.activeCells = [];
       this.copiedCells = [];
+      this.copiedValues = [];
       this.selectionStart = null;
       this.selectionEnd = null;
       this.openCell = null;
@@ -577,7 +578,11 @@
             this.control.valueAsDate = null;
           }
         } else if (this.type === 'number') {
-          newValue = Number(newValue);
+          if (newValue.length === 0) {
+            newValue = null;
+          } else {
+            newValue = Number(newValue);
+          }
         }
         oldValue = this.value();
         if (this.beforeEdit) {
@@ -960,7 +965,7 @@
       if (!cell.isActive()) {
         cell.makeActive();
       }
-      this.cell = cell;
+      this.cells = cell.table.activeCells;
       Utilities.prototype.setStyles(this.element, {
         left: x,
         top: y
@@ -979,30 +984,52 @@
     };
 
     ContextMenu.prototype.cut = function() {
-      this.copiedValue = this.cell.value();
-      console.log(this.copiedValue);
-      this.cell.value('');
-      return this.hide();
+      var cell, _i, _len, _ref;
+      this.table.copiedCells = this.table.activeCells;
+      _ref = this.table.activeCells;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        cell = _ref[_i];
+        this.table.copiedValues.push(cell.value());
+        cell.value('');
+      }
+      return this.afterAction();
     };
 
     ContextMenu.prototype.copy = function() {
-      this.copiedValue = this.cell.value();
-      return this.hide();
+      var cell, _i, _len, _ref;
+      this.table.copiedCells = this.table.activeCells;
+      _ref = this.table.activeCells;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        cell = _ref[_i];
+        this.table.copiedValues.push(cell.value());
+      }
+      return this.afterAction();
     };
 
     ContextMenu.prototype.paste = function() {
-      this.cell.value(this.copiedValue);
-      return this.hide();
+      var cell, index, _i, _len, _ref;
+      _ref = this.table.activeCells;
+      for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
+        cell = _ref[index];
+        cell.value(this.table.copiedValues[index]);
+      }
+      return this.afterAction();
     };
 
     ContextMenu.prototype.undo = function() {
       var value;
       value = this.cell.values.pop();
       this.cell.value(value);
-      return this.hide();
+      return this.afterAction();
     };
 
-    ContextMenu.prototype.fill = function() {};
+    ContextMenu.prototype.fill = function() {
+      return this.afterAction();
+    };
+
+    ContextMenu.prototype.afterAction = function() {
+      return this.hide();
+    };
 
     ContextMenu.prototype.toggle = function(action) {
       var classes;

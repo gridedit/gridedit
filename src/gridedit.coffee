@@ -33,6 +33,7 @@ class GridEdit
     @redCells = []
     @activeCells = []
     @copiedCells = []
+    @copiedValues = []
     @selectionStart = null
     @selectionEnd = null
     @openCell = null
@@ -280,7 +281,10 @@ class Cell
           newValue = ""
           @control.valueAsDate = null
       else if @type is 'number'
-        newValue = Number(newValue)
+        if newValue.length is 0
+          newValue = null
+        else
+          newValue = Number(newValue)
       oldValue = @value()
       @beforeEdit(@, oldValue, newValue) if @beforeEdit
       @previousValue = @element.textContent
@@ -477,27 +481,34 @@ class ContextMenu
     @events @
   show: (x, y, cell) ->
     cell.makeActive() if not cell.isActive()
-    @cell = cell
+    @cells = cell.table.activeCells
     Utilities::setStyles @element, {left: x, top: y}
     @table.tableEl.appendChild @element
   hide: -> @table.tableEl.removeChild @element if @isVisible()
   isVisible: -> @element.parentNode?
   cut: ->
-    @copiedValue = @cell.value()
-    console.log @copiedValue
-    @cell.value('')
-    do @hide
+    @table.copiedCells = @table.activeCells
+    for cell in @table.activeCells
+      @table.copiedValues.push cell.value()
+      cell.value('')
+    do @afterAction
   copy: ->
-    @copiedValue = @cell.value()
-    do @hide
+    @table.copiedCells = @table.activeCells
+    for cell in @table.activeCells
+      @table.copiedValues.push cell.value()
+    do @afterAction
   paste: ->
-    @cell.value(@copiedValue)
-    do @hide
+    for cell, index in @table.activeCells
+      cell.value(@table.copiedValues[index])
+    do @afterAction
   undo: ->
     value = @cell.values.pop()
     @cell.value(value)
-    do @hide
+    do @afterAction
   fill: ->
+    do @afterAction
+  afterAction: ->
+    do @hide
   toggle: (action) ->
     classes = @actionNodes[action].classList
     classes.toggle 'enabled'
