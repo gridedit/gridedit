@@ -99,7 +99,7 @@
       if (this.config.initialize) {
         this.init();
       }
-      this.contextMenu = new ContextMenu(['cut', 'copy', 'paste', 'fill'], this);
+      this.contextMenu = new ContextMenu(['cut', 'copy', 'paste', 'undo', 'fill'], this);
     }
 
     GridEdit.prototype.init = function() {
@@ -226,6 +226,12 @@
             case 17:
               break;
             case 91:
+              break;
+            case 67:
+              if (cmd || ctrl) {
+                this.contextMenu.cell = table.activeCell();
+                return this.contextMenu.copy();
+              }
               break;
             case 8:
               if (!table.openCell) {
@@ -500,6 +506,7 @@
       this.element = document.createElement('td');
       this.originalValue = this.attributes;
       this.val = this.originalValue;
+      this.values = [this.originalValue];
       this.previousValue = null;
       this.valueKey = this.col.valueKey;
       this.source = this.table.config.rows[this.address[0]];
@@ -575,6 +582,7 @@
           this.beforeEdit(this, oldValue, newValue);
         }
         this.previousValue = this.element.textContent;
+        this.values.push(newValue);
         this.element.textContent = newValue;
         if (this.type === 'number') {
           this.source[this.valueKey] = Number(newValue);
@@ -901,7 +909,7 @@
       var a, action, divider, li, ul, _i, _len, _ref;
       this.actions = actions;
       this.table = table;
-      this.defaultActions = ['cut', 'copy', 'paste', 'fill'];
+      this.defaultActions = ['cut', 'copy', 'paste', 'undo', 'fill'];
       this.element = document.createElement('div');
       this.actionNodes = {};
       Utilities.prototype.setAttributes(this.element, {
@@ -948,13 +956,15 @@
     }
 
     ContextMenu.prototype.show = function(x, y, cell) {
-      if (cell.isActive()) {
-        Utilities.prototype.setStyles(this.element, {
-          left: x,
-          top: y
-        });
-        return this.table.tableEl.appendChild(this.element);
+      if (!cell.isActive()) {
+        cell.makeActive();
       }
+      this.cell = cell;
+      Utilities.prototype.setStyles(this.element, {
+        left: x,
+        top: y
+      });
+      return this.table.tableEl.appendChild(this.element);
     };
 
     ContextMenu.prototype.hide = function() {
@@ -967,6 +977,32 @@
       return this.element.parentNode != null;
     };
 
+    ContextMenu.prototype.cut = function() {
+      this.copiedValue = this.cell.value();
+      console.log(this.copiedValue);
+      this.cell.value('');
+      return this.hide();
+    };
+
+    ContextMenu.prototype.copy = function() {
+      this.copiedValue = this.cell.value();
+      return this.hide();
+    };
+
+    ContextMenu.prototype.paste = function() {
+      this.cell.value(this.copiedValue);
+      return this.hide();
+    };
+
+    ContextMenu.prototype.undo = function() {
+      var value;
+      value = this.cell.values.pop();
+      this.cell.value(value);
+      return this.hide();
+    };
+
+    ContextMenu.prototype.fill = function() {};
+
     ContextMenu.prototype.toggle = function(action) {
       var classes;
       classes = this.actionNodes[action].classList;
@@ -976,17 +1012,19 @@
 
     ContextMenu.prototype.events = function(menu) {
       return this.element.onclick = function(e) {
-        if (e.target.textContent === 'Cut') {
-          console.log(e.target.textContent);
-        }
-        if (e.target.textContent === 'Copy') {
-          console.log('copy');
-        }
-        if (e.target.textContent === 'Paste') {
-          console.log('paste');
-        }
-        if (e.target.textContent === 'Fill') {
-          return console.log('fill');
+        var action;
+        action = e.target.textContent;
+        switch (action) {
+          case 'Cut':
+            return menu.cut();
+          case 'Copy':
+            return menu.copy();
+          case 'Paste':
+            return menu.paste();
+          case 'Undo':
+            return menu.undo();
+          case 'Fill':
+            return menu.fill();
         }
       };
     };

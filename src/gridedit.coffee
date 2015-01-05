@@ -42,7 +42,7 @@ class GridEdit
       @set key, value for key, value of @config.custom when key of @config.custom
       delete @config.custom
     do @init if @config.initialize
-    @contextMenu = new ContextMenu ['cut', 'copy', 'paste', 'fill'], @
+    @contextMenu = new ContextMenu ['cut', 'copy', 'paste', 'undo', 'fill'], @
   init: ->
     do @config.beforeInit if @config.beforeInit
     do @build
@@ -116,6 +116,10 @@ class GridEdit
           when 16 then break
           when 17 then break
           when 91 then break
+          when 67
+            if cmd or ctrl
+              @contextMenu.cell = table.activeCell()
+              @contextMenu.copy()
           when 8
             if not table.openCell
               e.preventDefault()
@@ -222,6 +226,7 @@ class Cell
     @element = document.createElement 'td'
     @originalValue = @attributes
     @val = @originalValue
+    @values = [@originalValue]
     @previousValue = null
     @valueKey = @col.valueKey
     @source = @table.config.rows[@address[0]]
@@ -277,6 +282,7 @@ class Cell
       oldValue = @value()
       @beforeEdit(@, oldValue, newValue) if @beforeEdit
       @previousValue = @element.textContent
+      @values.push newValue
       @element.textContent = newValue
       if @type is 'number'
         @source[@valueKey] = Number(newValue)
@@ -450,7 +456,7 @@ class Cell
 
 class ContextMenu
   constructor: (@actions, @table) ->
-    @defaultActions = ['cut', 'copy', 'paste', 'fill']
+    @defaultActions = ['cut', 'copy', 'paste', 'undo', 'fill']
     @element = document.createElement 'div'
     @actionNodes = {}
     Utilities::setAttributes @element, {id: 'contextMenu', class: 'dropdown clearfix'}
@@ -474,21 +480,41 @@ class ContextMenu
     @element.appendChild ul
     @events @
   show: (x, y, cell) ->
-    if cell.isActive()
-      Utilities::setStyles @element, {left: x, top: y}
-      @table.tableEl.appendChild @element
+    cell.makeActive() if not cell.isActive()
+    @cell = cell
+    Utilities::setStyles @element, {left: x, top: y}
+    @table.tableEl.appendChild @element
   hide: -> @table.tableEl.removeChild @element if @isVisible()
   isVisible: -> @element.parentNode?
+  cut: ->
+    @copiedValue = @cell.value()
+    console.log @copiedValue
+    @cell.value('')
+    do @hide
+  copy: ->
+    @copiedValue = @cell.value()
+    do @hide
+  paste: ->
+    @cell.value(@copiedValue)
+    do @hide
+  undo: ->
+    value = @cell.values.pop()
+    @cell.value(value)
+    do @hide
+  fill: ->
   toggle: (action) ->
     classes = @actionNodes[action].classList
     classes.toggle 'enabled'
     classes.toggle 'disabled'
   events: (menu) ->
     @element.onclick = (e) ->
-      console.log(e.target.textContent) if e.target.textContent is 'Cut'
-      console.log('copy') if e.target.textContent is 'Copy'
-      console.log('paste') if e.target.textContent is 'Paste'
-      console.log('fill') if e.target.textContent is 'Fill'
+      action = e.target.textContent
+      switch action
+        when 'Cut' then do menu.cut
+        when 'Copy' then do menu.copy
+        when 'Paste' then do menu.paste
+        when 'Undo' then do menu.undo
+        when 'Fill' then do menu.fill
 
 root = exports ? window
 root.GridEdit = GridEdit
