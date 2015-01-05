@@ -87,6 +87,7 @@
       this.openCell = null;
       this.state = "ready";
       this.mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      this.topOffset = !this.config.topOffset ? 0 : this.config.topOffset;
       if (this.config.custom) {
         _ref = this.config.custom;
         for (key in _ref) {
@@ -322,7 +323,17 @@
     };
 
     GridEdit.prototype.moveTo = function(cell) {
-      if (cell != null) {
+      var directionModifier, newY, oldY;
+      if (cell) {
+        if (!cell.isVisible()) {
+          oldY = cell.table.activeCell().address[0];
+          newY = cell.address[0];
+          directionModifier = 1;
+          if (newY < oldY) {
+            directionModifier = -1;
+          }
+          window.scrollBy(0, cell.position().height * directionModifier);
+        }
         cell.makeActive();
       }
       return false;
@@ -727,6 +738,12 @@
 
     Cell.prototype.position = function() {
       return this.element.getBoundingClientRect();
+    };
+
+    Cell.prototype.isVisible = function() {
+      var position;
+      position = this.position();
+      return (position.top >= this.table.topOffset) && (position.bottom <= window.innerHeight);
     };
 
     Cell.prototype.reposition = function() {

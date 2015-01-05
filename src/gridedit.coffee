@@ -39,6 +39,7 @@ class GridEdit
     @openCell = null
     @state = "ready"
     @mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    @topOffset = if not @config.topOffset then 0 else @config.topOffset
     if @config.custom
       @set key, value for key, value of @config.custom when key of @config.custom
       delete @config.custom
@@ -147,7 +148,15 @@ class GridEdit
   aboveCell: -> @activeCell()?.above()
   belowCell: -> @activeCell()?.below()
   moveTo: (cell) ->
-    do cell?.makeActive
+    if cell
+      if not cell.isVisible()
+        oldY = cell.table.activeCell().address[0]
+        newY = cell.address[0]
+        directionModifier = 1
+        if newY < oldY # Then going up - This is because you need -1 for scrolling up to work properly
+          directionModifier = -1
+        window.scrollBy(0, cell.position().height * directionModifier)
+      do cell.makeActive
     false
   edit: (cell, newValue=null) ->
     if newValue isnt null
@@ -361,6 +370,9 @@ class Cell
         @control.focus()
         @control.select() if @type isnt 'select'
   position: -> @element.getBoundingClientRect()
+  isVisible: ->
+    position = @position()
+    (position.top >= @table.topOffset) and (position.bottom <= window.innerHeight)
   reposition: ->
     Utilities::setStyles @control, @position()
   next: -> @row.cells[@index + 1] or @row.below()?.cells[0]
