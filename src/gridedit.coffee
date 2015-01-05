@@ -447,12 +447,6 @@ class Cell
         if e.changedTouches.length < 2 and (y is startY)
           e.preventDefault()
           do cell.edit
-      @element.ontouchmove = (e) ->
-        # clearTimeout(timer) if timer
-        # table.state = "scrolling"
-        # timer = setTimeout ->
-        #   table.state = "ready"
-        # , 100
 
 class ContextMenu
   constructor: (@actions, @table) ->

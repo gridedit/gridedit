@@ -888,7 +888,7 @@
             return table.openCell.hideControl();
           }
         };
-        this.element.ontouchend = function(e) {
+        return this.element.ontouchend = function(e) {
           var y;
           y = e.changedTouches[0].clientY;
           if (e.changedTouches.length < 2 && (y === startY)) {
@@ -896,7 +896,6 @@
             return cell.edit();
           }
         };
-        return this.element.ontouchmove = function(e) {};
       }
     };
 
