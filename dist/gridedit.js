@@ -734,11 +734,13 @@
     };
 
     Cell.prototype.next = function() {
-      return this.row.cells[this.index + 1];
+      var _ref;
+      return this.row.cells[this.index + 1] || ((_ref = this.row.below()) != null ? _ref.cells[0] : void 0);
     };
 
     Cell.prototype.previous = function() {
-      return this.row.cells[this.index - 1];
+      var _ref;
+      return this.row.cells[this.index - 1] || ((_ref = this.row.above()) != null ? _ref.cells[this.row.cells.length - 1] : void 0);
     };
 
     Cell.prototype.above = function() {

@@ -363,8 +363,8 @@ class Cell
   position: -> @element.getBoundingClientRect()
   reposition: ->
     Utilities::setStyles @control, @position()
-  next: -> @row.cells[@index + 1]
-  previous: -> @row.cells[@index - 1]
+  next: -> @row.cells[@index + 1] or @row.below()?.cells[0]
+  previous: -> @row.cells[@index - 1] or @row.above()?.cells[@row.cells.length - 1]
   above: -> @row.above()?.cells[@index]
   below: -> @row.below()?.cells[@index]
   addClass: (newClass) -> @element.classList.add newClass
