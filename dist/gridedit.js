@@ -551,6 +551,7 @@
         case 'date':
           node = document.createTextNode(this.toDateString(this.attributes));
           this.control = this.toDate();
+          this.control.valueAsDate = new Date(this.originalValue);
           break;
         case 'html':
           this.htmlContent = this.attributes;
@@ -606,6 +607,7 @@
           this.source[this.valueKey] = Number(newValue);
         } else if (this.type === 'date') {
           this.source[this.valueKey] = new Date(newValue);
+          this.control.valueAsDate = new Date(newValue);
         } else if (this.type === 'html') {
           this.setNewHTMLValue(newValue);
         } else {
@@ -675,11 +677,6 @@
         }
         if (this.beforeControlInit && beforeControlInitReturnVal !== false || !this.beforeControlInit) {
           if (value !== null) {
-            if (this.type === 'date') {
-              this.control.valueAsDate = new Date(this.value());
-            } else {
-              this.control.value = value;
-            }
             this.control.value = value;
             control = this.control;
             setTimeout(function() {
@@ -696,9 +693,13 @@
               this.control.value = this.value();
             }
           }
+          if (this.type === 'date') {
+            this.control.value = this.toDateInputString(this.value());
+          }
           this.control.style.position = "fixed";
           Utilities.prototype.setStyles(this.control, this.position());
           this.table.element.appendChild(this.control);
+          console.log(this.control.value);
           this.table.openCell = this;
           if (this.afterControlInit) {
             return this.afterControlInit(this);
@@ -710,8 +711,8 @@
     Cell.prototype.hideControl = function() {
       if (this.table.openCell !== null) {
         this.table.element.removeChild(this.control);
-        return this.table.openCell = null;
       }
+      return this.table.openCell = null;
     };
 
     Cell.prototype.edit = function(newValue) {
@@ -848,6 +849,27 @@
       input.type = 'date';
       input.value = this.toDateString();
       return input;
+    };
+
+    Cell.prototype.toDateInputString = function(passedDate) {
+      var date;
+      if (passedDate == null) {
+        passedDate = null;
+      }
+      if (passedDate && passedDate !== '') {
+        date = new Date(passedDate);
+      } else {
+        if (this.value()) {
+          date = new Date(this.value());
+        } else {
+          null;
+        }
+      }
+      if (date instanceof Date) {
+        return date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
+      } else {
+        return '';
+      }
     };
 
     Cell.prototype.isBeingEdited = function() {

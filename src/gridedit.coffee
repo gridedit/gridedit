@@ -264,6 +264,7 @@ class Cell
       when 'date'
         node = document.createTextNode @toDateString @attributes
         @control = @toDate()
+        @control.valueAsDate = new Date(@originalValue)
       when 'html'
         @htmlContent = @attributes
         node = @toFragment()
@@ -303,6 +304,8 @@ class Cell
         @source[@valueKey] = Number(newValue)
       else if @type is 'date'
         @source[@valueKey] = new Date(newValue)
+        @control.valueAsDate = new Date(newValue)
+        # @control.value = new Date(newValue)
       else if  @type is 'html'
         @setNewHTMLValue newValue
       else
@@ -337,7 +340,6 @@ class Cell
       beforeControlInitReturnVal = @beforeControlInit @ if @beforeControlInit
       if @beforeControlInit and beforeControlInitReturnVal isnt false or not @beforeControlInit
         if value isnt null
-          if @type is 'date' then @control.valueAsDate = new Date(@value()) else @control.value = value
           @control.value = value
           control = @control
           setTimeout( ->
@@ -351,6 +353,7 @@ class Cell
               cell.edit e.target.value
           else
             @control.value = @value()
+        @control.value = @toDateInputString(@value()) if @type is 'date'
         @control.style.position = "fixed"
         Utilities::setStyles @control, @position()
         @table.element.appendChild @control
@@ -359,7 +362,7 @@ class Cell
   hideControl: ->
     if @table.openCell isnt null
       @table.element.removeChild @control
-      @table.openCell = null
+    @table.openCell = null
   edit: (newValue=null) ->
     if not @editable
       @showRed()
@@ -419,6 +422,15 @@ class Cell
     input.type = 'date'
     input.value = @toDateString()
     input
+  toDateInputString: (passedDate=null) ->
+    if passedDate and passedDate isnt ''
+      date = new Date(passedDate)
+    else
+      if @value() then date = new Date(@value()) else null
+    if date instanceof Date
+      date.getFullYear() + '-' + ('0' + (date.getMonth()+1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2)
+    else
+      ''
   isBeingEdited: -> @control.parentNode?
   events: (cell) ->
     table = cell.table
