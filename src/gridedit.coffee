@@ -349,6 +349,8 @@ class Cell
             cell = @
             @control.onchange = (e) ->
               cell.edit e.target.value
+          else
+            @control.value = @value()
         @control.style.position = "fixed"
         Utilities::setStyles @control, @position()
         @table.element.appendChild @control

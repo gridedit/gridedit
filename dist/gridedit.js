@@ -692,6 +692,8 @@
               this.control.onchange = function(e) {
                 return cell.edit(e.target.value);
               };
+            } else {
+              this.control.value = this.value();
             }
           }
           this.control.style.position = "fixed";
