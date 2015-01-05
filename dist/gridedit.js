@@ -576,6 +576,8 @@
             newValue = "";
             this.control.valueAsDate = null;
           }
+        } else if (this.type === 'number') {
+          newValue = Number(newValue);
         }
         oldValue = this.value();
         if (this.beforeEdit) {

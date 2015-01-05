@@ -279,6 +279,8 @@ class Cell
         else if newValue.length is 0
           newValue = ""
           @control.valueAsDate = null
+      else if @type is 'number'
+        newValue = Number(newValue)
       oldValue = @value()
       @beforeEdit(@, oldValue, newValue) if @beforeEdit
       @previousValue = @element.textContent
