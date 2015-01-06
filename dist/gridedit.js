@@ -129,6 +129,7 @@
           textNode = document.createTextNode(header);
         }
         th.appendChild(textNode);
+        col.th = th;
         tr.appendChild(th);
       }
       thead = document.createElement('thead');
@@ -1036,8 +1037,17 @@
       return this.element.parentNode != null;
     };
 
+    ContextMenu.prototype.getTargetPasteCell = function() {
+      return this.table.activeCells.sort(this.sortFunc)[0];
+    };
+
+    ContextMenu.prototype.sortFunc = function(a, b) {
+      return a.address[0] > b.address[0];
+    };
+
     ContextMenu.prototype.cut = function() {
       var cell, _i, _len, _ref;
+      this.table.copiedValues = [];
       this.table.copiedCells = this.table.activeCells;
       _ref = this.table.activeCells;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -1050,6 +1060,7 @@
 
     ContextMenu.prototype.copy = function() {
       var cell, _i, _len, _ref;
+      this.table.copiedValues = [];
       this.table.copiedCells = this.table.activeCells;
       _ref = this.table.activeCells;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -1060,11 +1071,21 @@
     };
 
     ContextMenu.prototype.paste = function() {
-      var cell, index, _i, _len, _ref;
-      _ref = this.table.activeCells;
-      for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
-        cell = _ref[index];
-        cell.value(this.table.copiedValues[index]);
+      var activeCell, cell, index, value, _i, _j, _len, _len1, _ref, _ref1;
+      cell = this.getTargetPasteCell();
+      if (this.table.copiedValues.length > 1) {
+        _ref = this.table.copiedValues;
+        for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
+          value = _ref[index];
+          cell.value(this.table.copiedValues[index]);
+          cell = cell.below();
+        }
+      } else {
+        _ref1 = this.table.activeCells;
+        for (index = _j = 0, _len1 = _ref1.length; _j < _len1; index = ++_j) {
+          activeCell = _ref1[index];
+          activeCell.value(this.table.copiedValues[0]);
+        }
       }
       return this.afterAction();
     };

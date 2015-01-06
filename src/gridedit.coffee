@@ -62,6 +62,7 @@ class GridEdit
       else if typeof header is 'string'
         textNode = document.createTextNode header
       th.appendChild textNode
+      col.th = th
       tr.appendChild th
     thead = document.createElement 'thead'
     thead.appendChild tr
@@ -515,20 +516,30 @@ class ContextMenu
     @table.tableEl.appendChild @element
   hide: -> @table.tableEl.removeChild @element if @isVisible()
   isVisible: -> @element.parentNode?
+  getTargetPasteCell: -> @table.activeCells.sort(@sortFunc)[0]
+  sortFunc: (a,b) -> a.address[0] > b.address[0];
   cut: ->
+    @table.copiedValues = []
     @table.copiedCells = @table.activeCells
     for cell in @table.activeCells
       @table.copiedValues.push cell.value()
       cell.value('')
     do @afterAction
   copy: ->
+    @table.copiedValues = []
     @table.copiedCells = @table.activeCells
     for cell in @table.activeCells
       @table.copiedValues.push cell.value()
     do @afterAction
   paste: ->
-    for cell, index in @table.activeCells
-      cell.value(@table.copiedValues[index])
+    cell = @getTargetPasteCell()
+    if @table.copiedValues.length > 1
+      for value, index in @table.copiedValues
+        cell.value(@table.copiedValues[index])
+        cell = cell.below()
+    else
+      for activeCell, index in @table.activeCells
+        activeCell.value(@table.copiedValues[0])
     do @afterAction
   undo: ->
     value = @cell.values.pop()
