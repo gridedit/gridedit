@@ -238,13 +238,13 @@
             case 8:
               if (!table.openCell) {
                 e.preventDefault();
-                return table.activeCell().value('');
+                return table["delete"]();
               }
               break;
             case 46:
               if (!table.openCell) {
                 e.preventDefault();
-                return table.activeCell().value('');
+                return table["delete"]();
               }
               break;
             default:
@@ -351,6 +351,17 @@
         }
         return false;
       }
+    };
+
+    GridEdit.prototype["delete"] = function() {
+      var cell, _i, _len, _ref, _results;
+      _ref = this.activeCells;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        cell = _ref[_i];
+        _results.push(cell.value(''));
+      }
+      return _results;
     };
 
     GridEdit.prototype.setSelection = function() {
@@ -699,7 +710,6 @@
           this.control.style.position = "fixed";
           Utilities.prototype.setStyles(this.control, this.position());
           this.table.element.appendChild(this.control);
-          console.log(this.control.value);
           this.table.openCell = this;
           if (this.afterControlInit) {
             return this.afterControlInit(this);

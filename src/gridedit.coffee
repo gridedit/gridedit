@@ -125,11 +125,11 @@ class GridEdit
           when 8
             if not table.openCell
               e.preventDefault()
-              table.activeCell().value('')
+              table.delete()
           when 46
             if not table.openCell
               e.preventDefault()
-              table.activeCell().value('')
+              table.delete()
           else
             key = key-48 if key in [96..111] # For numpad
             if not table.openCell then table.activeCell().showControl(valueFromKey key)
@@ -164,6 +164,9 @@ class GridEdit
     else
       do cell?.edit
       false
+  delete: ->
+    for cell in @activeCells
+      cell.value('')
   setSelection: ->
     if @selectionStart isnt @selectionEnd
       do cell.removeFromSelection for cell in @activeCells
