@@ -338,6 +338,7 @@ class Cell
     @addClass 'uneditable'
     @table.redCells.push @
   showControl: (value=null) ->
+    @table.contextMenu.hideBorders() if @table.contextMenu.borderedCells.length > 0
     if not @editable
       @showRed()
     else
@@ -489,6 +490,7 @@ class ContextMenu
     @defaultActions = ['cut', 'copy', 'paste', 'undo', 'fill']
     @element = document.createElement 'div'
     @actionNodes = {}
+    @borderedCells = []
     Utilities::setAttributes @element, {id: 'contextMenu', class: 'dropdown clearfix'}
     ul = document.createElement 'ul'
     Utilities::setAttributes ul, {class: 'dropdown-menu', role: 'menu', 'aria-labelledby', style: 'display:block;position:static;margin-bottom:5px;'}
@@ -517,20 +519,40 @@ class ContextMenu
   hide: -> @table.tableEl.removeChild @element if @isVisible()
   isVisible: -> @element.parentNode?
   getTargetPasteCell: -> @table.activeCells.sort(@sortFunc)[0]
-  sortFunc: (a,b) -> a.address[0] > b.address[0];
+  sortFunc: (a,b) -> a.address[0] > b.address[0]
+  displayBorders: ->
+    @borderedCells = @table.activeCells
+    for cell, index in @borderedCells
+      if index is 0
+        cell.element.style.borderTop = "2px dashed blue"
+        cell.element.style.borderLeft = "2px dashed blue"
+        cell.element.style.borderRight = "2px dashed blue"
+      else if index is @table.activeCells.length - 1
+        cell.element.style.borderBottom = "2px dashed blue"
+        cell.element.style.borderLeft = "2px dashed blue"
+        cell.element.style.borderRight = "2px dashed blue"
+      else
+        cell.element.style.borderLeft = "2px dashed blue"
+        cell.element.style.borderRight = "2px dashed blue"
+  hideBorders: ->
+    for cell, index in @borderedCells
+      cell.element.style.border = ""
+    @borderedCells = []
+    @table.copiedValues = []
+    @table.copiedCells = []
   cut: ->
     @table.copiedValues = []
     @table.copiedCells = @table.activeCells
     for cell in @table.activeCells
       @table.copiedValues.push cell.value()
       cell.value('')
-    do @afterAction
+    @afterAction 'cut'
   copy: ->
     @table.copiedValues = []
     @table.copiedCells = @table.activeCells
     for cell in @table.activeCells
       @table.copiedValues.push cell.value()
-    do @afterAction
+    @afterAction 'copy'
   paste: ->
     cell = @getTargetPasteCell()
     if @table.copiedValues.length > 1
@@ -540,14 +562,23 @@ class ContextMenu
     else
       for activeCell, index in @table.activeCells
         activeCell.value(@table.copiedValues[0])
-    do @afterAction
+    @afterAction 'paste'
   undo: ->
     value = @cell.values.pop()
     @cell.value(value)
-    do @afterAction
+    @afterAction 'undo'
   fill: ->
-    do @afterAction
-  afterAction: ->
+    @afterAction 'fill'
+  afterAction: (action) ->
+    switch action
+      when 'cut'
+        @displayBorders()
+      when 'copy'
+        @displayBorders()
+      when 'paste'
+        @hideBorders()
+      when 'undo' then
+      when 'fill' then
     do @hide
   toggle: (action) ->
     classes = @actionNodes[action].classList

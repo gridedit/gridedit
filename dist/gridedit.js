@@ -681,6 +681,9 @@
       if (value == null) {
         value = null;
       }
+      if (this.table.contextMenu.borderedCells.length > 0) {
+        this.table.contextMenu.hideBorders();
+      }
       if (!this.editable) {
         return this.showRed();
       } else {
@@ -972,6 +975,7 @@
       this.defaultActions = ['cut', 'copy', 'paste', 'undo', 'fill'];
       this.element = document.createElement('div');
       this.actionNodes = {};
+      this.borderedCells = [];
       Utilities.prototype.setAttributes(this.element, {
         id: 'contextMenu',
         "class": 'dropdown clearfix'
@@ -1045,6 +1049,41 @@
       return a.address[0] > b.address[0];
     };
 
+    ContextMenu.prototype.displayBorders = function() {
+      var cell, index, _i, _len, _ref, _results;
+      this.borderedCells = this.table.activeCells;
+      _ref = this.borderedCells;
+      _results = [];
+      for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
+        cell = _ref[index];
+        if (index === 0) {
+          cell.element.style.borderTop = "2px dashed blue";
+          cell.element.style.borderLeft = "2px dashed blue";
+          _results.push(cell.element.style.borderRight = "2px dashed blue");
+        } else if (index === this.table.activeCells.length - 1) {
+          cell.element.style.borderBottom = "2px dashed blue";
+          cell.element.style.borderLeft = "2px dashed blue";
+          _results.push(cell.element.style.borderRight = "2px dashed blue");
+        } else {
+          cell.element.style.borderLeft = "2px dashed blue";
+          _results.push(cell.element.style.borderRight = "2px dashed blue");
+        }
+      }
+      return _results;
+    };
+
+    ContextMenu.prototype.hideBorders = function() {
+      var cell, index, _i, _len, _ref;
+      _ref = this.borderedCells;
+      for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
+        cell = _ref[index];
+        cell.element.style.border = "";
+      }
+      this.borderedCells = [];
+      this.table.copiedValues = [];
+      return this.table.copiedCells = [];
+    };
+
     ContextMenu.prototype.cut = function() {
       var cell, _i, _len, _ref;
       this.table.copiedValues = [];
@@ -1055,7 +1094,7 @@
         this.table.copiedValues.push(cell.value());
         cell.value('');
       }
-      return this.afterAction();
+      return this.afterAction('cut');
     };
 
     ContextMenu.prototype.copy = function() {
@@ -1067,7 +1106,7 @@
         cell = _ref[_i];
         this.table.copiedValues.push(cell.value());
       }
-      return this.afterAction();
+      return this.afterAction('copy');
     };
 
     ContextMenu.prototype.paste = function() {
@@ -1087,21 +1126,35 @@
           activeCell.value(this.table.copiedValues[0]);
         }
       }
-      return this.afterAction();
+      return this.afterAction('paste');
     };
 
     ContextMenu.prototype.undo = function() {
       var value;
       value = this.cell.values.pop();
       this.cell.value(value);
-      return this.afterAction();
+      return this.afterAction('undo');
     };
 
     ContextMenu.prototype.fill = function() {
-      return this.afterAction();
+      return this.afterAction('fill');
     };
 
-    ContextMenu.prototype.afterAction = function() {
+    ContextMenu.prototype.afterAction = function(action) {
+      switch (action) {
+        case 'cut':
+          this.displayBorders();
+          break;
+        case 'copy':
+          this.displayBorders();
+          break;
+        case 'paste':
+          this.hideBorders();
+          break;
+        case 'undo':
+          break;
+        case 'fill':
+      }
       return this.hide();
     };
 
