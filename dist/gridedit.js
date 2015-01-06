@@ -212,12 +212,22 @@
               break;
             case 67:
               if (cmd || ctrl) {
-                return table.copy();
+                return table.contextMenu.copy();
               }
               break;
             case 86:
               if (cmd || ctrl) {
-                return table.paste();
+                return table.contextMenu.paste();
+              }
+              break;
+            case 88:
+              if (cmd || ctrl) {
+                return table.contextMenu.cut();
+              }
+              break;
+            case 90:
+              if (cmd || ctrl) {
+                return table.contextMenu.undo();
               }
               break;
             case 13:
@@ -227,12 +237,6 @@
             case 17:
               break;
             case 91:
-              break;
-            case 67:
-              if (cmd || ctrl) {
-                this.contextMenu.cell = table.activeCell();
-                return this.contextMenu.copy();
-              }
               break;
             case 8:
               if (!table.openCell) {
@@ -322,18 +326,23 @@
     };
 
     GridEdit.prototype.moveTo = function(cell) {
-      var directionModifier, newY, oldY;
+      var beforeCellNavigateReturnVal, directionModifier, newY, oldY;
       if (cell) {
-        if (!cell.isVisible()) {
-          oldY = cell.table.activeCell().address[0];
-          newY = cell.address[0];
-          directionModifier = 1;
-          if (newY < oldY) {
-            directionModifier = -1;
-          }
-          window.scrollBy(0, cell.position().height * directionModifier);
+        if (cell.beforeNavigateTo) {
+          beforeCellNavigateReturnVal = cell.beforeNavigateTo(cell);
         }
-        cell.makeActive();
+        if (beforeCellNavigateReturnVal !== false) {
+          if (!cell.isVisible()) {
+            oldY = cell.table.activeCell().address[0];
+            newY = cell.address[0];
+            directionModifier = 1;
+            if (newY < oldY) {
+              directionModifier = -1;
+            }
+            window.scrollBy(0, cell.position().height * directionModifier);
+          }
+          cell.makeActive();
+        }
       }
       return false;
     };
@@ -361,6 +370,10 @@
         _results.push(cell.value(''));
       }
       return _results;
+    };
+
+    GridEdit.prototype.clearActiveCells = function() {
+      return Utilities.prototype.clearActiveCells(this);
     };
 
     GridEdit.prototype.setSelection = function() {
@@ -437,13 +450,6 @@
         _results.push(delete this[key]);
       }
       return _results;
-    };
-
-    GridEdit.prototype.copy = function(selection) {
-      if (selection == null) {
-        selection = this.activeCells;
-      }
-      return this.copiedCells = selection;
     };
 
     GridEdit.prototype.paste = function(selection) {
@@ -606,6 +612,7 @@
       this.beforeControlInit = this.table.config.beforeControlInit;
       this.afterControlInit = this.table.config.afterControlInit;
       this.onClick = this.table.config.onCellClick;
+      this.beforeNavigateTo = this.table.config.beforeCellNavigateTo;
       Utilities.prototype.setAttributes(this.element, {
         id: "cell-" + this.id,
         "class": ((_ref = this.attributes) != null ? _ref["class"] : void 0) || '',
@@ -692,7 +699,7 @@
         }
         Utilities.prototype.setStyles(this.control, this.position());
         if (this.afterEdit) {
-          this.afterEdit(this, oldValue, newValue);
+          this.afterEdit(this, oldValue, newValue, this.table.contextMenu.getTargetPasteCell());
         }
         return newValue;
       } else {
@@ -706,11 +713,11 @@
 
     Cell.prototype.makeActive = function() {
       var beforeActivateReturnVal;
-      Utilities.prototype.clearActiveCells(this.table);
       if (this.beforeActivate(this)) {
         beforeActivateReturnVal = this.beforeActivate(this);
       }
       if (this.beforeActivate && beforeActivateReturnVal !== false || !this.beforeActivate) {
+        Utilities.prototype.clearActiveCells(this.table);
         this.addClass('active');
         this.table.activeCells.push(this);
         this.table.selectionStart = this;
@@ -1117,24 +1124,28 @@
     ContextMenu.prototype.displayBorders = function() {
       var cell, index, _i, _len, _ref, _results;
       this.borderedCells = this.table.activeCells;
-      _ref = this.borderedCells;
-      _results = [];
-      for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
-        cell = _ref[index];
-        if (index === 0) {
-          cell.element.style.borderTop = "2px dashed blue";
-          cell.element.style.borderLeft = "2px dashed blue";
-          _results.push(cell.element.style.borderRight = "2px dashed blue");
-        } else if (index === this.table.activeCells.length - 1) {
-          cell.element.style.borderBottom = "2px dashed blue";
-          cell.element.style.borderLeft = "2px dashed blue";
-          _results.push(cell.element.style.borderRight = "2px dashed blue");
-        } else {
-          cell.element.style.borderLeft = "2px dashed blue";
-          _results.push(cell.element.style.borderRight = "2px dashed blue");
+      if (this.borderedCells.length > 1) {
+        _ref = this.borderedCells;
+        _results = [];
+        for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
+          cell = _ref[index];
+          if (index === 0) {
+            cell.element.style.borderTop = "2px dashed blue";
+            cell.element.style.borderLeft = "2px dashed blue";
+            _results.push(cell.element.style.borderRight = "2px dashed blue");
+          } else if (index === this.table.activeCells.length - 1) {
+            cell.element.style.borderBottom = "2px dashed blue";
+            cell.element.style.borderLeft = "2px dashed blue";
+            _results.push(cell.element.style.borderRight = "2px dashed blue");
+          } else {
+            cell.element.style.borderLeft = "2px dashed blue";
+            _results.push(cell.element.style.borderRight = "2px dashed blue");
+          }
         }
+        return _results;
+      } else {
+        return this.borderedCells[0].element.style.border = "2px dashed blue";
       }
-      return _results;
     };
 
     ContextMenu.prototype.hideBorders = function() {

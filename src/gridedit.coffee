@@ -109,17 +109,17 @@ class GridEdit
           when 32 # space
             if not table.openCell then edit table.activeCell()
           when 67
-            if cmd or ctrl then do table.copy
+            if cmd or ctrl then table.contextMenu.copy()
           when 86
-            if cmd or ctrl then do table.paste
+            if cmd or ctrl then table.contextMenu.paste()
+          when 88
+            if cmd or ctrl then table.contextMenu.cut()
+          when 90
+            if cmd or ctrl then table.contextMenu.undo()
           when 13 then break
           when 16 then break
           when 17 then break
           when 91 then break
-          when 67
-            if cmd or ctrl
-              @contextMenu.cell = table.activeCell()
-              @contextMenu.copy()
           when 8
             if not table.openCell
               e.preventDefault()
@@ -148,14 +148,16 @@ class GridEdit
   belowCell: -> @activeCell()?.below()
   moveTo: (cell) ->
     if cell
-      if not cell.isVisible()
-        oldY = cell.table.activeCell().address[0]
-        newY = cell.address[0]
-        directionModifier = 1
-        if newY < oldY # Then going up - This is because you need -1 for scrolling up to work properly
-          directionModifier = -1
-        window.scrollBy(0, cell.position().height * directionModifier)
-      do cell.makeActive
+      beforeCellNavigateReturnVal = cell.beforeNavigateTo(cell) if cell.beforeNavigateTo
+      if beforeCellNavigateReturnVal isnt false
+        if not cell.isVisible()
+          oldY = cell.table.activeCell().address[0]
+          newY = cell.address[0]
+          directionModifier = 1
+          if newY < oldY # Then going up - This is because you need -1 for scrolling up to work properly
+            directionModifier = -1
+          window.scrollBy(0, cell.position().height * directionModifier)
+        do cell.makeActive
     false
   edit: (cell, newValue=null) ->
     if newValue isnt null
@@ -166,6 +168,7 @@ class GridEdit
   delete: ->
     for cell in @activeCells
       cell.value('')
+  clearActiveCells: -> Utilities::clearActiveCells @
   setSelection: ->
     if @selectionStart isnt @selectionEnd
       do cell.removeFromSelection for cell in @activeCells
@@ -191,7 +194,6 @@ class GridEdit
     @element.removeChild @tableEl
     for key of @
       delete @[key]
-  copy: (selection=@activeCells) -> @copiedCells = selection
   paste: (selection=@activeCells) -> @activeCells = @copiedCells
   cut: ->
   filldown: ->
@@ -282,6 +284,7 @@ class Cell
     @beforeControlInit = @table.config.beforeControlInit
     @afterControlInit = @table.config.afterControlInit
     @onClick = @table.config.onCellClick
+    @beforeNavigateTo = @table.config.beforeCellNavigateTo
     Utilities::setAttributes @element,
       id: "cell-#{@id}"
       class: @attributes?.class or ''
@@ -346,14 +349,14 @@ class Cell
       else
         @source[@valueKey] = newValue
       Utilities::setStyles @control, @position()
-      @afterEdit(@, oldValue, newValue) if @afterEdit
+      @afterEdit(@, oldValue, newValue, @table.contextMenu.getTargetPasteCell()) if @afterEdit
       return newValue
     else
       unless @type is 'html' then @element.textContent else @htmlContent
   makeActive: ->
-    Utilities::clearActiveCells @table
     beforeActivateReturnVal = @beforeActivate @ if @beforeActivate @
     if @beforeActivate and beforeActivateReturnVal isnt false or not @beforeActivate
+      Utilities::clearActiveCells @table
       @addClass 'active'
       @table.activeCells.push @
       @table.selectionStart = @
@@ -553,18 +556,21 @@ class ContextMenu
   sortFunc: (a,b) -> a.address[0] - b.address[0]
   displayBorders: ->
     @borderedCells = @table.activeCells
-    for cell, index in @borderedCells
-      if index is 0
-        cell.element.style.borderTop = "2px dashed blue"
-        cell.element.style.borderLeft = "2px dashed blue"
-        cell.element.style.borderRight = "2px dashed blue"
-      else if index is @table.activeCells.length - 1
-        cell.element.style.borderBottom = "2px dashed blue"
-        cell.element.style.borderLeft = "2px dashed blue"
-        cell.element.style.borderRight = "2px dashed blue"
-      else
-        cell.element.style.borderLeft = "2px dashed blue"
-        cell.element.style.borderRight = "2px dashed blue"
+    if @borderedCells.length > 1
+      for cell, index in @borderedCells
+        if index is 0
+          cell.element.style.borderTop = "2px dashed blue"
+          cell.element.style.borderLeft = "2px dashed blue"
+          cell.element.style.borderRight = "2px dashed blue"
+        else if index is @table.activeCells.length - 1
+          cell.element.style.borderBottom = "2px dashed blue"
+          cell.element.style.borderLeft = "2px dashed blue"
+          cell.element.style.borderRight = "2px dashed blue"
+        else
+          cell.element.style.borderLeft = "2px dashed blue"
+          cell.element.style.borderRight = "2px dashed blue"
+    else
+      @borderedCells[0].element.style.border = "2px dashed blue"
   hideBorders: ->
     for cell, index in @borderedCells
       cell.element.style.border = ""
