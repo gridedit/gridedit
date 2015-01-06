@@ -1,5 +1,5 @@
 (function() {
-  var Cell, ContextMenu, GridEdit, Row, Utilities, root,
+  var Cell, Column, ContextMenu, GridEdit, Row, Utilities, root,
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   Utilities = (function() {
@@ -56,7 +56,10 @@
       }
       table.selectionStart = null;
       table.selectionEnd = null;
-      return table.contextMenu.hide();
+      table.contextMenu.hide();
+      if (table.selectedCol) {
+        return table.selectedCol.makeInactive();
+      }
     };
 
     Utilities.prototype.capitalize = function(string) {
@@ -76,7 +79,7 @@
       this.element = document.querySelectorAll(this.config.element || '#gridedit')[0];
       this.headers = [];
       this.rows = [];
-      this.cols = this.config.cols;
+      this.cols = [];
       this.source = this.config.rows;
       this.redCells = [];
       this.activeCells = [];
@@ -84,6 +87,7 @@
       this.copiedValues = [];
       this.selectionStart = null;
       this.selectionEnd = null;
+      this.selectedCol = null;
       this.openCell = null;
       this.state = "ready";
       this.mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -117,20 +121,14 @@
     };
 
     GridEdit.prototype.build = function() {
-      var col, i, row, rowAttributes, table, tbody, textNode, th, thead, tr, _i, _j, _len, _len1, _ref, _ref1;
+      var col, colAttributes, i, row, rowAttributes, table, tbody, thead, tr, _i, _j, _len, _len1, _ref, _ref1;
       tr = document.createElement('tr');
       _ref = this.config.cols;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        col = _ref[_i];
-        th = document.createElement('th');
-        if (typeof col === 'object') {
-          textNode = document.createTextNode(col.label);
-        } else if (typeof header === 'string') {
-          textNode = document.createTextNode(header);
-        }
-        th.appendChild(textNode);
-        col.th = th;
-        tr.appendChild(th);
+      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+        colAttributes = _ref[i];
+        col = new Column(colAttributes, this);
+        this.cols.push(col);
+        tr.appendChild(col.element);
       }
       thead = document.createElement('thead');
       thead.appendChild(tr);
@@ -475,9 +473,75 @@
 
   })();
 
+  Column = (function() {
+    function Column(attributes, table) {
+      var key, value, _ref;
+      this.attributes = attributes;
+      this.table = table;
+      this.id = this.index = this.table.cols.length;
+      this.cells = [];
+      this.element = document.createElement('th');
+      this.textNode = document.createTextNode(this.attributes.label);
+      this.element.appendChild(this.textNode);
+      _ref = this.attributes;
+      for (key in _ref) {
+        value = _ref[key];
+        this[key] = value;
+      }
+      delete this.attributes;
+      this.events();
+    }
+
+    Column.prototype.next = function() {
+      return this.table.cols[this.index + 1];
+    };
+
+    Column.prototype.previous = function() {
+      return this.table.cols[this.index - 1];
+    };
+
+    Column.prototype.makeActive = function() {
+      this.element.classList.add('active');
+      return this.table.selectedCol = this;
+    };
+
+    Column.prototype.makeInactive = function() {
+      this.element.classList.remove('active');
+      return this.table.selectedCol = null;
+    };
+
+    Column.prototype.events = function() {
+      var col, table;
+      col = this;
+      table = col.table;
+      this.element.onclick = function(e) {
+        var cell, _i, _len, _ref, _results;
+        Utilities.prototype.clearActiveCells(table);
+        col.makeActive();
+        _ref = col.cells;
+        _results = [];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          cell = _ref[_i];
+          _results.push(cell.addToSelection());
+        }
+        return _results;
+      };
+      return this.element.onmousedown = function(e) {
+        if (e.which === 3) {
+          table.contextMenu.show(e.x, e.y, col.cells[0]);
+          return;
+        }
+        return false;
+      };
+    };
+
+    return Column;
+
+  })();
+
   Row = (function() {
     function Row(attributes, table) {
-      var cell, col, _i, _len, _ref;
+      var cell, col, i, _i, _len, _ref;
       this.attributes = attributes;
       this.table = table;
       this.id = this.table.rows.length;
@@ -489,21 +553,22 @@
         id: "row-" + this.id
       });
       _ref = this.table.cols;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        col = _ref[_i];
+      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+        col = _ref[i];
         cell = new Cell(this.attributes[col.valueKey], this);
         this.cells.push(cell);
+        this.table.cols[i].cells.push(cell);
         this.element.appendChild(cell.element);
       }
       delete this.attributes;
     }
 
     Row.prototype.below = function() {
-      return this.table.rows[this.id + 1];
+      return this.table.rows[this.index + 1];
     };
 
     Row.prototype.above = function() {
-      return this.table.rows[this.id - 1];
+      return this.table.rows[this.index - 1];
     };
 
     return Row;
@@ -1046,7 +1111,7 @@
     };
 
     ContextMenu.prototype.sortFunc = function(a, b) {
-      return a.address[0] > b.address[0];
+      return a.address[0] - b.address[0];
     };
 
     ContextMenu.prototype.displayBorders = function() {
@@ -1085,59 +1150,105 @@
     };
 
     ContextMenu.prototype.cut = function() {
-      var cell, _i, _len, _ref;
-      this.table.copiedValues = [];
-      this.table.copiedCells = this.table.activeCells;
-      _ref = this.table.activeCells;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        cell = _ref[_i];
-        this.table.copiedValues.push(cell.value());
-        cell.value('');
+      var beforeActionReturnVal, cell, _i, _len, _ref;
+      beforeActionReturnVal = this.beforeAction('cut');
+      if (beforeActionReturnVal) {
+        this.table.copiedValues = [];
+        this.table.copiedCells = this.table.activeCells;
+        _ref = this.table.activeCells;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          cell = _ref[_i];
+          this.table.copiedValues.push(cell.value());
+          cell.value('');
+        }
+        return this.afterAction('cut');
       }
-      return this.afterAction('cut');
     };
 
     ContextMenu.prototype.copy = function() {
-      var cell, _i, _len, _ref;
-      this.table.copiedValues = [];
-      this.table.copiedCells = this.table.activeCells;
-      _ref = this.table.activeCells;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        cell = _ref[_i];
-        this.table.copiedValues.push(cell.value());
+      var beforeActionReturnVal, cell, _i, _len, _ref;
+      beforeActionReturnVal = this.beforeAction('copy');
+      if (beforeActionReturnVal) {
+        this.table.copiedValues = [];
+        this.table.copiedCells = this.table.activeCells;
+        _ref = this.table.activeCells;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          cell = _ref[_i];
+          this.table.copiedValues.push(cell.value());
+        }
+        return this.afterAction('copy');
       }
-      return this.afterAction('copy');
     };
 
     ContextMenu.prototype.paste = function() {
-      var activeCell, cell, index, value, _i, _j, _len, _len1, _ref, _ref1;
-      cell = this.getTargetPasteCell();
-      if (this.table.copiedValues.length > 1) {
-        _ref = this.table.copiedValues;
-        for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
-          value = _ref[index];
-          cell.value(this.table.copiedValues[index]);
-          cell = cell.below();
+      var activeCell, beforeActionReturnVal, cell, index, value, _i, _j, _len, _len1, _ref, _ref1;
+      beforeActionReturnVal = this.beforeAction('paste');
+      if (beforeActionReturnVal) {
+        cell = this.getTargetPasteCell();
+        if (this.table.copiedValues.length > 1) {
+          _ref = this.table.copiedValues;
+          for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
+            value = _ref[index];
+            cell.value(this.table.copiedValues[index]);
+            cell = cell.below();
+          }
+        } else {
+          _ref1 = this.table.activeCells;
+          for (index = _j = 0, _len1 = _ref1.length; _j < _len1; index = ++_j) {
+            activeCell = _ref1[index];
+            activeCell.value(this.table.copiedValues[0]);
+          }
         }
-      } else {
-        _ref1 = this.table.activeCells;
-        for (index = _j = 0, _len1 = _ref1.length; _j < _len1; index = ++_j) {
-          activeCell = _ref1[index];
-          activeCell.value(this.table.copiedValues[0]);
-        }
+        return this.afterAction('paste');
       }
-      return this.afterAction('paste');
     };
 
     ContextMenu.prototype.undo = function() {
-      var value;
-      value = this.cell.values.pop();
-      this.cell.value(value);
-      return this.afterAction('undo');
+      var beforeActionReturnVal, value;
+      beforeActionReturnVal = this.beforeAction('undo');
+      if (beforeActionReturnVal) {
+        value = this.cell.values.pop();
+        this.cell.value(value);
+        return this.afterAction('undo');
+      }
     };
 
     ContextMenu.prototype.fill = function() {
-      return this.afterAction('fill');
+      var beforeActionReturnVal, cell, index, value, _i, _len, _ref;
+      beforeActionReturnVal = this.beforeAction('fill');
+      if (beforeActionReturnVal) {
+        value = this.getTargetPasteCell().value();
+        _ref = this.table.activeCells;
+        for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
+          cell = _ref[index];
+          cell.value(value);
+        }
+        return this.afterAction('fill');
+      }
+    };
+
+    ContextMenu.prototype.beforeAction = function(action) {
+      switch (action) {
+        case 'cut':
+          return true;
+        case 'copy':
+          return true;
+        case 'paste':
+          if (this.getTargetPasteCell().editable) {
+            return true;
+          } else {
+            return false;
+          }
+          break;
+        case 'undo':
+          return true;
+        case 'fill':
+          if (this.getTargetPasteCell().editable) {
+            return true;
+          } else {
+            return false;
+          }
+      }
     };
 
     ContextMenu.prototype.afterAction = function(action) {
@@ -1154,6 +1265,7 @@
         case 'undo':
           break;
         case 'fill':
+          break;
       }
       return this.hide();
     };

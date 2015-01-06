@@ -21,6 +21,7 @@ class Utilities
     table.selectionStart = null
     table.selectionEnd = null
     table.contextMenu.hide()
+    if table.selectedCol then table.selectedCol.makeInactive()
   capitalize: (string) -> string.toLowerCase().replace /\b./g, (a) -> a.toUpperCase()
 
 class GridEdit
@@ -28,7 +29,7 @@ class GridEdit
     @element = document.querySelectorAll(@config.element || '#gridedit')[0]
     @headers = []
     @rows = []
-    @cols = @config.cols
+    @cols = []
     @source = @config.rows
     @redCells = []
     @activeCells = []
@@ -36,6 +37,7 @@ class GridEdit
     @copiedValues = []
     @selectionStart = null
     @selectionEnd = null
+    @selectedCol = null
     @openCell = null
     @state = "ready"
     @mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
@@ -55,15 +57,10 @@ class GridEdit
   build: ->
     # Build Table Header
     tr = document.createElement 'tr'
-    for col in @config.cols
-      th = document.createElement 'th'
-      if typeof col is 'object'
-        textNode = document.createTextNode col.label
-      else if typeof header is 'string'
-        textNode = document.createTextNode header
-      th.appendChild textNode
-      col.th = th
-      tr.appendChild th
+    for colAttributes, i in @config.cols
+      col = new Column(colAttributes, @)
+      @cols.push col
+      tr.appendChild col.element
     thead = document.createElement 'thead'
     thead.appendChild tr
 
@@ -137,7 +134,8 @@ class GridEdit
     window.onresize = -> Utilities::setStyles table.openCell.control, table.openCell.position() if table.openCell
     window.onscroll = -> table.openCell.reposition() if table.openCell
     @tableEl.oncontextmenu = (e) -> false
-    document.onclick = (e) -> Utilities::clearActiveCells table unless table.isDescendant e.target
+    document.onclick = (e) ->
+      Utilities::clearActiveCells table unless table.isDescendant e.target
   render: ->
     @element = document.querySelectorAll(@config.element || '#gridedit')[0] if @element.hasChildNodes()
     @element.appendChild @tableEl
@@ -204,6 +202,38 @@ class GridEdit
       node = node.parentNode
     false
 
+class Column
+  constructor: (@attributes, @table) ->
+    @id = @index = @table.cols.length
+    @cells = []
+    @element = document.createElement 'th'
+    @textNode = document.createTextNode @attributes.label
+    @element.appendChild @textNode
+    for key, value of @attributes
+      @[key] = value
+    delete @attributes
+    do @events
+  next: -> @table.cols[@index + 1]
+  previous: -> @table.cols[@index - 1]
+  makeActive: ->
+    @element.classList.add('active')
+    @table.selectedCol = @
+  makeInactive: ->
+    @element.classList.remove('active')
+    @table.selectedCol = null
+  events: ->
+    col = @
+    table = col.table
+    @element.onclick = (e) ->
+      Utilities::clearActiveCells table
+      col.makeActive()
+      for cell in col.cells
+        cell.addToSelection()
+    @element.onmousedown = (e) ->
+      if e.which is 3
+        table.contextMenu.show(e.x, e.y, col.cells[0])
+        return
+      false
 
 # Receives an array or object of Cells and is passed to a GridEdit
 class Row
@@ -215,13 +245,14 @@ class Row
     @editable = true
     Utilities::setAttributes @element,
       id: "row-#{@id}"
-    for col in @table.cols
+    for col, i in @table.cols
       cell = new Cell @attributes[col.valueKey], @
       @cells.push cell
+      @table.cols[i].cells.push cell
       @element.appendChild cell.element
     delete @attributes
-  below: -> @table.rows[@id + 1]
-  above: -> @table.rows[@id - 1]
+  below: -> @table.rows[@index + 1]
+  above: -> @table.rows[@index - 1]
 
 # Creates a cell object in memory to store in a row
 class Cell
@@ -519,7 +550,7 @@ class ContextMenu
   hide: -> @table.tableEl.removeChild @element if @isVisible()
   isVisible: -> @element.parentNode?
   getTargetPasteCell: -> @table.activeCells.sort(@sortFunc)[0]
-  sortFunc: (a,b) -> a.address[0] > b.address[0]
+  sortFunc: (a,b) -> a.address[0] - b.address[0]
   displayBorders: ->
     @borderedCells = @table.activeCells
     for cell, index in @borderedCells
@@ -541,34 +572,56 @@ class ContextMenu
     @table.copiedValues = []
     @table.copiedCells = []
   cut: ->
-    @table.copiedValues = []
-    @table.copiedCells = @table.activeCells
-    for cell in @table.activeCells
-      @table.copiedValues.push cell.value()
-      cell.value('')
-    @afterAction 'cut'
+    beforeActionReturnVal = @beforeAction 'cut'
+    if beforeActionReturnVal
+      @table.copiedValues = []
+      @table.copiedCells = @table.activeCells
+      for cell in @table.activeCells
+        @table.copiedValues.push cell.value()
+        cell.value('')
+      @afterAction 'cut'
   copy: ->
-    @table.copiedValues = []
-    @table.copiedCells = @table.activeCells
-    for cell in @table.activeCells
-      @table.copiedValues.push cell.value()
-    @afterAction 'copy'
+    beforeActionReturnVal = @beforeAction 'copy'
+    if beforeActionReturnVal
+      @table.copiedValues = []
+      @table.copiedCells = @table.activeCells
+      for cell in @table.activeCells
+        @table.copiedValues.push cell.value()
+      @afterAction 'copy'
   paste: ->
-    cell = @getTargetPasteCell()
-    if @table.copiedValues.length > 1
-      for value, index in @table.copiedValues
-        cell.value(@table.copiedValues[index])
-        cell = cell.below()
-    else
-      for activeCell, index in @table.activeCells
-        activeCell.value(@table.copiedValues[0])
-    @afterAction 'paste'
+    beforeActionReturnVal = @beforeAction 'paste'
+    if beforeActionReturnVal
+      cell = @getTargetPasteCell()
+      if @table.copiedValues.length > 1
+        for value, index in @table.copiedValues
+          cell.value(@table.copiedValues[index])
+          cell = cell.below()
+      else
+        for activeCell, index in @table.activeCells
+          activeCell.value(@table.copiedValues[0])
+      @afterAction 'paste'
   undo: ->
-    value = @cell.values.pop()
-    @cell.value(value)
-    @afterAction 'undo'
+    beforeActionReturnVal = @beforeAction 'undo'
+    if beforeActionReturnVal
+      value = @cell.values.pop()
+      @cell.value(value)
+      @afterAction 'undo'
   fill: ->
-    @afterAction 'fill'
+    beforeActionReturnVal = @beforeAction 'fill'
+    if beforeActionReturnVal
+      value = @getTargetPasteCell().value()
+      for cell, index in @table.activeCells
+        cell.value(value)
+      @afterAction 'fill'
+  beforeAction: (action) ->
+    switch action
+      when 'cut' then true
+      when 'copy' then true
+      when 'paste'
+        if @getTargetPasteCell().editable then true else false
+      when 'undo' then true
+      when 'fill'
+        if @getTargetPasteCell().editable then true else false
   afterAction: (action) ->
     switch action
       when 'cut'
@@ -577,8 +630,8 @@ class ContextMenu
         @displayBorders()
       when 'paste'
         @hideBorders()
-      when 'undo' then
-      when 'fill' then
+      when 'undo' then break
+      when 'fill' then break
     do @hide
   toggle: (action) ->
     classes = @actionNodes[action].classList
