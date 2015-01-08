@@ -635,7 +635,9 @@
         case 'date':
           node = document.createTextNode(this.toDateString(this.attributes));
           this.control = this.toDate();
-          this.control.valueAsDate = new Date(this.originalValue);
+          if (this.originalValue) {
+            this.control.valueAsDate = new Date(this.originalValue);
+          }
           break;
         case 'html':
           this.htmlContent = this.attributes;

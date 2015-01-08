@@ -302,7 +302,7 @@ class Cell
       when 'date'
         node = document.createTextNode @toDateString @attributes
         @control = @toDate()
-        @control.valueAsDate = new Date(@originalValue)
+        @control.valueAsDate = new Date(@originalValue) if @originalValue
       when 'html'
         @htmlContent = @attributes
         node = @toFragment()
