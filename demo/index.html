@@ -3,73 +3,13 @@
   <head>
     <style type="text/css">
 
-      table {
-        max-width: 100%;
-      }
-
-      th {
-        text-align: left;
-      }
-
-      .table {
+      .myTable {
         width: 100%;
-        margin-bottom: 20px;
+        border-collapse: collapse;
       }
-
-      .table > thead > tr > th,
-      .table > tbody > tr > th,
-      .table > tfoot > tr > th,
-      .table > thead > tr > td,
-      .table > tbody > tr > td,
-      .table > tfoot > tr > td {
-        padding: 8px;
-        line-height: 1.428571429;
-        vertical-align: top;
-        border-top: 1px solid #ddd;
+      .myTable td, .myTable th {
+        border: 1px solid #dedede;
       }
-
-      .table > thead > tr > th {
-        vertical-align: bottom;
-        border-bottom: 2px solid #ddd;
-      }
-
-      .table > caption + thead > tr:first-child > th,
-      .table > colgroup + thead > tr:first-child > th,
-      .table > thead:first-child > tr:first-child > th,
-      .table > caption + thead > tr:first-child > td,
-      .table > colgroup + thead > tr:first-child > td,
-      .table > thead:first-child > tr:first-child > td {
-        border-top: 0;
-      }
-
-      .table > tbody + tbody {
-        border-top: 2px solid #ddd;
-      }
-
-      .table .table {
-        background-color: #fff;
-      }
-
-      .table-bordered {
-        border: 1px solid #ddd;
-      }
-
-      .table-bordered > thead > tr > th,
-      .table-bordered > tbody > tr > th,
-      .table-bordered > tfoot > tr > th,
-      .table-bordered > thead > tr > td,
-      .table-bordered > tbody > tr > td,
-      .table-bordered > tfoot > tr > td {
-        border: 1px solid #ddd;
-      }
-
-      .table-bordered > thead > tr > th,
-      .table-bordered > thead > tr > td {
-        border-bottom-width: 2px;
-      }
-
-
-
 
       #contextMenu {
         position: absolute;
@@ -82,16 +22,6 @@
 
       #contextMenu li a {
         cursor: pointer;
-      }
-
-      .active {
-        background-color: #FFE16F !important;
-        opacity: 0.6;
-      }
-
-      .uneditable {
-        background: #FFBBB3 !important;
-        opacity: 0.6;
       }
 
     </style>
@@ -110,7 +40,7 @@
           { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: '1000'},
           { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: '2'}
         ],
-        tableClass: 'table table-bordered',
+        tableClass: 'myTable',
         beforeInit: function() {
           // console.log('beforeInit');
         },

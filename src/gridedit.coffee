@@ -15,7 +15,7 @@ class Utilities
       table.redCells = []
     if activeCells.length > 0
       for activeCell, index in activeCells
-        activeCell?.removeClass 'active'
+        activeCell?.makeInactive()
         activeCell?.hideControl
       table.activeCells = []
     table.selectionStart = null
@@ -42,6 +42,9 @@ class GridEdit
     @state = "ready"
     @mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     @topOffset = if not @config.topOffset then 0 else @config.topOffset
+    @cellStyles =
+      activeColor: "#FFE16F"
+      uneditableColor: "#FFBBB3"
     if @config.custom
       @set key, value for key, value of @config.custom when key of @config.custom
       delete @config.custom
@@ -357,19 +360,22 @@ class Cell
     beforeActivateReturnVal = @beforeActivate @ if @beforeActivate @
     if @beforeActivate and beforeActivateReturnVal isnt false or not @beforeActivate
       Utilities::clearActiveCells @table
-      @addClass 'active'
+      @showActive()
       @table.activeCells.push @
       @table.selectionStart = @
       if @table.openCell
         @table.openCell.edit @table.openCell.control.value
       @afterActivate @ if @afterActivate @
+  makeInactive: -> @showInactive()
   addToSelection: ->
-    @addClass 'active'
+    @showActive()
     @table.activeCells.push @
   isActive: -> @table.activeCells.indexOf(@) isnt -1
-  removeFromSelection: -> @removeClass 'active'
+  removeFromSelection: -> @showInactive()
+  showActive: -> @element.style.cssText = "background-color: #{@table.cellStyles.activeColor};"
+  showInactive: -> @element.style.cssText = ""
   showRed: ->
-    @addClass 'uneditable'
+    @element.style.cssText = "background-color: #{@table.cellStyles.uneditableColor};"
     @table.redCells.push @
   showControl: (value=null) ->
     @table.contextMenu.hideBorders() if @table.contextMenu.borderedCells.length > 0

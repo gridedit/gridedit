@@ -46,7 +46,7 @@
         for (index = _j = 0, _len1 = activeCells.length; _j < _len1; index = ++_j) {
           activeCell = activeCells[index];
           if (activeCell != null) {
-            activeCell.removeClass('active');
+            activeCell.makeInactive();
           }
           if (activeCell != null) {
             activeCell.hideControl;
@@ -92,6 +92,10 @@
       this.state = "ready";
       this.mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       this.topOffset = !this.config.topOffset ? 0 : this.config.topOffset;
+      this.cellStyles = {
+        activeColor: "#FFE16F",
+        uneditableColor: "#FFBBB3"
+      };
       if (this.config.custom) {
         _ref = this.config.custom;
         for (key in _ref) {
@@ -720,7 +724,7 @@
       }
       if (this.beforeActivate && beforeActivateReturnVal !== false || !this.beforeActivate) {
         Utilities.prototype.clearActiveCells(this.table);
-        this.addClass('active');
+        this.showActive();
         this.table.activeCells.push(this);
         this.table.selectionStart = this;
         if (this.table.openCell) {
@@ -732,8 +736,12 @@
       }
     };
 
+    Cell.prototype.makeInactive = function() {
+      return this.showInactive();
+    };
+
     Cell.prototype.addToSelection = function() {
-      this.addClass('active');
+      this.showActive();
       return this.table.activeCells.push(this);
     };
 
@@ -742,11 +750,19 @@
     };
 
     Cell.prototype.removeFromSelection = function() {
-      return this.removeClass('active');
+      return this.showInactive();
+    };
+
+    Cell.prototype.showActive = function() {
+      return this.element.style.cssText = "background-color: " + this.table.cellStyles.activeColor + ";";
+    };
+
+    Cell.prototype.showInactive = function() {
+      return this.element.style.cssText = "";
     };
 
     Cell.prototype.showRed = function() {
-      this.addClass('uneditable');
+      this.element.style.cssText = "background-color: " + this.table.cellStyles.uneditableColor + ";";
       return this.table.redCells.push(this);
     };
 
