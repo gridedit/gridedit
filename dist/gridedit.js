@@ -329,26 +329,54 @@
       return (_ref = this.activeCell()) != null ? _ref.below() : void 0;
     };
 
-    GridEdit.prototype.moveTo = function(cell) {
-      var beforeCellNavigateReturnVal, directionModifier, newY, oldY;
-      if (cell) {
-        if (cell.beforeNavigateTo) {
-          beforeCellNavigateReturnVal = cell.beforeNavigateTo(cell);
+    GridEdit.prototype.moveTo = function(toCell, fromCell) {
+      var beforeCellNavigateReturnVal, direction, directionModifier, newY, oldY;
+      if (fromCell == null) {
+        fromCell = toCell.table.activeCell();
+      }
+      if (toCell) {
+        direction = toCell.table.getDirection(fromCell, toCell);
+        if (toCell.beforeNavigateTo) {
+          beforeCellNavigateReturnVal = toCell.beforeNavigateTo(toCell, fromCell, direction);
         }
         if (beforeCellNavigateReturnVal !== false) {
-          if (!cell.isVisible()) {
-            oldY = cell.table.activeCell().address[0];
-            newY = cell.address[0];
+          if (!toCell.isVisible()) {
+            oldY = toCell.table.activeCell().address[0];
+            newY = toCell.address[0];
             directionModifier = 1;
             if (newY < oldY) {
               directionModifier = -1;
             }
-            window.scrollBy(0, cell.position().height * directionModifier);
+            window.scrollBy(0, toCell.position().height * directionModifier);
           }
-          cell.makeActive();
+          toCell.makeActive();
         }
       }
       return false;
+    };
+
+    GridEdit.prototype.getDirection = function(fromCell, toCell) {
+      var direction, fromAddressX, fromAddressY, toAddressX, toAddressY;
+      fromAddressY = fromCell.address[0];
+      toAddressY = toCell.address[0];
+      fromAddressX = fromCell.address[1];
+      toAddressX = toCell.address[1];
+      if (fromAddressY === toAddressY) {
+        if (fromAddressX > toAddressX) {
+          direction = "left";
+        } else if (fromAddressX < toAddressX) {
+          direction = "right";
+        } else {
+          console.log("Cannot calculate direction going from cell " + fromCell.address + " to cell " + toCell.address);
+        }
+      } else if (fromAddressY > toAddressY) {
+        direction = "up";
+      } else if (fromAddressY < toAddressY) {
+        direction = "down";
+      } else {
+        console.log("Cannot calculate direction going from cell " + fromCell.address + " to cell " + toCell.address);
+      }
+      return direction;
     };
 
     GridEdit.prototype.edit = function(cell, newValue) {
@@ -875,6 +903,22 @@
     Cell.prototype.below = function() {
       var _ref;
       return (_ref = this.row.below()) != null ? _ref.cells[this.index] : void 0;
+    };
+
+    Cell.prototype.isBefore = function(cell) {
+      return cell.address[0] === this.address[0] && cell.address[1] > this.address[1];
+    };
+
+    Cell.prototype.isAfter = function(cell) {
+      return cell.address[0] === this.address[0] && cell.address[1] < this.address[1];
+    };
+
+    Cell.prototype.isAbove = function(cell) {
+      return cell.address[0] > this.address[0] && cell.address[1] === this.address[1];
+    };
+
+    Cell.prototype.isBelow = function(cell) {
+      return cell.address[0] < this.address[0] && cell.address[1] === this.address[1];
     };
 
     Cell.prototype.addClass = function(newClass) {

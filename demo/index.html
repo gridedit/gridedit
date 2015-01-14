@@ -32,13 +32,18 @@
     <script type="text/javascript">
       ge = new GridEdit({
         cols: [
+          { label: 'Prefix', valueKey: 'prefix', type: 'select', choices: ['Mr.', 'Mrs.', 'Ms.']},
           { label: 'Name', valueKey: 'name', type: 'string' },
           { label: 'Job Title', valueKey: 'jobTitle', type: 'string', style: { textAlign: 'left' } },
           { label: 'Number of Projects', valueKey: 'numProjects', type: 'number', editable: false }
         ],
         rows: [
-          { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: '1000'},
-          { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: '2'}
+          { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.'},
+          { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.'},
+          { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.'},
+          { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.'},
+          { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.'},
+          { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.'}
         ],
         tableClass: 'myTable',
         beforeInit: function() {
@@ -59,6 +64,9 @@
         },
         afterCellActivate: function(cell) {
           // console.log(cell, 'afterCellActivate');
+        },
+        beforeCellNavigateTo: function(toCell, fromCell, direction) {
+          // console.log(toCell, fromCell, direction);
         },
         initialize: true
       });

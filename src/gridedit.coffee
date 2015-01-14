@@ -149,19 +149,39 @@ class GridEdit
   previousCell: -> @activeCell()?.previous()
   aboveCell: -> @activeCell()?.above()
   belowCell: -> @activeCell()?.below()
-  moveTo: (cell) ->
-    if cell
-      beforeCellNavigateReturnVal = cell.beforeNavigateTo(cell) if cell.beforeNavigateTo
+  moveTo: (toCell, fromCell=toCell.table.activeCell()) ->
+    if toCell
+      direction = toCell.table.getDirection(fromCell, toCell)
+      beforeCellNavigateReturnVal = toCell.beforeNavigateTo(toCell, fromCell, direction) if toCell.beforeNavigateTo
       if beforeCellNavigateReturnVal isnt false
-        if not cell.isVisible()
-          oldY = cell.table.activeCell().address[0]
-          newY = cell.address[0]
+        if not toCell.isVisible()
+          oldY = toCell.table.activeCell().address[0]
+          newY = toCell.address[0]
           directionModifier = 1
           if newY < oldY # Then going up - This is because you need -1 for scrolling up to work properly
             directionModifier = -1
-          window.scrollBy(0, cell.position().height * directionModifier)
-        do cell.makeActive
+          window.scrollBy(0, toCell.position().height * directionModifier)
+        do toCell.makeActive
     false
+  getDirection: (fromCell, toCell) ->
+    fromAddressY = fromCell.address[0]
+    toAddressY = toCell.address[0]
+    fromAddressX = fromCell.address[1]
+    toAddressX = toCell.address[1]
+    if fromAddressY is toAddressY # Going right or left
+      if fromAddressX > toAddressX # Going Left
+        direction = "left"
+      else if fromAddressX < toAddressX # Going Right
+        direction = "right"
+      else
+        console.log("Cannot calculate direction going from cell #{fromCell.address} to cell #{toCell.address}")
+    else if fromAddressY > toAddressY # Going Up
+      direction = "up"
+    else if fromAddressY < toAddressY # Going Down
+      direction = "down"
+    else
+      console.log("Cannot calculate direction going from cell #{fromCell.address} to cell #{toCell.address}")
+    direction
   edit: (cell, newValue=null) ->
     if newValue isnt null
       cell?.edit newValue
@@ -429,6 +449,10 @@ class Cell
   previous: -> @row.cells[@index - 1] or @row.above()?.cells[@row.cells.length - 1]
   above: -> @row.above()?.cells[@index]
   below: -> @row.below()?.cells[@index]
+  isBefore: (cell) -> cell.address[0] is @address[0] and cell.address[1] > @address[1]
+  isAfter: (cell) -> cell.address[0] is @address[0] and cell.address[1] < @address[1]
+  isAbove: (cell) -> cell.address[0] > @address[0] and cell.address[1] is @address[1]
+  isBelow: (cell) -> cell.address[0] < @address[0] and cell.address[1] is @address[1]
   addClass: (newClass) -> @element.classList.add newClass
   removeClass: (classToRemove) -> @element.classList.remove classToRemove
   toFragment: ->
