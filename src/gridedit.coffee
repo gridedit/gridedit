@@ -11,12 +11,12 @@ class Utilities
     activeCells = table.activeCells
     if redCells.length > 0
       for redCell, index in redCells
-        redCell?.removeClass 'uneditable'
+        redCell?.makeInactive()
       table.redCells = []
     if activeCells.length > 0
       for activeCell, index in activeCells
         activeCell?.makeInactive()
-        activeCell?.hideControl
+        activeCell?.hideControl()
       table.activeCells = []
     table.selectionStart = null
     table.selectionEnd = null
@@ -137,8 +137,7 @@ class GridEdit
     window.onresize = -> Utilities::setStyles table.openCell.control, table.openCell.position() if table.openCell
     window.onscroll = -> table.openCell.reposition() if table.openCell
     @tableEl.oncontextmenu = (e) -> false
-    document.onclick = (e) ->
-      Utilities::clearActiveCells table unless table.isDescendant e.target
+    document.onclick = (e) -> Utilities::clearActiveCells table unless (table.isDescendant e.target) or (e.target is table.activeCell()?.control)
   render: ->
     @element = document.querySelectorAll(@config.element || '#gridedit')[0] if @element.hasChildNodes()
     @element.appendChild @tableEl
@@ -392,8 +391,11 @@ class Cell
     @table.activeCells.push @
   isActive: -> @table.activeCells.indexOf(@) isnt -1
   removeFromSelection: -> @showInactive()
-  showActive: -> @element.style.cssText = "background-color: #{@table.cellStyles.activeColor};"
-  showInactive: -> @element.style.cssText = ""
+  showActive: ->
+    cssText = @element.style.cssText
+    @oldCssText = cssText
+    @element.style.cssText = cssText + ' ' + "background-color: #{@table.cellStyles.activeColor};"
+  showInactive: -> @element.style.cssText = @oldCssText
   showRed: ->
     @element.style.cssText = "background-color: #{@table.cellStyles.uneditableColor};"
     @table.redCells.push @
@@ -426,7 +428,7 @@ class Cell
         @afterControlInit @ if @afterControlInit
   hideControl: ->
     if @table.openCell isnt null
-      @table.element.removeChild @control
+      @control.remove() if @isControlInDocument()
     @table.openCell = null
   edit: (newValue=null) ->
     if not @editable
@@ -443,6 +445,7 @@ class Cell
   isVisible: ->
     position = @position()
     (position.top >= @table.topOffset) and (position.bottom <= window.innerHeight)
+  isControlInDocument: -> @control.parentNode isnt null
   reposition: ->
     Utilities::setStyles @control, @position()
   next: -> @row.cells[@index + 1] or @row.below()?.cells[0]

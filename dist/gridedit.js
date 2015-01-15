@@ -37,7 +37,7 @@
         for (index = _i = 0, _len = redCells.length; _i < _len; index = ++_i) {
           redCell = redCells[index];
           if (redCell != null) {
-            redCell.removeClass('uneditable');
+            redCell.makeInactive();
           }
         }
         table.redCells = [];
@@ -49,7 +49,7 @@
             activeCell.makeInactive();
           }
           if (activeCell != null) {
-            activeCell.hideControl;
+            activeCell.hideControl();
           }
         }
         table.activeCells = [];
@@ -278,7 +278,8 @@
         return false;
       };
       return document.onclick = function(e) {
-        if (!table.isDescendant(e.target)) {
+        var _ref;
+        if (!((table.isDescendant(e.target)) || (e.target === ((_ref = table.activeCell()) != null ? _ref.control : void 0)))) {
           return Utilities.prototype.clearActiveCells(table);
         }
       };
@@ -782,11 +783,14 @@
     };
 
     Cell.prototype.showActive = function() {
-      return this.element.style.cssText = "background-color: " + this.table.cellStyles.activeColor + ";";
+      var cssText;
+      cssText = this.element.style.cssText;
+      this.oldCssText = cssText;
+      return this.element.style.cssText = cssText + ' ' + ("background-color: " + this.table.cellStyles.activeColor + ";");
     };
 
     Cell.prototype.showInactive = function() {
-      return this.element.style.cssText = "";
+      return this.element.style.cssText = this.oldCssText;
     };
 
     Cell.prototype.showRed = function() {
@@ -842,7 +846,9 @@
 
     Cell.prototype.hideControl = function() {
       if (this.table.openCell !== null) {
-        this.table.element.removeChild(this.control);
+        if (this.isControlInDocument()) {
+          this.control.remove();
+        }
       }
       return this.table.openCell = null;
     };
@@ -879,6 +885,10 @@
       var position;
       position = this.position();
       return (position.top >= this.table.topOffset) && (position.bottom <= window.innerHeight);
+    };
+
+    Cell.prototype.isControlInDocument = function() {
+      return this.control.parentNode !== null;
     };
 
     Cell.prototype.reposition = function() {

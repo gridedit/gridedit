@@ -33,7 +33,7 @@
       ge = new GridEdit({
         cols: [
           { label: 'Prefix', valueKey: 'prefix', type: 'select', choices: ['Mr.', 'Mrs.', 'Ms.']},
-          { label: 'Name', valueKey: 'name', type: 'string' },
+          { label: 'Name', valueKey: 'name', type: 'string', style: {textAlign: 'center'} },
           { label: 'Job Title', valueKey: 'jobTitle', type: 'string', style: { textAlign: 'left' } },
           { label: 'Number of Projects', valueKey: 'numProjects', type: 'number', editable: false }
         ],
@@ -66,7 +66,7 @@
           // console.log(cell, 'afterCellActivate');
         },
         beforeCellNavigateTo: function(toCell, fromCell, direction) {
-          // console.log(toCell, fromCell, direction);
+          // console.log(direction);
         },
         initialize: true
       });

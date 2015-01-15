@@ -1,0 +1,158 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.0.2/css/bootstrap.css"/>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.0.2/css/bootstrap-theme.css"/>
+    <style type="text/css">
+
+      .myTable {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .myTable td, .myTable th {
+        border: 1px solid #dedede;
+      }
+
+      #contextMenu {
+        position: absolute;
+      }
+
+      #contextMenu .disabled {
+        color: #C0C0C0;
+        background: none;
+      }
+
+      #contextMenu li a {
+        cursor: pointer;
+      }
+
+      input.tt-query {
+        background-color: white !important;
+      }
+
+
+      .tt-dropdown-menu {
+        width: 422px;
+        margin-top: 12px;
+        padding: 8px 0;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        -webkit-border-radius: 8px;
+           -moz-border-radius: 8px;
+                border-radius: 8px;
+        -webkit-box-shadow: 0 5px 10px rgba(0,0,0,.2);
+           -moz-box-shadow: 0 5px 10px rgba(0,0,0,.2);
+                box-shadow: 0 5px 10px rgba(0,0,0,.2);
+      }
+
+      .tt-is-under-cursor {
+        color: white;
+        background-color: blue;
+      }
+
+      .tt-hint {
+        display: none;
+      }
+
+    </style>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.js"></script>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.0.2/js/bootstrap.js"></script>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.9.3/typeahead.min.js"></script>
+    <script src="../dist/gridedit.js"></script>
+  </head>
+  <body>
+    <h1>Typeahead with Typeahead.js</h1>
+    <div id="gridedit"></div>
+    <script type="text/javascript">
+      ge = new GridEdit({
+        cols: [
+          { label: 'Prefix', valueKey: 'prefix', type: 'string'},
+          { label: 'Name', valueKey: 'name', type: 'string' },
+          { label: 'Job Title', valueKey: 'jobTitle', type: 'string', style: { textAlign: 'left' } },
+          { label: 'Number of Projects', valueKey: 'numProjects', type: 'number', editable: false }
+        ],
+        rows: [
+          { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.'},
+          { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.'},
+          { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.'},
+          { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.'},
+          { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.'},
+          { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.'}
+        ],
+        tableClass: 'myTable',
+        beforeInit: function() {
+          // console.log('beforeInit');
+        },
+        afterInit: function() {
+          // console.log('afterInit');
+        },
+        beforeCellActivate: function(cell) {
+          if (cell.type === 'date' && cell.editable === true) {
+            // console.log(cell, 'This is a date field!');
+          }
+          if (cell.meta.valueKey === 'notes') {
+            // cell.element.onclick = function() {
+            //   return false;
+            // };
+          }
+          if ($('.twitter-typeahead') && $('.twitter-typeahead').length > 0) {
+            $('.twitter-typeahead').remove();
+            return false;
+          }
+        },
+        beforeControlInit: function(cell) {
+          var position = cell.position();
+          var input = cell.control;
+
+          setTimeout(function() {
+            var typeahead = $(input).typeahead({
+              local: [{
+                "firstName": "Germán",
+                "lastName": "Toro del Valle",
+                "photo": "http://clubatletismomalaga.es/images/stories/unknown_user.jpg",
+                "value": "Germán Toro del Valle",
+              }, {
+                "firstName": "Germán",
+                "lastName": "Toro del Val",
+                "photo": "http://clubatletismomalaga.es/images/stories/unknown_user.jpg",
+                "value": "Germán Toro del Val",
+              }, {
+                "firstName": "Francisco",
+                "lastName": "Vargas",
+                "photo": "http://clubatletismomalaga.es/images/stories/unknown_user.jpg",
+                "value": "Francisco Vargas",
+              }, {
+                "firstName": "Paquito",
+                "lastName": "Vargas Elotro",
+                "photo": "http://clubatletismomalaga.es/images/stories/unknown_user.jpg",
+                "value": "Paquito Vargas Elotro",
+              }]
+            }).on('typeahead:selected', function(evt, datum, name) {
+              cell.edit(datum.value);
+              // $(input).typeahead('destroy');
+            });
+
+            $(input).css({position: "fixed"});
+            $('.tt-dropdown-menu').css({
+              position: "fixed",
+              marginTop: "0px",
+              top: position.top + position.height
+            });
+            $(input).focus();
+          }, 100);
+        },
+        afterCellActivate: function(cell) {
+          // console.log(cell, 'afterCellActivate');
+        },
+        beforeCellNavigateTo: function(toCell, fromCell, direction) {
+          // console.log(toCell, fromCell, direction);
+          if ($('.twitter-typeahead') && $('.twitter-typeahead').length > 0) {
+            return false;
+          }
+        },
+        initialize: true
+      });
+    </script>
+  </body>
+</html>
