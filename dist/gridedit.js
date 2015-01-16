@@ -1082,7 +1082,7 @@
             return (_ref = cell.below()) != null ? _ref.makeActive() : void 0;
         }
       };
-      if (this.type === 'select' || 'date') {
+      if (this.type === 'select' || this.type === 'date') {
         this.control.onchange = function(e) {
           return cell.edit(e.target.value);
         };

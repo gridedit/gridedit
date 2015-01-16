@@ -536,8 +536,7 @@ class Cell
         when 13
           cell.edit @value
           cell.below()?.makeActive()
-        # else cell.value @value
-    if @type is 'select' or 'date'
+    if @type is 'select' or @type is 'date'
       @control.onchange = (e) ->
         cell.edit e.target.value
     if table.mobile
