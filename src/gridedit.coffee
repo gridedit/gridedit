@@ -99,7 +99,7 @@ class GridEdit
         cmd = e.metaKey
         valueFromKey = (key, shift) ->
           char = String.fromCharCode key
-          char.toLowerCase() if not shift
+          if not shift then char.toLowerCase() else char
         switch key
           when 39 # right arrow
             if not table.activeCell().isBeingEdited()
@@ -133,7 +133,7 @@ class GridEdit
               table.delete()
           else
             key = key-48 if key in [96..111] # For numpad
-            if not table.openCell then table.activeCell().showControl(valueFromKey key)
+            if not table.openCell then table.activeCell().showControl(valueFromKey key, shift)
     window.onresize = -> Utilities::setStyles table.openCell.control, table.openCell.position() if table.openCell
     window.onscroll = -> table.openCell.reposition() if table.openCell
     @tableEl.oncontextmenu = (e) -> false

@@ -188,6 +188,8 @@
             char = String.fromCharCode(key);
             if (!shift) {
               return char.toLowerCase();
+            } else {
+              return char;
             }
           };
           switch (key) {
@@ -259,7 +261,7 @@
                 key = key - 48;
               }
               if (!table.openCell) {
-                return table.activeCell().showControl(valueFromKey(key));
+                return table.activeCell().showControl(valueFromKey(key, shift));
               }
           }
         }
