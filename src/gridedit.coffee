@@ -100,6 +100,7 @@ class GridEdit
         valueFromKey = (key, shift) ->
           char = String.fromCharCode key
           if not shift then char.toLowerCase() else char
+        openCellAndPopulateInitialValue = -> if not table.openCell then table.activeCell().showControl(valueFromKey key, shift)
         switch key
           when 39 # right arrow
             if not table.activeCell().isBeingEdited()
@@ -112,13 +113,13 @@ class GridEdit
           when 32 # space
             if not table.openCell then edit table.activeCell()
           when 67
-            if cmd or ctrl then table.contextMenu.copy()
+            if cmd or ctrl then table.contextMenu.copy() else openCellAndPopulateInitialValue()
           when 86
-            if cmd or ctrl then table.contextMenu.paste()
+            if cmd or ctrl then table.contextMenu.paste() else openCellAndPopulateInitialValue()
           when 88
-            if cmd or ctrl then table.contextMenu.cut()
+            if cmd or ctrl then table.contextMenu.cut() else openCellAndPopulateInitialValue()
           when 90
-            if cmd or ctrl then table.contextMenu.undo()
+            if cmd or ctrl then table.contextMenu.undo() else openCellAndPopulateInitialValue()
           when 13 then break
           when 16 then break
           when 17 then break
@@ -133,7 +134,7 @@ class GridEdit
               table.delete()
           else
             key = key-48 if key in [96..111] # For numpad
-            if not table.openCell then table.activeCell().showControl(valueFromKey key, shift)
+            openCellAndPopulateInitialValue()
     window.onresize = -> Utilities::setStyles table.openCell.control, table.openCell.position() if table.openCell
     window.onscroll = -> table.openCell.reposition() if table.openCell
     @tableEl.oncontextmenu = (e) -> false

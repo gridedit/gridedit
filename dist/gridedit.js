@@ -177,7 +177,7 @@
       moveTo = table.moveTo;
       edit = table.edit;
       document.onkeydown = function(e) {
-        var cmd, ctrl, key, shift, valueFromKey;
+        var cmd, ctrl, key, openCellAndPopulateInitialValue, shift, valueFromKey;
         if (table.activeCell()) {
           key = e.keyCode;
           shift = e.shiftKey;
@@ -190,6 +190,11 @@
               return char.toLowerCase();
             } else {
               return char;
+            }
+          };
+          openCellAndPopulateInitialValue = function() {
+            if (!table.openCell) {
+              return table.activeCell().showControl(valueFromKey(key, shift));
             }
           };
           switch (key) {
@@ -219,21 +224,29 @@
             case 67:
               if (cmd || ctrl) {
                 return table.contextMenu.copy();
+              } else {
+                return openCellAndPopulateInitialValue();
               }
               break;
             case 86:
               if (cmd || ctrl) {
                 return table.contextMenu.paste();
+              } else {
+                return openCellAndPopulateInitialValue();
               }
               break;
             case 88:
               if (cmd || ctrl) {
                 return table.contextMenu.cut();
+              } else {
+                return openCellAndPopulateInitialValue();
               }
               break;
             case 90:
               if (cmd || ctrl) {
                 return table.contextMenu.undo();
+              } else {
+                return openCellAndPopulateInitialValue();
               }
               break;
             case 13:
@@ -260,9 +273,7 @@
               if (__indexOf.call([96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111], key) >= 0) {
                 key = key - 48;
               }
-              if (!table.openCell) {
-                return table.activeCell().showControl(valueFromKey(key, shift));
-              }
+              return openCellAndPopulateInitialValue();
           }
         }
       };
