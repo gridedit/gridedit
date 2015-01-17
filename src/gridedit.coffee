@@ -333,6 +333,8 @@ class Cell
     @afterActivate = @table.config.afterCellActivate if @table.config.afterCellActivate
     @beforeControlInit = @table.config.beforeControlInit if @table.config.beforeControlInit
     @afterControlInit = @table.config.afterControlInit if @table.config.afterControlInit
+    @beforeControlHide = @table.config.beforeControlHide if @table.config.beforeControlHide
+    @afterControlHide = @table.config.afterControlHide if @table.config.afterControlHide
     @onClick = @table.config.onCellClick if @table.config.onCellClick
     @beforeNavigateTo = @table.config.beforeCellNavigateTo if @table.config.beforeCellNavigateTo
   setNewHTMLValue: (newValue) ->
@@ -428,8 +430,11 @@ class Cell
         @afterControlInit @ if @afterControlInit
   hideControl: ->
     if @table.openCell isnt null
-      @control.remove() if @isControlInDocument()
-    @table.openCell = null
+      beforeControlHideReturnVal = @beforeControlHide @ if @beforeControlHide
+      if @beforeControlHide and beforeControlHideReturnVal isnt false or not @beforeControlHide
+          @control.remove() if @isControlInDocument()
+        @table.openCell = null
+        @afterControlHide @ if @afterControlHide
   edit: (newValue=null) ->
     if not @editable
       @showRed()

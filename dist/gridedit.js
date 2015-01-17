@@ -699,6 +699,12 @@
       if (this.table.config.afterControlInit) {
         this.afterControlInit = this.table.config.afterControlInit;
       }
+      if (this.table.config.beforeControlHide) {
+        this.beforeControlHide = this.table.config.beforeControlHide;
+      }
+      if (this.table.config.afterControlHide) {
+        this.afterControlHide = this.table.config.afterControlHide;
+      }
       if (this.table.config.onCellClick) {
         this.onClick = this.table.config.onCellClick;
       }
@@ -867,12 +873,21 @@
     };
 
     Cell.prototype.hideControl = function() {
+      var beforeControlHideReturnVal;
       if (this.table.openCell !== null) {
-        if (this.isControlInDocument()) {
-          this.control.remove();
+        if (this.beforeControlHide) {
+          beforeControlHideReturnVal = this.beforeControlHide(this);
+        }
+        if (this.beforeControlHide && beforeControlHideReturnVal !== false || !this.beforeControlHide) {
+          if (this.isControlInDocument()) {
+            this.control.remove();
+          }
+        }
+        this.table.openCell = null;
+        if (this.afterControlHide) {
+          return this.afterControlHide(this);
         }
       }
-      return this.table.openCell = null;
     };
 
     Cell.prototype.edit = function(newValue) {
