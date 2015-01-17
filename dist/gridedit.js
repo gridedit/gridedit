@@ -498,17 +498,6 @@
       return _results;
     };
 
-    GridEdit.prototype.paste = function(selection) {
-      if (selection == null) {
-        selection = this.activeCells;
-      }
-      return this.activeCells = this.copiedCells;
-    };
-
-    GridEdit.prototype.cut = function() {};
-
-    GridEdit.prototype.filldown = function() {};
-
     GridEdit.prototype.isDescendant = function(child) {
       var node;
       node = child.parentNode;

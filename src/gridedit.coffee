@@ -217,9 +217,6 @@ class GridEdit
     @element.removeChild @tableEl
     for key of @
       delete @[key]
-  paste: (selection=@activeCells) -> @activeCells = @copiedCells
-  cut: ->
-  filldown: ->
   isDescendant: (child) ->
     node = child.parentNode
     while node?
