@@ -651,14 +651,7 @@
       this.previousValue = null;
       this.valueKey = this.col.valueKey;
       this.source = this.table.config.rows[this.address[0]];
-      this.beforeEdit = this.table.config.beforeEdit;
-      this.afterEdit = this.table.config.afterEdit;
-      this.beforeActivate = this.table.config.beforeCellActivate;
-      this.afterActivate = this.table.config.afterCellActivate;
-      this.beforeControlInit = this.table.config.beforeControlInit;
-      this.afterControlInit = this.table.config.afterControlInit;
-      this.onClick = this.table.config.onCellClick;
-      this.beforeNavigateTo = this.table.config.beforeCellNavigateTo;
+      this.initCallbacks();
       Utilities.prototype.setAttributes(this.element, {
         id: "cell-" + this.id,
         "class": ((_ref = this.attributes) != null ? _ref["class"] : void 0) || '',
@@ -697,6 +690,33 @@
       this.element.appendChild(node);
       this.events(this);
     }
+
+    Cell.prototype.initCallbacks = function() {
+      if (this.table.config.beforeEdit) {
+        this.beforeEdit = this.table.config.beforeEdit;
+      }
+      if (this.table.config.afterEdit) {
+        this.afterEdit = this.table.config.afterEdit;
+      }
+      if (this.table.config.beforeCellActivate) {
+        this.beforeActivate = this.table.config.beforeCellActivate;
+      }
+      if (this.table.config.afterCellActivate) {
+        this.afterActivate = this.table.config.afterCellActivate;
+      }
+      if (this.table.config.beforeControlInit) {
+        this.beforeControlInit = this.table.config.beforeControlInit;
+      }
+      if (this.table.config.afterControlInit) {
+        this.afterControlInit = this.table.config.afterControlInit;
+      }
+      if (this.table.config.onCellClick) {
+        this.onClick = this.table.config.onCellClick;
+      }
+      if (this.table.config.beforeCellNavigateTo) {
+        return this.beforeNavigateTo = this.table.config.beforeCellNavigateTo;
+      }
+    };
 
     Cell.prototype.setNewHTMLValue = function(newValue) {
       var node;

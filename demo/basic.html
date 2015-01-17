@@ -31,6 +31,7 @@
     <div id="gridedit"></div>
     <script type="text/javascript">
       ge = new GridEdit({
+        initialize: true,
         cols: [
           { label: 'Prefix', valueKey: 'prefix', type: 'select', choices: ['Mr.', 'Mrs.', 'Ms.']},
           { label: 'Name', valueKey: 'name', type: 'string', style: {textAlign: 'center'} },
@@ -61,7 +62,12 @@
         // beforeCellNavigateTo: function(toCell, fromCell, direction) {
         //   console.log(direction);
         // },
-        initialize: true
+        // beforeEdit: function(cell, oldValue, newValue) {
+        //   console.log(cell, oldValue, newValue);
+        // },
+        // afterEdit: function(cell, oldValue, newValue) {
+        //   console.log(cell, oldValue, newValue);
+        // },
       });
     </script>
   </body>

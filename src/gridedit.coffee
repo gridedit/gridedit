@@ -300,14 +300,7 @@ class Cell
     @previousValue = null
     @valueKey = @col.valueKey
     @source = @table.config.rows[@address[0]]
-    @beforeEdit = @table.config.beforeEdit
-    @afterEdit = @table.config.afterEdit
-    @beforeActivate = @table.config.beforeCellActivate
-    @afterActivate = @table.config.afterCellActivate
-    @beforeControlInit = @table.config.beforeControlInit
-    @afterControlInit = @table.config.afterControlInit
-    @onClick = @table.config.onCellClick
-    @beforeNavigateTo = @table.config.beforeCellNavigateTo
+    @initCallbacks()
     Utilities::setAttributes @element,
       id: "cell-#{@id}"
       class: @attributes?.class or ''
@@ -336,6 +329,15 @@ class Cell
     @element.appendChild node
     # delete @attributes
     @events @
+  initCallbacks: ->
+    @beforeEdit = @table.config.beforeEdit if @table.config.beforeEdit
+    @afterEdit = @table.config.afterEdit if @table.config.afterEdit
+    @beforeActivate = @table.config.beforeCellActivate if @table.config.beforeCellActivate
+    @afterActivate = @table.config.afterCellActivate if @table.config.afterCellActivate
+    @beforeControlInit = @table.config.beforeControlInit if @table.config.beforeControlInit
+    @afterControlInit = @table.config.afterControlInit if @table.config.afterControlInit
+    @onClick = @table.config.onCellClick if @table.config.onCellClick
+    @beforeNavigateTo = @table.config.beforeCellNavigateTo if @table.config.beforeCellNavigateTo
   setNewHTMLValue: (newValue) ->
     @htmlContent = newValue
     node = @toFragment()
