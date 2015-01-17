@@ -761,7 +761,7 @@
 
     Cell.prototype.makeActive = function() {
       var beforeActivateReturnVal;
-      if (this.beforeActivate(this)) {
+      if (this.beforeActivate) {
         beforeActivateReturnVal = this.beforeActivate(this);
       }
       if (this.beforeActivate && beforeActivateReturnVal !== false || !this.beforeActivate) {
@@ -772,7 +772,7 @@
         if (this.table.openCell) {
           this.table.openCell.edit(this.table.openCell.control.value);
         }
-        if (this.afterActivate(this)) {
+        if (this.afterActivate) {
           return this.afterActivate(this);
         }
       }

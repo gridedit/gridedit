@@ -46,28 +46,21 @@
           { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.'}
         ],
         tableClass: 'myTable',
-        beforeInit: function() {
-          // console.log('beforeInit');
-        },
-        afterInit: function() {
-          // console.log('afterInit');
-        },
-        beforeCellActivate: function(cell) {
-          if (cell.type === 'date' && cell.editable === true) {
-            // console.log(cell, 'This is a date field!');
-          }
-          if (cell.meta.valueKey === 'notes') {
-            // cell.element.onclick = function() {
-            //   return false;
-            // };
-          }
-        },
-        afterCellActivate: function(cell) {
-          // console.log(cell, 'afterCellActivate');
-        },
-        beforeCellNavigateTo: function(toCell, fromCell, direction) {
-          // console.log(direction);
-        },
+        // beforeInit: function() {
+        //   console.log('beforeInit');
+        // },
+        // afterInit: function() {
+        //   console.log('afterInit');
+        // },
+        // beforeCellActivate: function(cell) {
+        //   console.log(cell, 'beforeCellActivate');
+        // },
+        // afterCellActivate: function(cell) {
+        //   console.log(cell, 'afterCellActivate');
+        // },
+        // beforeCellNavigateTo: function(toCell, fromCell, direction) {
+        //   console.log(direction);
+        // },
         initialize: true
       });
     </script>

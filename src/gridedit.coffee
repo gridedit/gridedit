@@ -377,7 +377,7 @@ class Cell
     else
       unless @type is 'html' then @element.textContent else @htmlContent
   makeActive: ->
-    beforeActivateReturnVal = @beforeActivate @ if @beforeActivate @
+    beforeActivateReturnVal = @beforeActivate @ if @beforeActivate
     if @beforeActivate and beforeActivateReturnVal isnt false or not @beforeActivate
       Utilities::clearActiveCells @table
       @showActive()
@@ -385,7 +385,7 @@ class Cell
       @table.selectionStart = @
       if @table.openCell
         @table.openCell.edit @table.openCell.control.value
-      @afterActivate @ if @afterActivate @
+      @afterActivate @ if @afterActivate
   makeInactive: -> @showInactive()
   addToSelection: ->
     @showActive()
