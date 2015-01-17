@@ -677,6 +677,7 @@
           this.control = this.toSelect();
       }
       this.element.appendChild(node);
+      delete this.attributes;
       this.events(this);
     }
 

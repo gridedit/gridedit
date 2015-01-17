@@ -325,7 +325,7 @@ class Cell
         node = document.createTextNode @attributes || ''
         @control = @toSelect()
     @element.appendChild node
-    # delete @attributes
+    delete @attributes
     @events @
   initCallbacks: ->
     @beforeEdit = @table.config.beforeEdit if @table.config.beforeEdit
