@@ -149,8 +149,9 @@ class GridEdit
   previousCell: -> @activeCell()?.previous()
   aboveCell: -> @activeCell()?.above()
   belowCell: -> @activeCell()?.below()
-  moveTo: (toCell, fromCell=toCell.table.activeCell()) ->
+  moveTo: (toCell, fromCell) ->
     if toCell
+      fromCell = toCell.table.activeCell() if fromCell is undefined
       direction = toCell.table.getDirection(fromCell, toCell)
       beforeCellNavigateReturnVal = toCell.beforeNavigateTo(toCell, fromCell, direction) if toCell.beforeNavigateTo
       if beforeCellNavigateReturnVal isnt false
@@ -160,7 +161,7 @@ class GridEdit
           directionModifier = 1
           if newY < oldY # Then going up - This is because you need -1 for scrolling up to work properly
             directionModifier = -1
-          window.scrollBy(0, toCell.position().height * directionModifier)
+          window.scrollBy(0, toCell?.position().height * directionModifier)
         do toCell.makeActive
     false
   getDirection: (fromCell, toCell) ->

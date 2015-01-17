@@ -345,10 +345,10 @@
 
     GridEdit.prototype.moveTo = function(toCell, fromCell) {
       var beforeCellNavigateReturnVal, direction, directionModifier, newY, oldY;
-      if (fromCell == null) {
-        fromCell = toCell.table.activeCell();
-      }
       if (toCell) {
+        if (fromCell === void 0) {
+          fromCell = toCell.table.activeCell();
+        }
         direction = toCell.table.getDirection(fromCell, toCell);
         if (toCell.beforeNavigateTo) {
           beforeCellNavigateReturnVal = toCell.beforeNavigateTo(toCell, fromCell, direction);
@@ -361,7 +361,7 @@
             if (newY < oldY) {
               directionModifier = -1;
             }
-            window.scrollBy(0, toCell.position().height * directionModifier);
+            window.scrollBy(0, (toCell != null ? toCell.position().height : void 0) * directionModifier);
           }
           toCell.makeActive();
         }
