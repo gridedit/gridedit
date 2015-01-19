@@ -92,6 +92,7 @@
       this.state = "ready";
       this.mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       this.topOffset = !this.config.topOffset ? 0 : this.config.topOffset;
+      this.formulaTriggerKeys = [];
       this.cellStyles = {
         activeColor: "#FFE16F",
         uneditableColor: "#FFBBB3"
@@ -582,11 +583,12 @@
 
   Row = (function() {
     function Row(attributes, table) {
-      var cell, col, i, _i, _len, _ref;
+      var cell, cellKey, col, i, sourceCell, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2;
       this.attributes = attributes;
       this.table = table;
       this.id = this.table.rows.length;
       this.cells = [];
+      this.formulaCells = [];
       this.index = this.table.rows.length;
       this.element = document.createElement('tr');
       this.editable = true;
@@ -598,12 +600,23 @@
         col = _ref[i];
         if (col.type === 'formula') {
           cell = new Cell(col.formula, this);
+          this.formulaCells.push(cell);
         } else {
           cell = new Cell(this.attributes[col.valueKey], this);
         }
         this.cells.push(cell);
         this.table.cols[i].cells.push(cell);
         this.element.appendChild(cell.element);
+        _ref1 = this.formulaCells;
+        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+          cell = _ref1[_j];
+          _ref2 = cell.getFormulaKeys();
+          for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
+            cellKey = _ref2[_k];
+            sourceCell = this.getCellByValueKey(cellKey);
+            sourceCell.dependantFormulaCells.push(cell);
+          }
+        }
       }
       delete this.attributes;
     }
@@ -614,6 +627,19 @@
 
     Row.prototype.above = function() {
       return this.table.rows[this.index - 1];
+    };
+
+    Row.prototype.getCellByValueKey = function(valueKey) {
+      var cell, foundCell, _i, _len, _ref;
+      foundCell = void 0;
+      _ref = this.cells;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        cell = _ref[_i];
+        if (cell.valueKey === valueKey) {
+          foundCell = cell;
+        }
+      }
+      return foundCell;
     };
 
     return Row;
@@ -634,9 +660,11 @@
       this.meta = this.col;
       this.source = this.table.config.rows[this.address[0]];
       this.valueKey = this.col.valueKey;
+      this.element = document.createElement('td');
+      this.previousValue = null;
       if (this.type === 'formula') {
         this.formula = this.attributes;
-        this.originalValue = this.runFormula();
+        this.originalValue = this.getFormulaResults();
       } else {
         this.originalValue = this.attributes;
       }
@@ -647,10 +675,11 @@
       } else {
         this.editable = true;
       }
-      this.element = document.createElement('td');
       this.val = this.originalValue;
       this.values = [this.originalValue];
-      this.previousValue = null;
+      if (this.type !== 'formula') {
+        this.dependantFormulaCells = [];
+      }
       this.initCallbacks();
       Utilities.prototype.setAttributes(this.element, {
         id: "cell-" + this.id,
@@ -738,7 +767,7 @@
     };
 
     Cell.prototype.value = function(newValue) {
-      var oldValue;
+      var formulaCell, oldValue, _i, _len, _ref;
       if (newValue == null) {
         newValue = null;
       }
@@ -777,6 +806,13 @@
           this.source[this.valueKey] = newValue;
         }
         Utilities.prototype.setStyles(this.control, this.position());
+        if (this.type !== 'formula') {
+          _ref = this.dependantFormulaCells;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            formulaCell = _ref[_i];
+            formulaCell.runFormula();
+          }
+        }
         if (this.afterEdit) {
           this.afterEdit(this, oldValue, newValue, this.table.contextMenu.getTargetPasteCell());
         }
@@ -790,17 +826,41 @@
       }
     };
 
-    Cell.prototype.runFormula = function() {
+    Cell.prototype.getFormulaResults = function() {
       var evalFormula, key, value, _ref;
       evalFormula = this.formula;
       _ref = this.source;
       for (key in _ref) {
         value = _ref[key];
         if (this.formula.indexOf(key) > -1) {
+          if (this.table.formulaTriggerKeys.indexOf(key) === -1) {
+            this.table.formulaTriggerKeys.push(key);
+          }
           evalFormula = evalFormula.replace(key, value);
         }
       }
       return eval(evalFormula);
+    };
+
+    Cell.prototype.getFormulaKeys = function() {
+      var formulaKeys, key, value, _ref;
+      formulaKeys = [];
+      _ref = this.source;
+      for (key in _ref) {
+        value = _ref[key];
+        if (this.formula.indexOf(key) > -1) {
+          formulaKeys.push(key);
+        }
+      }
+      return formulaKeys;
+    };
+
+    Cell.prototype.runFormula = function() {
+      return this.value(this.getFormulaResults());
+    };
+
+    Cell.prototype.isFormulaKey = function() {
+      return this.table.formulaTriggerKeys.indexOf(this.valueKey) > -1;
     };
 
     Cell.prototype.makeActive = function() {

@@ -38,7 +38,7 @@
           { label: 'Job Title', valueKey: 'jobTitle', type: 'string', style: { textAlign: 'left' } },
           { label: 'Projects Open', valueKey: 'numProjects', type: 'number', editable: false },
           { label: 'Projects Completed', valueKey: 'projectsCompleted', type: 'number', editable: true },
-          { label: 'Total Projects', type: 'formula', formula: 'numProjects + projectsCompleted' }
+          { label: 'Total Projects', type: 'formula', formula: '(numProjects * projectsCompleted) + 7' }
         ],
         rows: [
           { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 10, prefix: 'Mr.', projectsCompleted: 1000},

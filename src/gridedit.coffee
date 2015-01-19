@@ -42,6 +42,7 @@ class GridEdit
     @state = "ready"
     @mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     @topOffset = if not @config.topOffset then 0 else @config.topOffset
+    @formulaTriggerKeys = []
     @cellStyles =
       activeColor: "#FFE16F"
       uneditableColor: "#FFBBB3"
@@ -263,6 +264,7 @@ class Row
   constructor: (@attributes, @table) ->
     @id = @table.rows.length
     @cells = []
+    @formulaCells = []
     @index = @table.rows.length
     @element = document.createElement 'tr'
     @editable = true
@@ -271,14 +273,25 @@ class Row
     for col, i in @table.cols
       if col.type is 'formula'
         cell = new Cell col.formula, @
+        @formulaCells.push cell
       else
         cell = new Cell @attributes[col.valueKey], @
       @cells.push cell
       @table.cols[i].cells.push cell
       @element.appendChild cell.element
+      for cell in @formulaCells
+        for cellKey in cell.getFormulaKeys()
+          sourceCell = @getCellByValueKey(cellKey)
+          sourceCell.dependantFormulaCells.push cell
     delete @attributes
   below: -> @table.rows[@index + 1]
   above: -> @table.rows[@index - 1]
+  getCellByValueKey: (valueKey) ->
+    foundCell = undefined
+    for cell in @cells
+      if cell.valueKey is valueKey
+        foundCell = cell
+    foundCell
 
 # Creates a cell object in memory to store in a row
 class Cell
@@ -292,9 +305,11 @@ class Cell
     @meta = @col
     @source = @table.config.rows[@address[0]]
     @valueKey = @col.valueKey
+    @element = document.createElement 'td'
+    @previousValue = null
     if @type is 'formula'
       @formula = @attributes
-      @originalValue = @runFormula()
+      @originalValue = @getFormulaResults()
     else
       @originalValue = @attributes
     if 'editable' of @col
@@ -303,10 +318,9 @@ class Cell
       @editable = false
     else
       @editable = true
-    @element = document.createElement 'td'
     @val = @originalValue
     @values = [@originalValue]
-    @previousValue = null
+    @dependantFormulaCells = [] if @type isnt 'formula'
     @initCallbacks()
     Utilities::setAttributes @element,
       id: "cell-#{@id}"
@@ -386,16 +400,29 @@ class Cell
       else
         @source[@valueKey] = newValue
       Utilities::setStyles @control, @position()
+      if @type isnt 'formula'
+        for formulaCell in @dependantFormulaCells
+          formulaCell.runFormula()
       @afterEdit(@, oldValue, newValue, @table.contextMenu.getTargetPasteCell()) if @afterEdit
       return newValue
     else
       unless @type is 'html' then @element.textContent else @htmlContent
-  runFormula: ->
+  getFormulaResults: ->
     evalFormula = @formula
     for key, value of @source
       if @formula.indexOf(key) > -1
+        if @table.formulaTriggerKeys.indexOf(key) is -1
+          @table.formulaTriggerKeys.push key
         evalFormula = evalFormula.replace(key, value)
     eval evalFormula
+  getFormulaKeys: ->
+    formulaKeys = []
+    for key, value of @source
+      if @formula.indexOf(key) > -1
+        formulaKeys.push key
+    formulaKeys
+  runFormula: -> @value(@getFormulaResults())
+  isFormulaKey: -> @table.formulaTriggerKeys.indexOf(@valueKey) > -1
   makeActive: ->
     beforeActivateReturnVal = @beforeActivate @ if @beforeActivate
     if @beforeActivate and beforeActivateReturnVal isnt false or not @beforeActivate
