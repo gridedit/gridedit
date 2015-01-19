@@ -36,15 +36,17 @@
           { label: 'Prefix', valueKey: 'prefix', type: 'select', choices: ['Mr.', 'Mrs.', 'Ms.']},
           { label: 'Name', valueKey: 'name', type: 'string', style: {textAlign: 'center'} },
           { label: 'Job Title', valueKey: 'jobTitle', type: 'string', style: { textAlign: 'left' } },
-          { label: 'Number of Projects', valueKey: 'numProjects', type: 'number', editable: false }
+          { label: 'Projects Open', valueKey: 'numProjects', type: 'number', editable: false },
+          { label: 'Projects Completed', valueKey: 'projectsCompleted', type: 'number', editable: true },
+          { label: 'Total Projects', type: 'formula', formula: 'numProjects + projectsCompleted' }
         ],
         rows: [
-          { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.'},
-          { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.'},
-          { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.'},
-          { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.'},
-          { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.'},
-          { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.'}
+          { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 10, prefix: 'Mr.', projectsCompleted: 1000},
+          { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 200, prefix: 'Mr.', projectsCompleted: 2},
+          { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 10, prefix: 'Mr.', projectsCompleted: 1000},
+          { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 200, prefix: 'Mr.', projectsCompleted: 2},
+          { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 10, prefix: 'Mr.', projectsCompleted: 1000},
+          { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 200, prefix: 'Mr.', projectsCompleted: 2}
         ],
         tableClass: 'myTable',
         // beforeInit: function() {

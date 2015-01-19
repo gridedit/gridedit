@@ -269,7 +269,10 @@ class Row
     Utilities::setAttributes @element,
       id: "row-#{@id}"
     for col, i in @table.cols
-      cell = new Cell @attributes[col.valueKey], @
+      if col.type is 'formula'
+        cell = new Cell col.formula, @
+      else
+        cell = new Cell @attributes[col.valueKey], @
       @cells.push cell
       @table.cols[i].cells.push cell
       @element.appendChild cell.element
@@ -287,43 +290,52 @@ class Cell
     @col = @table.cols[@index]
     @type = @col.type
     @meta = @col
+    @source = @table.config.rows[@address[0]]
+    @valueKey = @col.valueKey
+    if @type is 'formula'
+      @formula = @attributes
+      @originalValue = @runFormula()
+    else
+      @originalValue = @attributes
     if 'editable' of @col
       @editable = @col.editable
+    else if @type is 'formula'
+      @editable = false
     else
       @editable = true
     @element = document.createElement 'td'
-    @originalValue = @attributes
     @val = @originalValue
     @values = [@originalValue]
     @previousValue = null
-    @valueKey = @col.valueKey
-    @source = @table.config.rows[@address[0]]
     @initCallbacks()
     Utilities::setAttributes @element,
       id: "cell-#{@id}"
-      class: @attributes?.class or ''
-      style: @attributes?.styles or ''
+      class: @originalValue?.class or ''
+      style: @originalValue?.styles or ''
     if @col.style
       for styleName of @col.style
         @element.style[styleName] = @col.style[styleName]
     switch @type
       when 'string'
-        node = document.createTextNode @attributes
+        node = document.createTextNode @originalValue
         @control = document.createElement 'input'
       when 'number'
-        node = document.createTextNode @attributes
+        node = document.createTextNode @originalValue
         @control = document.createElement 'input'
       when 'date'
-        node = document.createTextNode @toDateString @attributes
+        node = document.createTextNode @toDateString @originalValue
         @control = @toDate()
         @control.valueAsDate = new Date(@originalValue) if @originalValue
       when 'html'
-        @htmlContent = @attributes
+        @htmlContent = @originalValue
         node = @toFragment()
         @control = document.createElement 'input'
       when 'select'
-        node = document.createTextNode @attributes || ''
+        node = document.createTextNode @originalValue || ''
         @control = @toSelect()
+      when 'formula'
+        node = document.createTextNode @originalValue
+        @control = document.createElement 'input'
     @element.appendChild node
     delete @attributes
     @events @
@@ -378,6 +390,12 @@ class Cell
       return newValue
     else
       unless @type is 'html' then @element.textContent else @htmlContent
+  runFormula: ->
+    evalFormula = @formula
+    for key, value of @source
+      if @formula.indexOf(key) > -1
+        evalFormula = evalFormula.replace(key, value)
+    eval evalFormula
   makeActive: ->
     beforeActivateReturnVal = @beforeActivate @ if @beforeActivate
     if @beforeActivate and beforeActivateReturnVal isnt false or not @beforeActivate
@@ -452,8 +470,7 @@ class Cell
     position = @position()
     (position.top >= @table.topOffset) and (position.bottom <= window.innerHeight)
   isControlInDocument: -> @control.parentNode isnt null
-  reposition: ->
-    Utilities::setStyles @control, @position()
+  reposition: -> Utilities::setStyles @control, @position()
   next: -> @row.cells[@index + 1] or @row.below()?.cells[0]
   previous: -> @row.cells[@index - 1] or @row.above()?.cells[@row.cells.length - 1]
   above: -> @row.above()?.cells[@index]

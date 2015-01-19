@@ -596,7 +596,11 @@
       _ref = this.table.cols;
       for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
         col = _ref[i];
-        cell = new Cell(this.attributes[col.valueKey], this);
+        if (col.type === 'formula') {
+          cell = new Cell(col.formula, this);
+        } else {
+          cell = new Cell(this.attributes[col.valueKey], this);
+        }
         this.cells.push(cell);
         this.table.cols[i].cells.push(cell);
         this.element.appendChild(cell.element);
@@ -628,23 +632,30 @@
       this.col = this.table.cols[this.index];
       this.type = this.col.type;
       this.meta = this.col;
+      this.source = this.table.config.rows[this.address[0]];
+      this.valueKey = this.col.valueKey;
+      if (this.type === 'formula') {
+        this.formula = this.attributes;
+        this.originalValue = this.runFormula();
+      } else {
+        this.originalValue = this.attributes;
+      }
       if ('editable' in this.col) {
         this.editable = this.col.editable;
+      } else if (this.type === 'formula') {
+        this.editable = false;
       } else {
         this.editable = true;
       }
       this.element = document.createElement('td');
-      this.originalValue = this.attributes;
       this.val = this.originalValue;
       this.values = [this.originalValue];
       this.previousValue = null;
-      this.valueKey = this.col.valueKey;
-      this.source = this.table.config.rows[this.address[0]];
       this.initCallbacks();
       Utilities.prototype.setAttributes(this.element, {
         id: "cell-" + this.id,
-        "class": ((_ref = this.attributes) != null ? _ref["class"] : void 0) || '',
-        style: ((_ref1 = this.attributes) != null ? _ref1.styles : void 0) || ''
+        "class": ((_ref = this.originalValue) != null ? _ref["class"] : void 0) || '',
+        style: ((_ref1 = this.originalValue) != null ? _ref1.styles : void 0) || ''
       });
       if (this.col.style) {
         for (styleName in this.col.style) {
@@ -653,28 +664,32 @@
       }
       switch (this.type) {
         case 'string':
-          node = document.createTextNode(this.attributes);
+          node = document.createTextNode(this.originalValue);
           this.control = document.createElement('input');
           break;
         case 'number':
-          node = document.createTextNode(this.attributes);
+          node = document.createTextNode(this.originalValue);
           this.control = document.createElement('input');
           break;
         case 'date':
-          node = document.createTextNode(this.toDateString(this.attributes));
+          node = document.createTextNode(this.toDateString(this.originalValue));
           this.control = this.toDate();
           if (this.originalValue) {
             this.control.valueAsDate = new Date(this.originalValue);
           }
           break;
         case 'html':
-          this.htmlContent = this.attributes;
+          this.htmlContent = this.originalValue;
           node = this.toFragment();
           this.control = document.createElement('input');
           break;
         case 'select':
-          node = document.createTextNode(this.attributes || '');
+          node = document.createTextNode(this.originalValue || '');
           this.control = this.toSelect();
+          break;
+        case 'formula':
+          node = document.createTextNode(this.originalValue);
+          this.control = document.createElement('input');
       }
       this.element.appendChild(node);
       delete this.attributes;
@@ -773,6 +788,19 @@
           return this.htmlContent;
         }
       }
+    };
+
+    Cell.prototype.runFormula = function() {
+      var evalFormula, key, value, _ref;
+      evalFormula = this.formula;
+      _ref = this.source;
+      for (key in _ref) {
+        value = _ref[key];
+        if (this.formula.indexOf(key) > -1) {
+          evalFormula = evalFormula.replace(key, value);
+        }
+      }
+      return eval(evalFormula);
     };
 
     Cell.prototype.makeActive = function() {
