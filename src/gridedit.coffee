@@ -625,7 +625,7 @@ class GenericCell
     newValue
 
   setValue: (newValue) ->
-    @source[@valueKey] = newValue
+    @cell.source[@cell.valueKey] = newValue
 
   addControlEvents: (cell) ->
     # stub
