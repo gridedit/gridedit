@@ -49,7 +49,7 @@ class GridEdit
       @set key, value for key, value of @config.custom when key of @config.custom
       delete @config.custom
     do @init if @config.initialize
-    @contextMenu = new ContextMenu ['cut', 'copy', 'paste', 'undo', 'fill'], @
+    @contextMenu = new ContextMenu @config.contextMenuItems, @
   init: ->
     do @config.beforeInit if @config.beforeInit
     do @build
@@ -207,7 +207,7 @@ class GridEdit
     for row in @rows
       rowData = []
       for cell in row.cells
-        rowData.push if cell.type is 'date' then cell.control.valueAsDate else cell.value()
+        rowData.push cell.cellTypeObject.value()
       data.push rowData
     data
   repopulate: ->
@@ -228,6 +228,7 @@ class GridEdit
 class Column
   constructor: (@attributes, @table) ->
     @id = @index = @table.cols.length
+    @cellClass = @attributes.cellClass
     @cells = []
     @element = document.createElement 'th'
     @textNode = document.createTextNode @attributes.label
@@ -279,7 +280,7 @@ class Row
 
 # Creates a cell object in memory to store in a row
 class Cell
-  constructor: (@attributes, @row) ->
+  constructor: (@originalValue, @row) ->
     @id = "#{@row.id}-#{@row.cells.length}"
     @address = [@row.id, @row.cells.length]
     @index = @row.cells.length
@@ -287,45 +288,28 @@ class Cell
     @col = @table.cols[@index]
     @type = @col.type
     @meta = @col
-    if 'editable' of @col
-      @editable = @col.editable
-    else
-      @editable = true
+    @editable = @col.editable != false
     @element = document.createElement 'td'
-    @originalValue = @attributes
-    @val = @originalValue
+    @element.classList.add @col.cellClass if @col.cellClass
     @values = [@originalValue]
     @previousValue = null
     @valueKey = @col.valueKey
     @source = @table.config.rows[@address[0]]
     @initCallbacks()
-    Utilities::setAttributes @element,
-      id: "cell-#{@id}"
-      class: @attributes?.class or ''
-      style: @attributes?.styles or ''
     if @col.style
       for styleName of @col.style
         @element.style[styleName] = @col.style[styleName]
     switch @type
       when 'string'
-        node = document.createTextNode @attributes
-        @control = document.createElement 'input'
+        @cellTypeObject = new StringCell(@)
       when 'number'
-        node = document.createTextNode @attributes
-        @control = document.createElement 'input'
+        @cellTypeObject = new NumberCell(@)
       when 'date'
-        node = document.createTextNode @toDateString @attributes
-        @control = @toDate()
-        @control.valueAsDate = new Date(@originalValue) if @originalValue
+        @cellTypeObject = new DateCell(@)
       when 'html'
-        @htmlContent = @attributes
-        node = @toFragment()
-        @control = document.createElement 'input'
+        @cellTypeObject = new HTMLCell(@)
       when 'select'
-        node = document.createTextNode @attributes || ''
-        @control = @toSelect()
-    @element.appendChild node
-    delete @attributes
+        @cellTypeObject = new SelectCell(@)
     @events @
   initCallbacks: ->
     @beforeEdit = @table.config.beforeEdit if @table.config.beforeEdit
@@ -338,46 +322,20 @@ class Cell
     @afterControlHide = @table.config.afterControlHide if @table.config.afterControlHide
     @onClick = @table.config.onCellClick if @table.config.onCellClick
     @beforeNavigateTo = @table.config.beforeCellNavigateTo if @table.config.beforeCellNavigateTo
-  setNewHTMLValue: (newValue) ->
-    @htmlContent = newValue
-    node = @toFragment()
-    @element.innerHTML = ""
-    @element.appendChild node
   value: (newValue=null) ->
     if newValue isnt null and newValue isnt @element.textContent
-      if @type is 'date'
-        if newValue.length > 0
-          newValue = @toDateString(Date.parse(newValue))
-        else if newValue instanceof Date
-          newValue = @toDateString newValue
-        else if newValue.length is 0
-          newValue = ""
-          @control.valueAsDate = null
-      else if @type is 'number'
-        if newValue.length is 0
-          newValue = null
-        else
-          newValue = Number(newValue)
+      newValue = @cellTypeObject.formatValue(newValue)
       oldValue = @value()
       @beforeEdit(@, oldValue, newValue) if @beforeEdit
       @previousValue = @element.textContent
       @values.push newValue
       @element.textContent = newValue
-      if @type is 'number'
-        @source[@valueKey] = Number(newValue)
-      else if @type is 'date'
-        @source[@valueKey] = new Date(newValue)
-        @control.valueAsDate = new Date(newValue)
-        # @control.value = new Date(newValue)
-      else if  @type is 'html'
-        @setNewHTMLValue newValue
-      else
-        @source[@valueKey] = newValue
+      @cellTypeObject.setValue(newValue)
       Utilities::setStyles @control, @position()
       @afterEdit(@, oldValue, newValue, @table.contextMenu.getTargetPasteCell()) if @afterEdit
       return newValue
     else
-      unless @type is 'html' then @element.textContent else @htmlContent
+      @cellTypeObject.render()
   makeActive: ->
     beforeActivateReturnVal = @beforeActivate @ if @beforeActivate
     if @beforeActivate and beforeActivateReturnVal isnt false or not @beforeActivate
@@ -416,14 +374,7 @@ class Cell
             control.focus()
           , 0)
         else
-          if @type is 'select'
-            @control = @toSelect()
-            cell = @
-            @control.onchange = (e) ->
-              cell.edit e.target.value
-          else
-            @control.value = @value()
-        @control.value = @toDateInputString(@value()) if @type is 'date'
+          @cellTypeObject.initControl()
         @control.style.position = "fixed"
         Utilities::setStyles @control, @position()
         @table.element.appendChild @control
@@ -433,7 +384,7 @@ class Cell
     if @table.openCell isnt null
       beforeControlHideReturnVal = @beforeControlHide @ if @beforeControlHide
       if @beforeControlHide and beforeControlHideReturnVal isnt false or not @beforeControlHide
-          @control.remove() if @isControlInDocument()
+        @control.remove() if @isControlInDocument()
         @table.openCell = null
         @afterControlHide @ if @afterControlHide
   edit: (newValue=null) ->
@@ -446,7 +397,7 @@ class Cell
       else
         do @showControl
         @control.focus()
-        @control.select() if @type isnt 'select'
+        @cellTypeObject.select()
   position: -> @element.getBoundingClientRect()
   isVisible: ->
     position = @position()
@@ -464,51 +415,9 @@ class Cell
   isBelow: (cell) -> cell.address[0] < @address[0] and cell.address[1] is @address[1]
   addClass: (newClass) -> @element.classList.add newClass
   removeClass: (classToRemove) -> @element.classList.remove classToRemove
-  toFragment: ->
-    element = document.createElement "div"
-    fragment = document.createDocumentFragment()
-    element.innerHTML = @htmlContent
-    fragment.appendChild(element.firstChild || document.createTextNode(''))
-    fragment
-  toSelect: ->
-    select = document.createElement "select"
-    console.log "There is not a 'choices' key in cell #{@address} and you specified that it was of type 'select'" if not @meta.choices
-    for choice in @meta.choices
-      option = document.createElement "option"
-      if choice instanceof Array
-        for subchoice, index in choice
-          option.value = subchoice if index is 0
-          option.text = subchoice if index is 1
-      else
-        option.value = option.text = choice
-      option.selected = true if @value() is choice
-      select.add option
-    select.classList.add 'form-control'
-    select
-  toDateString: (passedDate=null) ->
-    if passedDate and passedDate isnt ''
-      date = new Date(passedDate)
-    else
-      if @value() then date = new Date(@value()) else null
-    if date instanceof Date
-      ('0' + (date.getMonth()+1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2) + '-' + date.getFullYear()
-      # date.getFullYear() + '-' + ('0' + (date.getMonth()+1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2)
-    else
-      ''
-  toDate: ->
-    input = document.createElement 'input'
-    input.type = 'date'
-    input.value = @toDateString()
-    input
-  toDateInputString: (passedDate=null) ->
-    if passedDate and passedDate isnt ''
-      date = new Date(passedDate)
-    else
-      if @value() then date = new Date(@value()) else null
-    if date instanceof Date
-      date.getFullYear() + '-' + ('0' + (date.getMonth()+1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2)
-    else
-      ''
+
+
+
   isBeingEdited: -> @control.parentNode?
   events: (cell) ->
     table = cell.table
@@ -545,9 +454,11 @@ class Cell
         when 9
           cell.edit @value
           moveTo table.nextCell()
-    if @type is 'select' or @type is 'date'
-      @control.onchange = (e) ->
-        cell.edit e.target.value
+
+
+
+    @cellTypeObject.addControlEvents(cell)
+
     if table.mobile
       startY = null
       @element.ontouchstart = (e) ->
@@ -561,29 +472,74 @@ class Cell
           do cell.edit
 
 class ContextMenu
-  constructor: (@actions, @table) ->
-    @defaultActions = ['cut', 'copy', 'paste', 'undo', 'fill']
+  constructor: (@userDefinedActions, @table) ->
+    ctrlOrCmd = if /Mac/.test(navigator.platform) then 'Cmd' else 'Ctrl'
+
+    @defaultActions = [
+      {
+        name: 'Cut',
+        value: 'cut',
+        shortCut: ctrlOrCmd+'+X'
+      },
+      {
+        name: 'Copy',
+        value: 'copy',
+        shortCut: ctrlOrCmd+'+C'
+      },
+      {
+        name: 'Paste',
+        value: 'paste',
+        shortCut: ctrlOrCmd+'+V'
+      },
+      {
+        name: 'Undo',
+        value: 'undo',
+        shortCut: ctrlOrCmd+'+Z'
+      },
+      {
+        name: 'Fill',
+        value: 'fill',
+        shortCut: ''
+      }
+    ]
+
     @element = document.createElement 'div'
+    @element.style.position = 'fixed'
     @actionNodes = {}
     @borderedCells = []
     Utilities::setAttributes @element, {id: 'contextMenu', class: 'dropdown clearfix'}
     ul = document.createElement 'ul'
     Utilities::setAttributes ul, {class: 'dropdown-menu', role: 'menu', 'aria-labelledby', style: 'display:block;position:static;margin-bottom:5px;'}
+
+    divider = document.createElement 'li'
+    Utilities::setAttributes divider, {class: 'divider'}
+
     for action in @defaultActions
       li = document.createElement 'li'
-      divider = document.createElement 'li'
-      Utilities::setAttributes divider, {class: 'divider'}
+
+      div = document.createElement 'div'
+
+      span = document.createElement 'span'
+      span.textContent = action.shortCut
+      span.setAttribute('name', action.name)
+      Utilities::setAttributes span, { style: "float: right !important;" }
+
       a = document.createElement 'a'
-      a.textContent = Utilities::capitalize action
-      if action in @actions
-        Utilities::setAttributes a, {class: 'enabled', tabIndex: '-1'}
-      else
-        Utilities::setAttributes a, {class: 'disabled', tabIndex: '-1'}
-      if action is 'fill'
+      a.textContent = action.name
+      a.setAttribute('name', action.name)
+      Utilities::setAttributes a, {class: 'enabled', tabIndex: '-1'}
+
+      if action.name is 'Fill'
         ul.appendChild divider
-      @actionNodes[action] = a
+
+      a.appendChild span
+
       li.appendChild a
+      @actionNodes[action] = li
+
       ul.appendChild li
+
+
     @element.appendChild ul
     @events @
   show: (x, y, cell) ->
@@ -686,13 +642,171 @@ class ContextMenu
     classes.toggle 'disabled'
   events: (menu) ->
     @element.onclick = (e) ->
-      action = e.target.textContent
+      action = e.target.getAttribute('name')
+      console.log(action);
       switch action
         when 'Cut' then do menu.cut
         when 'Copy' then do menu.copy
         when 'Paste' then do menu.paste
         when 'Undo' then do menu.undo
         when 'Fill' then do menu.fill
+
+
+# Cell Type Behavior
+# generic behavior will be in GenericCell class
+# type specific behavior will be in the associated <type>Cell class
+
+# Generic Cell
+class GenericCell
+  constructor: (@cell) ->
+    node = document.createTextNode @cell.originalValue
+    @cell.control = document.createElement 'input'
+    @cell.element.appendChild node
+
+  initControl: ->
+    @cell.control.value = @cell.value()
+
+  formatValue: (newValue) ->
+    newValue
+
+  setValue: (newValue) ->
+    @cell.source[@cell.valueKey] = newValue
+
+  addControlEvents: (cell) ->
+    # stub
+
+  value: ->
+    @cell.value()
+
+  render: ->
+    @cell.element.textContent
+
+  select: ->
+    @cell.control.select()
+
+# String Cell
+class StringCell extends GenericCell
+
+# Number Cell
+class NumberCell extends GenericCell
+  formatValue: (newValue) ->
+    Number(newValue)
+
+  setValue: (newValue) ->
+    @cell.source[@cell.valueKey] = Number(newValue)
+
+# Date Cell
+class DateCell extends GenericCell
+  constructor: (@cell) ->
+    node = document.createTextNode @toDateString @cell.originalValue
+    @cell.control = @toDate()
+    @cell.control.valueAsDate = new Date(@cell.originalValue) if @cell.originalValue
+    @cell.element.appendChild node
+
+  formatValue: (newValue) ->
+    if newValue.length > 0
+      @toDateString(Date.parse(newValue))
+    else if newValue instanceof Date
+      @toDateString newValue
+    else if newValue.length is 0
+      @cell.control.valueAsDate = null
+      ''
+
+  setValue: (newValue) ->
+    @cell.source[@cell.valueKey] = new Date(newValue)
+    @cell.control.valueAsDate = new Date(newValue)
+
+  initControl: ->
+    super()
+    @cell.control.value = @toDateInputString(@cell.value())
+
+  addControlEvents: (cell) ->
+    @cell.control.onchange = (e) ->
+      cell.edit e.target.value
+
+  value: ->
+    @cell.control.valueAsDate
+
+  toDateString: (passedDate=null) ->
+    if passedDate and passedDate isnt ''
+      date = new Date(passedDate)
+    else
+      if @value() then date = new Date(@value()) else null
+    if date instanceof Date
+      ('0' + (date.getMonth()+1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2) + '-' + date.getFullYear()
+      # date.getFullYear() + '-' + ('0' + (date.getMonth()+1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2)
+    else
+      ''
+  toDate: ->
+    input = document.createElement 'input'
+    input.type = 'date'
+    input.value = @toDateString()
+    input
+  toDateInputString: (passedDate=null) ->
+    if passedDate and passedDate isnt ''
+      date = new Date(passedDate)
+    else
+      if @value() then date = new Date(@value()) else null
+    if date instanceof Date
+      date.getFullYear() + '-' + ('0' + (date.getMonth()+1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2)
+    else
+      ''
+
+# HTML Cell
+class HTMLCell extends GenericCell
+  constructor: (@cell) ->
+    @cell.htmlContent = @cell.originalValue
+    node = @toFragment()
+    @cell.control = document.createElement 'input'
+    @cell.element.appendChild node
+
+  setValue: (newValue) ->
+    @cell.htmlContent = newValue
+    node = @toFragment()
+    @cell.element.innerHTML = ""
+    @cell.element.appendChild node
+
+  toFragment: ->
+    element = document.createElement "div"
+    fragment = document.createDocumentFragment()
+    element.innerHTML = @cell.htmlContent
+    fragment.appendChild(element.firstChild || document.createTextNode(''))
+    fragment
+
+  render: ->
+    @htmlContent
+
+# Select Cell
+class SelectCell extends GenericCell
+  constructor: (@cell) ->
+    node = document.createTextNode @cell.originalValue || ''
+    @cell.control = @initControl
+    @cell.element.appendChild node
+
+  initControl: ->
+    select = document.createElement "select"
+    console.log "There is not a 'choices' key in cell #{@cell.address} and you specified that it was of type 'select'" if not @cell.meta.choices
+    for choice in @cell.meta.choices
+      option = document.createElement "option"
+      if choice instanceof Array
+        for subchoice, index in choice
+          option.value = subchoice if index is 0
+          option.text = subchoice if index is 1
+      else
+        option.value = option.text = choice
+      option.selected = true if @cell.value() is choice
+      select.add option
+    select.classList.add 'form-control'
+    @cell.control = select
+    @cell.control.onchange = (e) ->
+      @cell.edit e.target.value
+
+  addControlEvents: (cell) ->
+    @cell.control.onchange = (e) ->
+      cell.edit e.target.value
+
+  select: ->
+    # stub
 
 root = exports ? window
 root.GridEdit = GridEdit

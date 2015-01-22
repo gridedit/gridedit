@@ -1,6 +1,8 @@
 (function() {
-  var Cell, Column, ContextMenu, GridEdit, Row, Utilities, root,
-    __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+  var Cell, Column, ContextMenu, DateCell, GenericCell, GridEdit, HTMLCell, NumberCell, Row, SelectCell, StringCell, Utilities, root,
+    __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
+    __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   Utilities = (function() {
     function Utilities() {}
@@ -109,7 +111,7 @@
       if (this.config.initialize) {
         this.init();
       }
-      this.contextMenu = new ContextMenu(['cut', 'copy', 'paste', 'undo', 'fill'], this);
+      this.contextMenu = new ContextMenu(this.config.contextMenuItems, this);
     }
 
     GridEdit.prototype.init = function() {
@@ -461,7 +463,7 @@
         _ref1 = row.cells;
         for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
           cell = _ref1[_j];
-          rowData.push(cell.type === 'date' ? cell.control.valueAsDate : cell.value());
+          rowData.push(cell.cellTypeObject.value());
         }
         data.push(rowData);
       }
@@ -520,6 +522,7 @@
       this.attributes = attributes;
       this.table = table;
       this.id = this.index = this.table.cols.length;
+      this.cellClass = this.attributes.cellClass;
       this.cells = [];
       this.element = document.createElement('th');
       this.textNode = document.createTextNode(this.attributes.label);
@@ -617,9 +620,9 @@
   })();
 
   Cell = (function() {
-    function Cell(attributes, row) {
-      var node, styleName, _ref, _ref1;
-      this.attributes = attributes;
+    function Cell(originalValue, row) {
+      var styleName;
+      this.originalValue = originalValue;
       this.row = row;
       this.id = "" + this.row.id + "-" + this.row.cells.length;
       this.address = [this.row.id, this.row.cells.length];
@@ -628,24 +631,16 @@
       this.col = this.table.cols[this.index];
       this.type = this.col.type;
       this.meta = this.col;
-      if ('editable' in this.col) {
-        this.editable = this.col.editable;
-      } else {
-        this.editable = true;
-      }
+      this.editable = this.col.editable !== false;
       this.element = document.createElement('td');
-      this.originalValue = this.attributes;
-      this.val = this.originalValue;
+      if (this.col.cellClass) {
+        this.element.classList.add(this.col.cellClass);
+      }
       this.values = [this.originalValue];
       this.previousValue = null;
       this.valueKey = this.col.valueKey;
       this.source = this.table.config.rows[this.address[0]];
       this.initCallbacks();
-      Utilities.prototype.setAttributes(this.element, {
-        id: "cell-" + this.id,
-        "class": ((_ref = this.attributes) != null ? _ref["class"] : void 0) || '',
-        style: ((_ref1 = this.attributes) != null ? _ref1.styles : void 0) || ''
-      });
       if (this.col.style) {
         for (styleName in this.col.style) {
           this.element.style[styleName] = this.col.style[styleName];
@@ -653,31 +648,20 @@
       }
       switch (this.type) {
         case 'string':
-          node = document.createTextNode(this.attributes);
-          this.control = document.createElement('input');
+          this.cellTypeObject = new StringCell(this);
           break;
         case 'number':
-          node = document.createTextNode(this.attributes);
-          this.control = document.createElement('input');
+          this.cellTypeObject = new NumberCell(this);
           break;
         case 'date':
-          node = document.createTextNode(this.toDateString(this.attributes));
-          this.control = this.toDate();
-          if (this.originalValue) {
-            this.control.valueAsDate = new Date(this.originalValue);
-          }
+          this.cellTypeObject = new DateCell(this);
           break;
         case 'html':
-          this.htmlContent = this.attributes;
-          node = this.toFragment();
-          this.control = document.createElement('input');
+          this.cellTypeObject = new HTMLCell(this);
           break;
         case 'select':
-          node = document.createTextNode(this.attributes || '');
-          this.control = this.toSelect();
+          this.cellTypeObject = new SelectCell(this);
       }
-      this.element.appendChild(node);
-      delete this.attributes;
       this.events(this);
     }
 
@@ -714,36 +698,13 @@
       }
     };
 
-    Cell.prototype.setNewHTMLValue = function(newValue) {
-      var node;
-      this.htmlContent = newValue;
-      node = this.toFragment();
-      this.element.innerHTML = "";
-      return this.element.appendChild(node);
-    };
-
     Cell.prototype.value = function(newValue) {
       var oldValue;
       if (newValue == null) {
         newValue = null;
       }
       if (newValue !== null && newValue !== this.element.textContent) {
-        if (this.type === 'date') {
-          if (newValue.length > 0) {
-            newValue = this.toDateString(Date.parse(newValue));
-          } else if (newValue instanceof Date) {
-            newValue = this.toDateString(newValue);
-          } else if (newValue.length === 0) {
-            newValue = "";
-            this.control.valueAsDate = null;
-          }
-        } else if (this.type === 'number') {
-          if (newValue.length === 0) {
-            newValue = null;
-          } else {
-            newValue = Number(newValue);
-          }
-        }
+        newValue = this.cellTypeObject.formatValue(newValue);
         oldValue = this.value();
         if (this.beforeEdit) {
           this.beforeEdit(this, oldValue, newValue);
@@ -751,27 +712,14 @@
         this.previousValue = this.element.textContent;
         this.values.push(newValue);
         this.element.textContent = newValue;
-        if (this.type === 'number') {
-          this.source[this.valueKey] = Number(newValue);
-        } else if (this.type === 'date') {
-          this.source[this.valueKey] = new Date(newValue);
-          this.control.valueAsDate = new Date(newValue);
-        } else if (this.type === 'html') {
-          this.setNewHTMLValue(newValue);
-        } else {
-          this.source[this.valueKey] = newValue;
-        }
+        this.cellTypeObject.setValue(newValue);
         Utilities.prototype.setStyles(this.control, this.position());
         if (this.afterEdit) {
           this.afterEdit(this, oldValue, newValue, this.table.contextMenu.getTargetPasteCell());
         }
         return newValue;
       } else {
-        if (this.type !== 'html') {
-          return this.element.textContent;
-        } else {
-          return this.htmlContent;
-        }
+        return this.cellTypeObject.render();
       }
     };
 
@@ -828,7 +776,7 @@
     };
 
     Cell.prototype.showControl = function(value) {
-      var beforeControlInitReturnVal, cell, control;
+      var beforeControlInitReturnVal, control;
       if (value == null) {
         value = null;
       }
@@ -849,18 +797,7 @@
               return control.focus();
             }, 0);
           } else {
-            if (this.type === 'select') {
-              this.control = this.toSelect();
-              cell = this;
-              this.control.onchange = function(e) {
-                return cell.edit(e.target.value);
-              };
-            } else {
-              this.control.value = this.value();
-            }
-          }
-          if (this.type === 'date') {
-            this.control.value = this.toDateInputString(this.value());
+            this.cellTypeObject.initControl();
           }
           this.control.style.position = "fixed";
           Utilities.prototype.setStyles(this.control, this.position());
@@ -883,10 +820,10 @@
           if (this.isControlInDocument()) {
             this.control.remove();
           }
-        }
-        this.table.openCell = null;
-        if (this.afterControlHide) {
-          return this.afterControlHide(this);
+          this.table.openCell = null;
+          if (this.afterControlHide) {
+            return this.afterControlHide(this);
+          }
         }
       }
     };
@@ -908,9 +845,7 @@
         } else {
           this.showControl();
           this.control.focus();
-          if (this.type !== 'select') {
-            return this.control.select();
-          }
+          return this.cellTypeObject.select();
         }
       }
     };
@@ -977,97 +912,6 @@
       return this.element.classList.remove(classToRemove);
     };
 
-    Cell.prototype.toFragment = function() {
-      var element, fragment;
-      element = document.createElement("div");
-      fragment = document.createDocumentFragment();
-      element.innerHTML = this.htmlContent;
-      fragment.appendChild(element.firstChild || document.createTextNode(''));
-      return fragment;
-    };
-
-    Cell.prototype.toSelect = function() {
-      var choice, index, option, select, subchoice, _i, _j, _len, _len1, _ref;
-      select = document.createElement("select");
-      if (!this.meta.choices) {
-        console.log("There is not a 'choices' key in cell " + this.address + " and you specified that it was of type 'select'");
-      }
-      _ref = this.meta.choices;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        choice = _ref[_i];
-        option = document.createElement("option");
-        if (choice instanceof Array) {
-          for (index = _j = 0, _len1 = choice.length; _j < _len1; index = ++_j) {
-            subchoice = choice[index];
-            if (index === 0) {
-              option.value = subchoice;
-            }
-            if (index === 1) {
-              option.text = subchoice;
-            }
-          }
-        } else {
-          option.value = option.text = choice;
-        }
-        if (this.value() === choice) {
-          option.selected = true;
-        }
-        select.add(option);
-      }
-      select.classList.add('form-control');
-      return select;
-    };
-
-    Cell.prototype.toDateString = function(passedDate) {
-      var date;
-      if (passedDate == null) {
-        passedDate = null;
-      }
-      if (passedDate && passedDate !== '') {
-        date = new Date(passedDate);
-      } else {
-        if (this.value()) {
-          date = new Date(this.value());
-        } else {
-          null;
-        }
-      }
-      if (date instanceof Date) {
-        return ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2) + '-' + date.getFullYear();
-      } else {
-        return '';
-      }
-    };
-
-    Cell.prototype.toDate = function() {
-      var input;
-      input = document.createElement('input');
-      input.type = 'date';
-      input.value = this.toDateString();
-      return input;
-    };
-
-    Cell.prototype.toDateInputString = function(passedDate) {
-      var date;
-      if (passedDate == null) {
-        passedDate = null;
-      }
-      if (passedDate && passedDate !== '') {
-        date = new Date(passedDate);
-      } else {
-        if (this.value()) {
-          date = new Date(this.value());
-        } else {
-          null;
-        }
-      }
-      if (date instanceof Date) {
-        return date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
-      } else {
-        return '';
-      }
-    };
-
     Cell.prototype.isBeingEdited = function() {
       return this.control.parentNode != null;
     };
@@ -1123,11 +967,7 @@
             return moveTo(table.nextCell());
         }
       };
-      if (this.type === 'select' || this.type === 'date') {
-        this.control.onchange = function(e) {
-          return cell.edit(e.target.value);
-        };
-      }
+      this.cellTypeObject.addControlEvents(cell);
       if (table.mobile) {
         startY = null;
         this.element.ontouchstart = function(e) {
@@ -1153,12 +993,36 @@
   })();
 
   ContextMenu = (function() {
-    function ContextMenu(actions, table) {
-      var a, action, divider, li, ul, _i, _len, _ref;
-      this.actions = actions;
+    function ContextMenu(userDefinedActions, table) {
+      var a, action, ctrlOrCmd, div, divider, li, span, ul, _i, _len, _ref;
+      this.userDefinedActions = userDefinedActions;
       this.table = table;
-      this.defaultActions = ['cut', 'copy', 'paste', 'undo', 'fill'];
+      ctrlOrCmd = /Mac/.test(navigator.platform) ? 'Cmd' : 'Ctrl';
+      this.defaultActions = [
+        {
+          name: 'Cut',
+          value: 'cut',
+          shortCut: ctrlOrCmd + '+X'
+        }, {
+          name: 'Copy',
+          value: 'copy',
+          shortCut: ctrlOrCmd + '+C'
+        }, {
+          name: 'Paste',
+          value: 'paste',
+          shortCut: ctrlOrCmd + '+V'
+        }, {
+          name: 'Undo',
+          value: 'undo',
+          shortCut: ctrlOrCmd + '+Z'
+        }, {
+          name: 'Fill',
+          value: 'fill',
+          shortCut: ''
+        }
+      ];
       this.element = document.createElement('div');
+      this.element.style.position = 'fixed';
       this.actionNodes = {};
       this.borderedCells = [];
       Utilities.prototype.setAttributes(this.element, {
@@ -1172,32 +1036,34 @@
         'aria-labelledby': 'aria-labelledby',
         style: 'display:block;position:static;margin-bottom:5px;'
       });
+      divider = document.createElement('li');
+      Utilities.prototype.setAttributes(divider, {
+        "class": 'divider'
+      });
       _ref = this.defaultActions;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         action = _ref[_i];
         li = document.createElement('li');
-        divider = document.createElement('li');
-        Utilities.prototype.setAttributes(divider, {
-          "class": 'divider'
+        div = document.createElement('div');
+        span = document.createElement('span');
+        span.textContent = action.shortCut;
+        span.setAttribute('name', action.name);
+        Utilities.prototype.setAttributes(span, {
+          style: "float: right !important;"
         });
         a = document.createElement('a');
-        a.textContent = Utilities.prototype.capitalize(action);
-        if (__indexOf.call(this.actions, action) >= 0) {
-          Utilities.prototype.setAttributes(a, {
-            "class": 'enabled',
-            tabIndex: '-1'
-          });
-        } else {
-          Utilities.prototype.setAttributes(a, {
-            "class": 'disabled',
-            tabIndex: '-1'
-          });
-        }
-        if (action === 'fill') {
+        a.textContent = action.name;
+        a.setAttribute('name', action.name);
+        Utilities.prototype.setAttributes(a, {
+          "class": 'enabled',
+          tabIndex: '-1'
+        });
+        if (action.name === 'Fill') {
           ul.appendChild(divider);
         }
-        this.actionNodes[action] = a;
+        a.appendChild(span);
         li.appendChild(a);
+        this.actionNodes[action] = li;
         ul.appendChild(li);
       }
       this.element.appendChild(ul);
@@ -1404,7 +1270,8 @@
     ContextMenu.prototype.events = function(menu) {
       return this.element.onclick = function(e) {
         var action;
-        action = e.target.textContent;
+        action = e.target.getAttribute('name');
+        console.log(action);
         switch (action) {
           case 'Cut':
             return menu.cut();
@@ -1423,6 +1290,269 @@
     return ContextMenu;
 
   })();
+
+  GenericCell = (function() {
+    function GenericCell(cell) {
+      var node;
+      this.cell = cell;
+      node = document.createTextNode(this.cell.originalValue);
+      this.cell.control = document.createElement('input');
+      this.cell.element.appendChild(node);
+    }
+
+    GenericCell.prototype.initControl = function() {
+      return this.cell.control.value = this.cell.value();
+    };
+
+    GenericCell.prototype.formatValue = function(newValue) {
+      return newValue;
+    };
+
+    GenericCell.prototype.setValue = function(newValue) {
+      return this.cell.source[this.cell.valueKey] = newValue;
+    };
+
+    GenericCell.prototype.addControlEvents = function(cell) {};
+
+    GenericCell.prototype.value = function() {
+      return this.cell.value();
+    };
+
+    GenericCell.prototype.render = function() {
+      return this.cell.element.textContent;
+    };
+
+    GenericCell.prototype.select = function() {
+      return this.cell.control.select();
+    };
+
+    return GenericCell;
+
+  })();
+
+  StringCell = (function(_super) {
+    __extends(StringCell, _super);
+
+    function StringCell() {
+      return StringCell.__super__.constructor.apply(this, arguments);
+    }
+
+    return StringCell;
+
+  })(GenericCell);
+
+  NumberCell = (function(_super) {
+    __extends(NumberCell, _super);
+
+    function NumberCell() {
+      return NumberCell.__super__.constructor.apply(this, arguments);
+    }
+
+    NumberCell.prototype.formatValue = function(newValue) {
+      return Number(newValue);
+    };
+
+    NumberCell.prototype.setValue = function(newValue) {
+      return this.cell.source[this.cell.valueKey] = Number(newValue);
+    };
+
+    return NumberCell;
+
+  })(GenericCell);
+
+  DateCell = (function(_super) {
+    __extends(DateCell, _super);
+
+    function DateCell(cell) {
+      var node;
+      this.cell = cell;
+      node = document.createTextNode(this.toDateString(this.cell.originalValue));
+      this.cell.control = this.toDate();
+      if (this.cell.originalValue) {
+        this.cell.control.valueAsDate = new Date(this.cell.originalValue);
+      }
+      this.cell.element.appendChild(node);
+    }
+
+    DateCell.prototype.formatValue = function(newValue) {
+      if (newValue.length > 0) {
+        return this.toDateString(Date.parse(newValue));
+      } else if (newValue instanceof Date) {
+        return this.toDateString(newValue);
+      } else if (newValue.length === 0) {
+        this.cell.control.valueAsDate = null;
+        return '';
+      }
+    };
+
+    DateCell.prototype.setValue = function(newValue) {
+      this.cell.source[this.cell.valueKey] = new Date(newValue);
+      return this.cell.control.valueAsDate = new Date(newValue);
+    };
+
+    DateCell.prototype.initControl = function() {
+      DateCell.__super__.initControl.call(this);
+      return this.cell.control.value = this.toDateInputString(this.cell.value());
+    };
+
+    DateCell.prototype.addControlEvents = function(cell) {
+      return this.cell.control.onchange = function(e) {
+        return cell.edit(e.target.value);
+      };
+    };
+
+    DateCell.prototype.value = function() {
+      return this.cell.control.valueAsDate;
+    };
+
+    DateCell.prototype.toDateString = function(passedDate) {
+      var date;
+      if (passedDate == null) {
+        passedDate = null;
+      }
+      if (passedDate && passedDate !== '') {
+        date = new Date(passedDate);
+      } else {
+        if (this.value()) {
+          date = new Date(this.value());
+        } else {
+          null;
+        }
+      }
+      if (date instanceof Date) {
+        return ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2) + '-' + date.getFullYear();
+      } else {
+        return '';
+      }
+    };
+
+    DateCell.prototype.toDate = function() {
+      var input;
+      input = document.createElement('input');
+      input.type = 'date';
+      input.value = this.toDateString();
+      return input;
+    };
+
+    DateCell.prototype.toDateInputString = function(passedDate) {
+      var date;
+      if (passedDate == null) {
+        passedDate = null;
+      }
+      if (passedDate && passedDate !== '') {
+        date = new Date(passedDate);
+      } else {
+        if (this.value()) {
+          date = new Date(this.value());
+        } else {
+          null;
+        }
+      }
+      if (date instanceof Date) {
+        return date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
+      } else {
+        return '';
+      }
+    };
+
+    return DateCell;
+
+  })(GenericCell);
+
+  HTMLCell = (function(_super) {
+    __extends(HTMLCell, _super);
+
+    function HTMLCell(cell) {
+      var node;
+      this.cell = cell;
+      this.cell.htmlContent = this.cell.originalValue;
+      node = this.toFragment();
+      this.cell.control = document.createElement('input');
+      this.cell.element.appendChild(node);
+    }
+
+    HTMLCell.prototype.setValue = function(newValue) {
+      var node;
+      this.cell.htmlContent = newValue;
+      node = this.toFragment();
+      this.cell.element.innerHTML = "";
+      return this.cell.element.appendChild(node);
+    };
+
+    HTMLCell.prototype.toFragment = function() {
+      var element, fragment;
+      element = document.createElement("div");
+      fragment = document.createDocumentFragment();
+      element.innerHTML = this.cell.htmlContent;
+      fragment.appendChild(element.firstChild || document.createTextNode(''));
+      return fragment;
+    };
+
+    HTMLCell.prototype.render = function() {
+      return this.htmlContent;
+    };
+
+    return HTMLCell;
+
+  })(GenericCell);
+
+  SelectCell = (function(_super) {
+    __extends(SelectCell, _super);
+
+    function SelectCell(cell) {
+      var node;
+      this.cell = cell;
+      node = document.createTextNode(this.cell.originalValue || '');
+      this.cell.control = this.initControl;
+      this.cell.element.appendChild(node);
+    }
+
+    SelectCell.prototype.initControl = function() {
+      var choice, index, option, select, subchoice, _i, _j, _len, _len1, _ref;
+      select = document.createElement("select");
+      if (!this.cell.meta.choices) {
+        console.log("There is not a 'choices' key in cell " + this.cell.address + " and you specified that it was of type 'select'");
+      }
+      _ref = this.cell.meta.choices;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        choice = _ref[_i];
+        option = document.createElement("option");
+        if (choice instanceof Array) {
+          for (index = _j = 0, _len1 = choice.length; _j < _len1; index = ++_j) {
+            subchoice = choice[index];
+            if (index === 0) {
+              option.value = subchoice;
+            }
+            if (index === 1) {
+              option.text = subchoice;
+            }
+          }
+        } else {
+          option.value = option.text = choice;
+        }
+        if (this.cell.value() === choice) {
+          option.selected = true;
+        }
+        select.add(option);
+      }
+      select.classList.add('form-control');
+      this.cell.control = select;
+      return this.cell.control.onchange = function(e) {
+        return this.cell.edit(e.target.value);
+      };
+    };
+
+    SelectCell.prototype.addControlEvents = function(cell) {
+      return this.cell.control.onchange = function(e) {
+        return cell.edit(e.target.value);
+      };
+    };
+
+    SelectCell.prototype.select = function() {};
+
+    return SelectCell;
+
+  })(GenericCell);
 
   root = typeof exports !== "undefined" && exports !== null ? exports : window;
 
