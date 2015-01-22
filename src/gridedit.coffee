@@ -280,7 +280,7 @@ class Row
 
 # Creates a cell object in memory to store in a row
 class Cell
-  constructor: (@attributes, @row) ->
+  constructor: (@originalValue, @row) ->
     @id = "#{@row.id}-#{@row.cells.length}"
     @address = [@row.id, @row.cells.length]
     @index = @row.cells.length
@@ -291,40 +291,33 @@ class Cell
     @editable = @col.editable != false
     @element = document.createElement 'td'
     @element.classList.add @col.cellClass if @col.cellClass
-    @originalValue = @attributes
-    @val = @originalValue
     @values = [@originalValue]
     @previousValue = null
     @valueKey = @col.valueKey
     @source = @table.config.rows[@address[0]]
     @initCallbacks()
-    Utilities::setAttributes @element,
-      id: "cell-#{@id}"
-      class: @attributes?.class or ''
-      style: @attributes?.styles or ''
     if @col.style
       for styleName of @col.style
         @element.style[styleName] = @col.style[styleName]
     switch @type
       when 'string'
-        node = document.createTextNode @attributes
+        node = document.createTextNode @originalValue
         @control = document.createElement 'input'
       when 'number'
-        node = document.createTextNode @attributes
+        node = document.createTextNode @originalValue
         @control = document.createElement 'input'
       when 'date'
-        node = document.createTextNode @toDateString @attributes
+        node = document.createTextNode @toDateString @originalValue
         @control = @toDate()
         @control.valueAsDate = new Date(@originalValue) if @originalValue
       when 'html'
-        @htmlContent = @attributes
+        @htmlContent = @originalValue
         node = @toFragment()
         @control = document.createElement 'input'
       when 'select'
-        node = document.createTextNode @attributes || ''
+        node = document.createTextNode @originalValue || ''
         @control = @toSelect()
     @element.appendChild node
-    delete @attributes
     @events @
   initCallbacks: ->
     @beforeEdit = @table.config.beforeEdit if @table.config.beforeEdit

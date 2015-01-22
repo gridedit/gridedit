@@ -618,9 +618,9 @@
   })();
 
   Cell = (function() {
-    function Cell(attributes, row) {
-      var node, styleName, _ref, _ref1;
-      this.attributes = attributes;
+    function Cell(originalValue, row) {
+      var node, styleName;
+      this.originalValue = originalValue;
       this.row = row;
       this.id = "" + this.row.id + "-" + this.row.cells.length;
       this.address = [this.row.id, this.row.cells.length];
@@ -634,18 +634,11 @@
       if (this.col.cellClass) {
         this.element.classList.add(this.col.cellClass);
       }
-      this.originalValue = this.attributes;
-      this.val = this.originalValue;
       this.values = [this.originalValue];
       this.previousValue = null;
       this.valueKey = this.col.valueKey;
       this.source = this.table.config.rows[this.address[0]];
       this.initCallbacks();
-      Utilities.prototype.setAttributes(this.element, {
-        id: "cell-" + this.id,
-        "class": ((_ref = this.attributes) != null ? _ref["class"] : void 0) || '',
-        style: ((_ref1 = this.attributes) != null ? _ref1.styles : void 0) || ''
-      });
       if (this.col.style) {
         for (styleName in this.col.style) {
           this.element.style[styleName] = this.col.style[styleName];
@@ -653,31 +646,30 @@
       }
       switch (this.type) {
         case 'string':
-          node = document.createTextNode(this.attributes);
+          node = document.createTextNode(this.originalValue);
           this.control = document.createElement('input');
           break;
         case 'number':
-          node = document.createTextNode(this.attributes);
+          node = document.createTextNode(this.originalValue);
           this.control = document.createElement('input');
           break;
         case 'date':
-          node = document.createTextNode(this.toDateString(this.attributes));
+          node = document.createTextNode(this.toDateString(this.originalValue));
           this.control = this.toDate();
           if (this.originalValue) {
             this.control.valueAsDate = new Date(this.originalValue);
           }
           break;
         case 'html':
-          this.htmlContent = this.attributes;
+          this.htmlContent = this.originalValue;
           node = this.toFragment();
           this.control = document.createElement('input');
           break;
         case 'select':
-          node = document.createTextNode(this.attributes || '');
+          node = document.createTextNode(this.originalValue || '');
           this.control = this.toSelect();
       }
       this.element.appendChild(node);
-      delete this.attributes;
       this.events(this);
     }
 
