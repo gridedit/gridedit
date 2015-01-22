@@ -567,6 +567,7 @@ class ContextMenu
   constructor: (@actions, @table) ->
     @defaultActions = ['cut', 'copy', 'paste', 'undo', 'fill']
     @element = document.createElement 'div'
+    @element.style.position = 'fixed'
     @actionNodes = {}
     @borderedCells = []
     Utilities::setAttributes @element, {id: 'contextMenu', class: 'dropdown clearfix'}

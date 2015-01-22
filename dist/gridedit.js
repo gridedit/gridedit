@@ -1163,6 +1163,7 @@
       this.table = table;
       this.defaultActions = ['cut', 'copy', 'paste', 'undo', 'fill'];
       this.element = document.createElement('div');
+      this.element.style.position = 'fixed';
       this.actionNodes = {};
       this.borderedCells = [];
       Utilities.prototype.setAttributes(this.element, {
