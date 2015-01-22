@@ -49,7 +49,7 @@ class GridEdit
       @set key, value for key, value of @config.custom when key of @config.custom
       delete @config.custom
     do @init if @config.initialize
-    @contextMenu = new ContextMenu ['cut', 'copy', 'paste', 'undo', 'fill'], @
+    @contextMenu = new ContextMenu @config.contextMenuItems, @
   init: ->
     do @config.beforeInit if @config.beforeInit
     do @build
@@ -472,8 +472,37 @@ class Cell
           do cell.edit
 
 class ContextMenu
-  constructor: (@actions, @table) ->
-    @defaultActions = ['cut', 'copy', 'paste', 'undo', 'fill']
+  constructor: (@userDefinedActions, @table) ->
+    ctrlOrCmd = if /Mac/.test(navigator.platform) then 'Cmd' else 'Ctrl'
+
+    @defaultActions = [
+      {
+        name: 'Cut',
+        value: 'cut',
+        shortCut: ctrlOrCmd+'+X'
+      },
+      {
+        name: 'Copy',
+        value: 'copy',
+        shortCut: ctrlOrCmd+'+C'
+      },
+      {
+        name: 'Paste',
+        value: 'paste',
+        shortCut: ctrlOrCmd+'+V'
+      },
+      {
+        name: 'Undo',
+        value: 'undo',
+        shortCut: ctrlOrCmd+'+Z'
+      },
+      {
+        name: 'Fill',
+        value: 'fill',
+        shortCut: ''
+      }
+    ]
+
     @element = document.createElement 'div'
     @element.style.position = 'fixed'
     @actionNodes = {}
@@ -481,21 +510,36 @@ class ContextMenu
     Utilities::setAttributes @element, {id: 'contextMenu', class: 'dropdown clearfix'}
     ul = document.createElement 'ul'
     Utilities::setAttributes ul, {class: 'dropdown-menu', role: 'menu', 'aria-labelledby', style: 'display:block;position:static;margin-bottom:5px;'}
+
+    divider = document.createElement 'li'
+    Utilities::setAttributes divider, {class: 'divider'}
+
     for action in @defaultActions
       li = document.createElement 'li'
-      divider = document.createElement 'li'
-      Utilities::setAttributes divider, {class: 'divider'}
+
+      div = document.createElement 'div'
+
+      span = document.createElement 'span'
+      span.textContent = action.shortCut
+      span.setAttribute('name', action.name)
+      Utilities::setAttributes span, { style: "float: right !important;" }
+
       a = document.createElement 'a'
-      a.textContent = Utilities::capitalize action
-      if action in @actions
-        Utilities::setAttributes a, {class: 'enabled', tabIndex: '-1'}
-      else
-        Utilities::setAttributes a, {class: 'disabled', tabIndex: '-1'}
-      if action is 'fill'
+      a.textContent = action.name
+      a.setAttribute('name', action.name)
+      Utilities::setAttributes a, {class: 'enabled', tabIndex: '-1'}
+
+      if action.name is 'Fill'
         ul.appendChild divider
-      @actionNodes[action] = a
+
+      a.appendChild span
+
       li.appendChild a
+      @actionNodes[action] = li
+
       ul.appendChild li
+
+
     @element.appendChild ul
     @events @
   show: (x, y, cell) ->
@@ -598,7 +642,8 @@ class ContextMenu
     classes.toggle 'disabled'
   events: (menu) ->
     @element.onclick = (e) ->
-      action = e.target.textContent
+      action = e.target.getAttribute('name')
+      console.log(action);
       switch action
         when 'Cut' then do menu.cut
         when 'Copy' then do menu.copy

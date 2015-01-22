@@ -111,7 +111,7 @@
       if (this.config.initialize) {
         this.init();
       }
-      this.contextMenu = new ContextMenu(['cut', 'copy', 'paste', 'undo', 'fill'], this);
+      this.contextMenu = new ContextMenu(this.config.contextMenuItems, this);
     }
 
     GridEdit.prototype.init = function() {
@@ -993,11 +993,34 @@
   })();
 
   ContextMenu = (function() {
-    function ContextMenu(actions, table) {
-      var a, action, divider, li, ul, _i, _len, _ref;
-      this.actions = actions;
+    function ContextMenu(userDefinedActions, table) {
+      var a, action, ctrlOrCmd, div, divider, li, span, ul, _i, _len, _ref;
+      this.userDefinedActions = userDefinedActions;
       this.table = table;
-      this.defaultActions = ['cut', 'copy', 'paste', 'undo', 'fill'];
+      ctrlOrCmd = /Mac/.test(navigator.platform) ? 'Cmd' : 'Ctrl';
+      this.defaultActions = [
+        {
+          name: 'Cut',
+          value: 'cut',
+          shortCut: ctrlOrCmd + '+X'
+        }, {
+          name: 'Copy',
+          value: 'copy',
+          shortCut: ctrlOrCmd + '+C'
+        }, {
+          name: 'Paste',
+          value: 'paste',
+          shortCut: ctrlOrCmd + '+V'
+        }, {
+          name: 'Undo',
+          value: 'undo',
+          shortCut: ctrlOrCmd + '+Z'
+        }, {
+          name: 'Fill',
+          value: 'fill',
+          shortCut: ''
+        }
+      ];
       this.element = document.createElement('div');
       this.element.style.position = 'fixed';
       this.actionNodes = {};
@@ -1013,32 +1036,34 @@
         'aria-labelledby': 'aria-labelledby',
         style: 'display:block;position:static;margin-bottom:5px;'
       });
+      divider = document.createElement('li');
+      Utilities.prototype.setAttributes(divider, {
+        "class": 'divider'
+      });
       _ref = this.defaultActions;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         action = _ref[_i];
         li = document.createElement('li');
-        divider = document.createElement('li');
-        Utilities.prototype.setAttributes(divider, {
-          "class": 'divider'
+        div = document.createElement('div');
+        span = document.createElement('span');
+        span.textContent = action.shortCut;
+        span.setAttribute('name', action.name);
+        Utilities.prototype.setAttributes(span, {
+          style: "float: right !important;"
         });
         a = document.createElement('a');
-        a.textContent = Utilities.prototype.capitalize(action);
-        if (__indexOf.call(this.actions, action) >= 0) {
-          Utilities.prototype.setAttributes(a, {
-            "class": 'enabled',
-            tabIndex: '-1'
-          });
-        } else {
-          Utilities.prototype.setAttributes(a, {
-            "class": 'disabled',
-            tabIndex: '-1'
-          });
-        }
-        if (action === 'fill') {
+        a.textContent = action.name;
+        a.setAttribute('name', action.name);
+        Utilities.prototype.setAttributes(a, {
+          "class": 'enabled',
+          tabIndex: '-1'
+        });
+        if (action.name === 'Fill') {
           ul.appendChild(divider);
         }
-        this.actionNodes[action] = a;
+        a.appendChild(span);
         li.appendChild(a);
+        this.actionNodes[action] = li;
         ul.appendChild(li);
       }
       this.element.appendChild(ul);
@@ -1245,7 +1270,8 @@
     ContextMenu.prototype.events = function(menu) {
       return this.element.onclick = function(e) {
         var action;
-        action = e.target.textContent;
+        action = e.target.getAttribute('name');
+        console.log(action);
         switch (action) {
           case 'Cut':
             return menu.cut();
@@ -1283,7 +1309,7 @@
     };
 
     GenericCell.prototype.setValue = function(newValue) {
-      return this.source[this.valueKey] = newValue;
+      return this.cell.source[this.cell.valueKey] = newValue;
     };
 
     GenericCell.prototype.addControlEvents = function(cell) {};
