@@ -542,6 +542,9 @@ class Cell
         when 13
           cell.edit @value
           cell.below()?.makeActive()
+        when 9
+          cell.edit @value
+          moveTo table.nextCell()
     if @type is 'select' or @type is 'date'
       @control.onchange = (e) ->
         cell.edit e.target.value

@@ -1118,6 +1118,9 @@
           case 13:
             cell.edit(this.value);
             return (_ref = cell.below()) != null ? _ref.makeActive() : void 0;
+          case 9:
+            cell.edit(this.value);
+            return moveTo(table.nextCell());
         }
       };
       if (this.type === 'select' || this.type === 'date') {
