@@ -288,13 +288,9 @@ class Cell
     @col = @table.cols[@index]
     @type = @col.type
     @meta = @col
-    if 'editable' of @col
-      @editable = @col.editable
-    else
-      @editable = true
+    @editable = @col.editable != false
     @element = document.createElement 'td'
-    if(@col.cellClass)
-      @element.classList.add @col.cellClass
+    @element.classList.add @col.cellClass if @col.cellClass
     @originalValue = @attributes
     @val = @originalValue
     @values = [@originalValue]

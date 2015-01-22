@@ -629,11 +629,7 @@
       this.col = this.table.cols[this.index];
       this.type = this.col.type;
       this.meta = this.col;
-      if ('editable' in this.col) {
-        this.editable = this.col.editable;
-      } else {
-        this.editable = true;
-      }
+      this.editable = this.col.editable !== false;
       this.element = document.createElement('td');
       if (this.col.cellClass) {
         this.element.classList.add(this.col.cellClass);
