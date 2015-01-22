@@ -520,6 +520,7 @@
       this.attributes = attributes;
       this.table = table;
       this.id = this.index = this.table.cols.length;
+      this.cellClass = this.attributes.cellClass;
       this.cells = [];
       this.element = document.createElement('th');
       this.textNode = document.createTextNode(this.attributes.label);
@@ -634,6 +635,9 @@
         this.editable = true;
       }
       this.element = document.createElement('td');
+      if (this.col.cellClass) {
+        this.element.classList.add(this.col.cellClass);
+      }
       this.originalValue = this.attributes;
       this.val = this.originalValue;
       this.values = [this.originalValue];
@@ -883,10 +887,10 @@
           if (this.isControlInDocument()) {
             this.control.remove();
           }
-        }
-        this.table.openCell = null;
-        if (this.afterControlHide) {
-          return this.afterControlHide(this);
+          this.table.openCell = null;
+          if (this.afterControlHide) {
+            return this.afterControlHide(this);
+          }
         }
       }
     };

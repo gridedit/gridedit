@@ -228,6 +228,7 @@ class GridEdit
 class Column
   constructor: (@attributes, @table) ->
     @id = @index = @table.cols.length
+    @cellClass = @attributes.cellClass
     @cells = []
     @element = document.createElement 'th'
     @textNode = document.createTextNode @attributes.label
@@ -292,6 +293,8 @@ class Cell
     else
       @editable = true
     @element = document.createElement 'td'
+    if(@col.cellClass)
+      @element.classList.add @col.cellClass
     @originalValue = @attributes
     @val = @originalValue
     @values = [@originalValue]
@@ -433,7 +436,7 @@ class Cell
     if @table.openCell isnt null
       beforeControlHideReturnVal = @beforeControlHide @ if @beforeControlHide
       if @beforeControlHide and beforeControlHideReturnVal isnt false or not @beforeControlHide
-          @control.remove() if @isControlInDocument()
+        @control.remove() if @isControlInDocument()
         @table.openCell = null
         @afterControlHide @ if @afterControlHide
   edit: (newValue=null) ->
