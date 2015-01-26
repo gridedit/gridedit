@@ -956,13 +956,10 @@ class ActionStack
     @table.getCell(action.address[0], action.address[1])
 
   addAction: (actionObject) ->
-    console.log('stack: add action')
     @actions.push(actionObject)
     @index++;
 
   undo: ->
-    console.log('stack: undo action')
-    console.log('in index: ', @index)
     if @index > -1
       @index--
       action = @actions[@index + 1]
@@ -973,39 +970,16 @@ class ActionStack
           cell.value(action.oldValue, false)
 
         when 'cut'
-          rowIndex = action.address[0] - 1
-          for row in action.oldMatrix
-            rowIndex++
-            colIndex = action.address[1]
-            for value in row
-              currentCell = @table.getCell(rowIndex, colIndex)
-              currentCell.value(value, false)
-              colIndex++
+          @updateMatrix(action, 'oldMatrix')
 
         when 'paste'
-          rowIndex = action.address[0] - 1
-          for row in action.oldMatrix
-            rowIndex++
-            colIndex = action.address[1]
-            for value in row
-              currentCell = @table.getCell(rowIndex, colIndex)
-              currentCell.value(value, false)
-              colIndex++
+          @updateMatrix(action, 'oldMatrix')
+
 
         when 'fill'
-          rowIndex = action.address[0] - 1
-          for row in action.oldMatrix
-            rowIndex++
-            colIndex = action.address[1]
-            for value in row
-              currentCell = @table.getCell(rowIndex, colIndex)
-              currentCell.value(value, false)
-              colIndex++
-
+          @updateMatrix(action, 'oldMatrix')
 
   redo: ->
-    console.log('stack: redo action')
-    console.log('in index: ', @index)
     if(@index < @actions.length - 1)
       @index++
       action = @actions[@index]
@@ -1016,24 +990,11 @@ class ActionStack
           cell.value(action.newValue, false)
 
         when 'cut'
-          rowIndex = action.address[0] - 1
-          for row in action.matrix
-            rowIndex++
-            colIndex = action.address[1]
-            for value in row
-              currentCell = @table.getCell(rowIndex, colIndex)
-              currentCell.value(value, false)
-              colIndex++
+          @updateMatrix(action, 'matrix')
+
 
         when 'paste'
-          rowIndex = action.address[0] - 1
-          for row in action.matrix
-            rowIndex++
-            colIndex = action.address[1]
-            for value in row
-              currentCell = @table.getCell(rowIndex, colIndex)
-              currentCell.value(value, false)
-              colIndex++
+          @updateMatrix(action, 'oldMatrix')
 
         when 'fill'
           rowIndex = action.address[0] - 1
@@ -1044,6 +1005,16 @@ class ActionStack
               currentCell = @table.getCell(rowIndex, colIndex)
               currentCell.value(action.fillValue, false)
               colIndex++
+
+  updateMatrix: (action, matrixKey) ->
+    rowIndex = action.address[0] - 1
+    for row in action[matrixKey]
+      rowIndex++
+      colIndex = action.address[1]
+      for value in row
+        currentCell = @table.getCell(rowIndex, colIndex)
+        currentCell.value(value, false)
+        colIndex++
 
 
 

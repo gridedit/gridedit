@@ -1690,15 +1690,12 @@
     };
 
     ActionStack.prototype.addAction = function(actionObject) {
-      console.log('stack: add action');
       this.actions.push(actionObject);
       return this.index++;
     };
 
     ActionStack.prototype.undo = function() {
-      var action, cell, colIndex, currentCell, row, rowIndex, value, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _results, _results1, _results2;
-      console.log('stack: undo action');
-      console.log('in index: ', this.index);
+      var action, cell;
       if (this.index > -1) {
         this.index--;
         action = this.actions[this.index + 1];
@@ -1707,6 +1704,29 @@
             cell = this.getCell(action);
             return cell.value(action.oldValue, false);
           case 'cut':
+            return this.updateMatrix(action, 'oldMatrix');
+          case 'paste':
+            return this.updateMatrix(action, 'oldMatrix');
+          case 'fill':
+            return this.updateMatrix(action, 'oldMatrix');
+        }
+      }
+    };
+
+    ActionStack.prototype.redo = function() {
+      var action, cell, colIndex, currentCell, row, rowIndex, value, _i, _len, _ref, _results;
+      if (this.index < this.actions.length - 1) {
+        this.index++;
+        action = this.actions[this.index];
+        switch (action.type) {
+          case 'cell-edit':
+            cell = this.table.getCell(action.address[0], action.address[1]);
+            return cell.value(action.newValue, false);
+          case 'cut':
+            return this.updateMatrix(action, 'matrix');
+          case 'paste':
+            return this.updateMatrix(action, 'oldMatrix');
+          case 'fill':
             rowIndex = action.address[0] - 1;
             _ref = action.oldMatrix;
             _results = [];
@@ -1720,139 +1740,39 @@
                 for (_j = 0, _len1 = row.length; _j < _len1; _j++) {
                   value = row[_j];
                   currentCell = this.table.getCell(rowIndex, colIndex);
-                  currentCell.value(value, false);
+                  currentCell.value(action.fillValue, false);
                   _results1.push(colIndex++);
                 }
                 return _results1;
               }).call(this));
             }
             return _results;
-            break;
-          case 'paste':
-            rowIndex = action.address[0] - 1;
-            _ref1 = action.oldMatrix;
-            _results1 = [];
-            for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-              row = _ref1[_j];
-              rowIndex++;
-              colIndex = action.address[1];
-              _results1.push((function() {
-                var _k, _len2, _results2;
-                _results2 = [];
-                for (_k = 0, _len2 = row.length; _k < _len2; _k++) {
-                  value = row[_k];
-                  currentCell = this.table.getCell(rowIndex, colIndex);
-                  currentCell.value(value, false);
-                  _results2.push(colIndex++);
-                }
-                return _results2;
-              }).call(this));
-            }
-            return _results1;
-            break;
-          case 'fill':
-            rowIndex = action.address[0] - 1;
-            _ref2 = action.oldMatrix;
-            _results2 = [];
-            for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
-              row = _ref2[_k];
-              rowIndex++;
-              colIndex = action.address[1];
-              _results2.push((function() {
-                var _l, _len3, _results3;
-                _results3 = [];
-                for (_l = 0, _len3 = row.length; _l < _len3; _l++) {
-                  value = row[_l];
-                  currentCell = this.table.getCell(rowIndex, colIndex);
-                  currentCell.value(value, false);
-                  _results3.push(colIndex++);
-                }
-                return _results3;
-              }).call(this));
-            }
-            return _results2;
         }
       }
     };
 
-    ActionStack.prototype.redo = function() {
-      var action, cell, colIndex, currentCell, row, rowIndex, value, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _results, _results1, _results2;
-      console.log('stack: redo action');
-      console.log('in index: ', this.index);
-      if (this.index < this.actions.length - 1) {
-        this.index++;
-        action = this.actions[this.index];
-        switch (action.type) {
-          case 'cell-edit':
-            cell = this.table.getCell(action.address[0], action.address[1]);
-            return cell.value(action.newValue, false);
-          case 'cut':
-            rowIndex = action.address[0] - 1;
-            _ref = action.matrix;
-            _results = [];
-            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-              row = _ref[_i];
-              rowIndex++;
-              colIndex = action.address[1];
-              _results.push((function() {
-                var _j, _len1, _results1;
-                _results1 = [];
-                for (_j = 0, _len1 = row.length; _j < _len1; _j++) {
-                  value = row[_j];
-                  currentCell = this.table.getCell(rowIndex, colIndex);
-                  currentCell.value(value, false);
-                  _results1.push(colIndex++);
-                }
-                return _results1;
-              }).call(this));
-            }
-            return _results;
-            break;
-          case 'paste':
-            rowIndex = action.address[0] - 1;
-            _ref1 = action.matrix;
-            _results1 = [];
-            for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-              row = _ref1[_j];
-              rowIndex++;
-              colIndex = action.address[1];
-              _results1.push((function() {
-                var _k, _len2, _results2;
-                _results2 = [];
-                for (_k = 0, _len2 = row.length; _k < _len2; _k++) {
-                  value = row[_k];
-                  currentCell = this.table.getCell(rowIndex, colIndex);
-                  currentCell.value(value, false);
-                  _results2.push(colIndex++);
-                }
-                return _results2;
-              }).call(this));
-            }
-            return _results1;
-            break;
-          case 'fill':
-            rowIndex = action.address[0] - 1;
-            _ref2 = action.oldMatrix;
-            _results2 = [];
-            for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
-              row = _ref2[_k];
-              rowIndex++;
-              colIndex = action.address[1];
-              _results2.push((function() {
-                var _l, _len3, _results3;
-                _results3 = [];
-                for (_l = 0, _len3 = row.length; _l < _len3; _l++) {
-                  value = row[_l];
-                  currentCell = this.table.getCell(rowIndex, colIndex);
-                  currentCell.value(action.fillValue, false);
-                  _results3.push(colIndex++);
-                }
-                return _results3;
-              }).call(this));
-            }
-            return _results2;
-        }
+    ActionStack.prototype.updateMatrix = function(action, matrixKey) {
+      var colIndex, currentCell, row, rowIndex, value, _i, _len, _ref, _results;
+      rowIndex = action.address[0] - 1;
+      _ref = action[matrixKey];
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        row = _ref[_i];
+        rowIndex++;
+        colIndex = action.address[1];
+        _results.push((function() {
+          var _j, _len1, _results1;
+          _results1 = [];
+          for (_j = 0, _len1 = row.length; _j < _len1; _j++) {
+            value = row[_j];
+            currentCell = this.table.getCell(rowIndex, colIndex);
+            currentCell.value(value, false);
+            _results1.push(colIndex++);
+          }
+          return _results1;
+        }).call(this));
       }
+      return _results;
     };
 
     return ActionStack;
