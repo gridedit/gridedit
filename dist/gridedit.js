@@ -1238,19 +1238,20 @@
     };
 
     ContextMenu.prototype.fill = function(e, table) {
-      var cell, colIndex, currentCell, fillValue, matrix, menu, row, rowIndex, value, _i, _j, _len, _len1, _ref;
+      var cell, cellMatrix, colIndex, currentCell, fillValue, matrix, menu, row, rowIndex, value, _i, _j, _len, _len1, _ref;
       menu = table.contextMenu;
       cell = menu.getTargetPasteCell();
       fillValue = cell.value();
-      table.copiedCellMatrix = new CellMatrix(table.activeCells);
+      cellMatrix = new CellMatrix(table.activeCells);
+      table.copiedCellMatrix = cellMatrix;
       if (cell.editable) {
         matrix = [];
-        rowIndex = cell.address[0] - 1;
-        _ref = table.copiedCellMatrix.values;
+        rowIndex = cellMatrix.lowRow - 1;
+        _ref = cellMatrix.values;
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           row = _ref[_i];
           rowIndex++;
-          colIndex = cell.address[1];
+          colIndex = cellMatrix.lowCol;
           matrix[rowIndex] = [];
           for (_j = 0, _len1 = row.length; _j < _len1; _j++) {
             value = row[_j];
@@ -1266,7 +1267,7 @@
           type: 'fill',
           oldMatrix: matrix,
           fillValue: fillValue,
-          address: cell.address
+          address: [cellMatrix.lowRow, cellMatrix.lowCol]
         });
       }
       return menu.hide();
@@ -1690,6 +1691,10 @@
     };
 
     ActionStack.prototype.addAction = function(actionObject) {
+      console.log(this.index);
+      if (this.index > -1 && this.index < this.actions.length - 1) {
+        this.actions = this.actions.splice(0, this.index + 1);
+      }
       this.actions.push(actionObject);
       return this.index++;
     };

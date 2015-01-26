@@ -658,14 +658,15 @@ class ContextMenu
     cell = menu.getTargetPasteCell()
     fillValue = cell.value()
 
-    table.copiedCellMatrix = new CellMatrix(table.activeCells)
+    cellMatrix = new CellMatrix(table.activeCells)
+    table.copiedCellMatrix = cellMatrix
 
     if cell.editable
       matrix = []
-      rowIndex = cell.address[0] - 1
-      for row in table.copiedCellMatrix.values
+      rowIndex = cellMatrix.lowRow - 1
+      for row in cellMatrix.values
         rowIndex++
-        colIndex = cell.address[1]
+        colIndex = cellMatrix.lowCol
         matrix[rowIndex] = []
         for value in row
           currentCell = table.getCell(rowIndex, colIndex)
@@ -674,7 +675,7 @@ class ContextMenu
             currentCell.value(fillValue, false)
           colIndex++
 
-      table.addToStack({ type: 'fill', oldMatrix: matrix, fillValue: fillValue, address: cell.address })
+      table.addToStack({ type: 'fill', oldMatrix: matrix, fillValue: fillValue, address: [ cellMatrix.lowRow, cellMatrix.lowCol ] })
 
 
     menu.hide()
@@ -956,6 +957,10 @@ class ActionStack
     @table.getCell(action.address[0], action.address[1])
 
   addAction: (actionObject) ->
+    console.log(@index)
+    if @index > - 1 and @index < @actions.length - 1
+
+      @actions = @actions.splice(0, @index + 1)
     @actions.push(actionObject)
     @index++;
 
@@ -1015,10 +1020,6 @@ class ActionStack
         currentCell = @table.getCell(rowIndex, colIndex)
         currentCell.value(value, false)
         colIndex++
-
-
-
-
 
 root = exports ? window
 root.GridEdit = GridEdit
