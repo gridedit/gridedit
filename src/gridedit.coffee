@@ -609,7 +609,7 @@ class ContextMenu
     menu = table.contextMenu
     cellMatrix = new CellMatrix(table.activeCells)
     table.copiedCellMatrix = cellMatrix
-    table.addToStack({ type: 'cut', matrix: cellMatrix.values, address: [cellMatrix.lowRow, cellMatrix.lowCol ] })
+    table.addToStack({ type: 'cut', oldMatrix: cellMatrix.values, address: [cellMatrix.lowRow, cellMatrix.lowCol ] })
     for cell in table.activeCells
       cell.value('', false)
     menu.displayBorders()
@@ -640,7 +640,7 @@ class ContextMenu
           colIndex++
 
       menu.hideBorders()
-      table.addToStack({ type: 'paste', matrix: matrix, oldMatrix: table.copiedCellMatrix.values, address: cell.address })
+      table.addToStack({ type: 'paste', oldMatrix: matrix, matrix: table.copiedCellMatrix.values, address: cell.address })
 
     menu.hide()
 
@@ -656,17 +656,26 @@ class ContextMenu
   fill: (e, table) ->
     menu = table.contextMenu
     cell = menu.getTargetPasteCell()
+    fillValue = cell.value()
+
+    table.copiedCellMatrix = new CellMatrix(table.activeCells)
+
     if cell.editable
+      matrix = []
       rowIndex = cell.address[0] - 1
       for row in table.copiedCellMatrix.values
         rowIndex++
         colIndex = cell.address[1]
+        matrix[rowIndex] = []
         for value in row
           currentCell = table.getCell(rowIndex, colIndex)
-          console.log(currentCell)
           if currentCell and currentCell.editable
-            currentCell.value(value)
+            matrix[rowIndex].push currentCell.value()
+            currentCell.value(fillValue, false)
           colIndex++
+
+      table.addToStack({ type: 'fill', oldMatrix: matrix, fillValue: fillValue, address: cell.address })
+
 
     menu.hide()
 
@@ -965,7 +974,7 @@ class ActionStack
 
         when 'cut'
           rowIndex = action.address[0] - 1
-          for row in action.matrix
+          for row in action.oldMatrix
             rowIndex++
             colIndex = action.address[1]
             for value in row
@@ -975,7 +984,17 @@ class ActionStack
 
         when 'paste'
           rowIndex = action.address[0] - 1
-          for row in action.matrix
+          for row in action.oldMatrix
+            rowIndex++
+            colIndex = action.address[1]
+            for value in row
+              currentCell = @table.getCell(rowIndex, colIndex)
+              currentCell.value(value, false)
+              colIndex++
+
+        when 'fill'
+          rowIndex = action.address[0] - 1
+          for row in action.oldMatrix
             rowIndex++
             colIndex = action.address[1]
             for value in row
@@ -1008,12 +1027,22 @@ class ActionStack
 
         when 'paste'
           rowIndex = action.address[0] - 1
-          for row in action.oldMatrix
+          for row in action.matrix
             rowIndex++
             colIndex = action.address[1]
             for value in row
               currentCell = @table.getCell(rowIndex, colIndex)
               currentCell.value(value, false)
+              colIndex++
+
+        when 'fill'
+          rowIndex = action.address[0] - 1
+          for row in action.oldMatrix
+            rowIndex++
+            colIndex = action.address[1]
+            for value in row
+              currentCell = @table.getCell(rowIndex, colIndex)
+              currentCell.value(action.fillValue, false)
               colIndex++
 
 
