@@ -905,14 +905,14 @@ class CellMatrix
     # store row metaData
     @matrix = matrix
     @rowCount = rows.length
-    rows.sort (a,b) -> Number(a) > Number(b)
+    rows.sort (a,b) -> Number(a) - Number(b)
     @lowRow = rows[0]
     @highRow = rows[rows.length - 1]
 
     # store column metaData
     cols = Object.keys(@matrix[@lowRow])
     @colCount = cols.length
-    cols.sort (a,b) -> Number(a) > Number(b)
+    cols =  cols.sort (a,b) -> Number(a) - Number(b)
     @lowCol = cols[0]
     @highCol = cols[@colCount - 1]
 
@@ -1020,8 +1020,14 @@ class ActionStack
           cell.value(action.newValue, false)
 
         when 'cut'
-          @updateMatrix(action, 'matrix')
-
+          rowIndex = action.address[0] - 1
+          for row in action.oldMatrix
+            rowIndex++
+            colIndex = action.address[1]
+            for value in row
+              currentCell = @table.getCell(rowIndex, colIndex)
+              currentCell.value('', false)
+              colIndex++
 
         when 'paste'
           @updateMatrix(action, 'oldMatrix')

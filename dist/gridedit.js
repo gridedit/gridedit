@@ -505,12 +505,10 @@
     };
 
     GridEdit.prototype.undo = function() {
-      console.log('table.undo');
       return this.actionStack.undo();
     };
 
     GridEdit.prototype.redo = function() {
-      console.log('table.redo');
       return this.actionStack.redo();
     };
 
@@ -1068,8 +1066,6 @@
         'aria-labelledby': 'aria-labelledby',
         style: 'display:block;position:static;margin-bottom:5px;'
       });
-      console.log(this);
-      console.log(this.userDefinedOrder);
       if (this.userDefinedOrder) {
         _ref = this.userDefinedOrder;
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -1625,14 +1621,14 @@
       this.matrix = matrix;
       this.rowCount = rows.length;
       rows.sort(function(a, b) {
-        return Number(a) > Number(b);
+        return Number(a) - Number(b);
       });
       this.lowRow = rows[0];
       this.highRow = rows[rows.length - 1];
       cols = Object.keys(this.matrix[this.lowRow]);
       this.colCount = cols.length;
-      cols.sort(function(a, b) {
-        return Number(a) > Number(b);
+      cols = cols.sort(function(a, b) {
+        return Number(a) - Number(b);
       });
       this.lowCol = cols[0];
       this.highCol = cols[this.colCount - 1];
@@ -1725,7 +1721,6 @@
     };
 
     ActionStack.prototype.addAction = function(actionObject) {
-      console.log(this.index);
       if (this.index > -1 && this.index < this.actions.length - 1) {
         this.actions = this.actions.splice(0, this.index + 1);
       }
@@ -1753,7 +1748,7 @@
     };
 
     ActionStack.prototype.redo = function() {
-      var action, cell, colIndex, currentCell, row, rowIndex, value, _i, _len, _ref, _results;
+      var action, cell, colIndex, currentCell, row, rowIndex, value, _i, _j, _len, _len1, _ref, _ref1, _results, _results1;
       if (this.index < this.actions.length - 1) {
         this.index++;
         action = this.actions[this.index];
@@ -1762,10 +1757,6 @@
             cell = this.table.getCell(action.address[0], action.address[1]);
             return cell.value(action.newValue, false);
           case 'cut':
-            return this.updateMatrix(action, 'matrix');
-          case 'paste':
-            return this.updateMatrix(action, 'oldMatrix');
-          case 'fill':
             rowIndex = action.address[0] - 1;
             _ref = action.oldMatrix;
             _results = [];
@@ -1779,13 +1770,37 @@
                 for (_j = 0, _len1 = row.length; _j < _len1; _j++) {
                   value = row[_j];
                   currentCell = this.table.getCell(rowIndex, colIndex);
-                  currentCell.value(action.fillValue, false);
+                  currentCell.value('', false);
                   _results1.push(colIndex++);
                 }
                 return _results1;
               }).call(this));
             }
             return _results;
+            break;
+          case 'paste':
+            return this.updateMatrix(action, 'oldMatrix');
+          case 'fill':
+            rowIndex = action.address[0] - 1;
+            _ref1 = action.oldMatrix;
+            _results1 = [];
+            for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+              row = _ref1[_j];
+              rowIndex++;
+              colIndex = action.address[1];
+              _results1.push((function() {
+                var _k, _len2, _results2;
+                _results2 = [];
+                for (_k = 0, _len2 = row.length; _k < _len2; _k++) {
+                  value = row[_k];
+                  currentCell = this.table.getCell(rowIndex, colIndex);
+                  currentCell.value(action.fillValue, false);
+                  _results2.push(colIndex++);
+                }
+                return _results2;
+              }).call(this));
+            }
+            return _results1;
         }
       }
     };
