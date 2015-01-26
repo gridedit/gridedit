@@ -588,30 +588,26 @@ class ContextMenu
 
   cut: (e, table) ->
     menu = table.contextMenu
-    beforeActionReturnVal = menu.beforeAction 'Cut'
-    if beforeActionReturnVal
-      table.copiedValues = []
-      table.copiedCellMatrix = new CellMatrix(table.activeCells)
-      table.copiedValues = table.copiedCellMatrix.values
-      for cell in table.activeCells
-        cell.value('')
-      menu.afterAction 'Cut'
+    table.copiedValues = []
+    table.copiedCellMatrix = new CellMatrix(table.activeCells)
+    table.copiedValues = table.copiedCellMatrix.values
+    for cell in table.activeCells
+      cell.value('')
+    menu.displayBorders()
+    menu.hide()
 
   copy: (e, table) ->
     menu = table.contextMenu
-    beforeActionReturnVal = menu.beforeAction 'Copy'
-    if beforeActionReturnVal
-      table.copiedValues = []
-      table.copiedCellMatrix = new CellMatrix(table.activeCells)
-      table.copiedValues = table.copiedCellMatrix.values
-      menu.afterAction 'Copy'
+    table.copiedValues = []
+    table.copiedCellMatrix = new CellMatrix(table.activeCells)
+    table.copiedValues = table.copiedCellMatrix.values
+    menu.displayBorders()
+    menu.hide()
 
   paste: (e, table) ->
     menu = table.contextMenu
-    beforeActionReturnVal = menu.beforeAction 'Paste'
-    if beforeActionReturnVal
-      cell = menu.getTargetPasteCell()
-
+    cell = menu.getTargetPasteCell()
+    if cell.editable
       rowIndex = cell.address[0] - 1
       for row in table.copiedValues
         rowIndex++
@@ -623,46 +619,34 @@ class ContextMenu
             currentCell.value(value)
           colIndex++
 
-      menu.afterAction 'Paste'
+      menu.hideBorders()
+    menu.hide()
 
   undo: (e, table) ->
     # todo - refactor 'undo' functionality into a global undo
-    menu = table.contextMenu
-    beforeActionReturnVal = menu.beforeAction 'Undo'
-    if beforeActionReturnVal
-      value = menu.cell.values.pop()
-      menu.cell.value(value)
-      menu.afterAction 'Undo'
+#    menu = table.contextMenu
+#    beforeActionReturnVal = menu.beforeAction 'Undo'
+#    if beforeActionReturnVal
+#      value = menu.cell.values.pop()
+#      menu.cell.value(value)
+#      menu.afterAction 'Undo'
 
   fill: (e, table) ->
-    beforeActionReturnVal = @beforeAction 'Fill'
-    if beforeActionReturnVal
-      value = @getTargetPasteCell().value()
-      for cell, index in @table.activeCells
-        cell.value(value)
-      @afterAction 'Fill'
+    menu = table.contextMenu
+    cell = menu.getTargetPasteCell()
+    if cell.editable
+      rowIndex = cell.address[0] - 1
+      for row in table.copiedValues
+        rowIndex++
+        colIndex = cell.address[1]
+        for value in row
+          currentCell = table.getCell(rowIndex, colIndex)
+          console.log(currentCell)
+          if currentCell and currentCell.editable
+            currentCell.value(value)
+          colIndex++
 
-  beforeAction: (action) ->
-    switch action
-      when 'Cut' then true
-      when 'Copy' then true
-      when 'Paste'
-        if @getTargetPasteCell().editable then true else false
-      when 'Undo' then true
-      when 'Fill'
-        if @getTargetPasteCell().editable then true else false
-
-  afterAction: (action) ->
-    switch action
-      when 'Cut'
-        @displayBorders()
-      when 'Copy'
-        @displayBorders()
-      when 'Paste'
-        @hideBorders()
-      when 'Undo' then break
-      when 'Fill' then break
-    do @hide
+    menu.hide()
 
   toggle: (action) ->
     classes = @actionNodes[action].classList

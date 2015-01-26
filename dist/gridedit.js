@@ -1137,40 +1137,35 @@
     };
 
     ContextMenu.prototype.cut = function(e, table) {
-      var beforeActionReturnVal, cell, menu, _i, _len, _ref;
+      var cell, menu, _i, _len, _ref;
       menu = table.contextMenu;
-      beforeActionReturnVal = menu.beforeAction('Cut');
-      if (beforeActionReturnVal) {
-        table.copiedValues = [];
-        table.copiedCellMatrix = new CellMatrix(table.activeCells);
-        table.copiedValues = table.copiedCellMatrix.values;
-        _ref = table.activeCells;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          cell = _ref[_i];
-          cell.value('');
-        }
-        return menu.afterAction('Cut');
+      table.copiedValues = [];
+      table.copiedCellMatrix = new CellMatrix(table.activeCells);
+      table.copiedValues = table.copiedCellMatrix.values;
+      _ref = table.activeCells;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        cell = _ref[_i];
+        cell.value('');
       }
+      menu.displayBorders();
+      return menu.hide();
     };
 
     ContextMenu.prototype.copy = function(e, table) {
-      var beforeActionReturnVal, menu;
+      var menu;
       menu = table.contextMenu;
-      beforeActionReturnVal = menu.beforeAction('Copy');
-      if (beforeActionReturnVal) {
-        table.copiedValues = [];
-        table.copiedCellMatrix = new CellMatrix(table.activeCells);
-        table.copiedValues = table.copiedCellMatrix.values;
-        return menu.afterAction('Copy');
-      }
+      table.copiedValues = [];
+      table.copiedCellMatrix = new CellMatrix(table.activeCells);
+      table.copiedValues = table.copiedCellMatrix.values;
+      menu.displayBorders();
+      return menu.hide();
     };
 
     ContextMenu.prototype.paste = function(e, table) {
-      var beforeActionReturnVal, cell, colIndex, currentCell, menu, row, rowIndex, value, _i, _j, _len, _len1, _ref;
+      var cell, colIndex, currentCell, menu, row, rowIndex, value, _i, _j, _len, _len1, _ref;
       menu = table.contextMenu;
-      beforeActionReturnVal = menu.beforeAction('Paste');
-      if (beforeActionReturnVal) {
-        cell = menu.getTargetPasteCell();
+      cell = menu.getTargetPasteCell();
+      if (cell.editable) {
         rowIndex = cell.address[0] - 1;
         _ref = table.copiedValues;
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -1187,76 +1182,36 @@
             colIndex++;
           }
         }
-        return menu.afterAction('Paste');
+        menu.hideBorders();
       }
+      return menu.hide();
     };
 
-    ContextMenu.prototype.undo = function(e, table) {
-      var beforeActionReturnVal, menu, value;
-      menu = table.contextMenu;
-      beforeActionReturnVal = menu.beforeAction('Undo');
-      if (beforeActionReturnVal) {
-        value = menu.cell.values.pop();
-        menu.cell.value(value);
-        return menu.afterAction('Undo');
-      }
-    };
+    ContextMenu.prototype.undo = function(e, table) {};
 
     ContextMenu.prototype.fill = function(e, table) {
-      var beforeActionReturnVal, cell, index, value, _i, _len, _ref;
-      beforeActionReturnVal = this.beforeAction('Fill');
-      if (beforeActionReturnVal) {
-        value = this.getTargetPasteCell().value();
-        _ref = this.table.activeCells;
-        for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
-          cell = _ref[index];
-          cell.value(value);
+      var cell, colIndex, currentCell, menu, row, rowIndex, value, _i, _j, _len, _len1, _ref;
+      menu = table.contextMenu;
+      cell = menu.getTargetPasteCell();
+      if (cell.editable) {
+        rowIndex = cell.address[0] - 1;
+        _ref = table.copiedValues;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          row = _ref[_i];
+          rowIndex++;
+          colIndex = cell.address[1];
+          for (_j = 0, _len1 = row.length; _j < _len1; _j++) {
+            value = row[_j];
+            currentCell = table.getCell(rowIndex, colIndex);
+            console.log(currentCell);
+            if (currentCell && currentCell.editable) {
+              currentCell.value(value);
+            }
+            colIndex++;
+          }
         }
-        return this.afterAction('Fill');
       }
-    };
-
-    ContextMenu.prototype.beforeAction = function(action) {
-      switch (action) {
-        case 'Cut':
-          return true;
-        case 'Copy':
-          return true;
-        case 'Paste':
-          if (this.getTargetPasteCell().editable) {
-            return true;
-          } else {
-            return false;
-          }
-          break;
-        case 'Undo':
-          return true;
-        case 'Fill':
-          if (this.getTargetPasteCell().editable) {
-            return true;
-          } else {
-            return false;
-          }
-      }
-    };
-
-    ContextMenu.prototype.afterAction = function(action) {
-      switch (action) {
-        case 'Cut':
-          this.displayBorders();
-          break;
-        case 'Copy':
-          this.displayBorders();
-          break;
-        case 'Paste':
-          this.hideBorders();
-          break;
-        case 'Undo':
-          break;
-        case 'Fill':
-          break;
-      }
-      return this.hide();
+      return menu.hide();
     };
 
     ContextMenu.prototype.toggle = function(action) {
