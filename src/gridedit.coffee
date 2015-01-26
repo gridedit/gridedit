@@ -34,7 +34,6 @@ class GridEdit
     @redCells = []
     @activeCells = []
     @copiedCells = null
-    @copiedValues = null
     @selectionStart = null
     @selectionEnd = null
     @selectedCol = null
@@ -49,7 +48,9 @@ class GridEdit
       @set key, value for key, value of @config.custom when key of @config.custom
       delete @config.custom
     do @init if @config.initialize
+    @copiedCellMatrix = null
     @contextMenu = new ContextMenu @config.contextMenuItems, @
+    @actionStack = new ActionStack(@)
   init: ->
     do @config.beforeInit if @config.beforeInit
     do @build
@@ -106,7 +107,11 @@ class GridEdit
 
         if cmd or ctrl
           if key && key != 91 && key != 92
-            table.contextMenu.actionCallbacks.byControl[key](e, table)
+            if table.contextMenu.actionCallbacks.byControl[key]
+              e.preventDefault();
+              table.contextMenu.actionCallbacks.byControl[key](e, table)
+
+
         else
           switch key
             when 39 # right arrow
@@ -229,6 +234,14 @@ class GridEdit
       return true if node is @tableEl
       node = node.parentNode
     false
+  addToStack: (action) ->
+    @actionStack.addAction(action)
+  undo: ->
+    console.log('table.undo')
+    @actionStack.undo()
+  redo: ->
+    console.log('table.redo')
+    @actionStack.redo()
 
 class Column
   constructor: (@attributes, @table) ->
@@ -296,8 +309,8 @@ class Cell
     @editable = @col.editable != false
     @element = document.createElement 'td'
     @element.classList.add @col.cellClass if @col.cellClass
-    @values = [@originalValue]
-    @previousValue = null
+#    @values = [@originalValue]
+#    @previousValue = null
     @valueKey = @col.valueKey
     @source = @table.config.rows[@address[0]]
     @initCallbacks()
@@ -327,13 +340,14 @@ class Cell
     @afterControlHide = @table.config.afterControlHide if @table.config.afterControlHide
     @onClick = @table.config.onCellClick if @table.config.onCellClick
     @beforeNavigateTo = @table.config.beforeCellNavigateTo if @table.config.beforeCellNavigateTo
-  value: (newValue = null) ->
+  value: (newValue = null, addToStack=true) ->
     if newValue isnt null and newValue isnt @element.textContent
       newValue = @cellTypeObject.formatValue(newValue)
       oldValue = @value()
       @beforeEdit(@, oldValue, newValue) if @beforeEdit
-      @previousValue = @element.textContent
-      @values.push newValue
+#      @previousValue = @element.textContent
+      @table.addToStack { type: 'cell-edit', oldValue: oldValue, newValue: newValue, address: @address } if addToStack
+#      @values.push newValue
       @element.textContent = newValue
       @cellTypeObject.setValue(newValue)
       Utilities::setStyles @control, @position()
@@ -508,6 +522,11 @@ class ContextMenu
         shortCut: ctrlOrCmd + '+Z',
         callback: @undo
       },
+      redo: {
+        name: 'Redo',
+        shortCut: ctrlOrCmd + '+Y',
+        callback: @redo
+      },
       fill: {
         name: 'Fill',
         shortCut: '',
@@ -588,55 +607,58 @@ class ContextMenu
 
   cut: (e, table) ->
     menu = table.contextMenu
-    table.copiedValues = []
-    table.copiedCellMatrix = new CellMatrix(table.activeCells)
-    table.copiedValues = table.copiedCellMatrix.values
+    cellMatrix = new CellMatrix(table.activeCells)
+    table.copiedCellMatrix = cellMatrix
+    table.addToStack({ type: 'cut', matrix: cellMatrix.values, address: [cellMatrix.lowRow, cellMatrix.lowCol ] })
     for cell in table.activeCells
-      cell.value('')
+      cell.value('', false)
     menu.displayBorders()
     menu.hide()
 
   copy: (e, table) ->
     menu = table.contextMenu
-    table.copiedValues = []
     table.copiedCellMatrix = new CellMatrix(table.activeCells)
-    table.copiedValues = table.copiedCellMatrix.values
     menu.displayBorders()
     menu.hide()
 
   paste: (e, table) ->
     menu = table.contextMenu
     cell = menu.getTargetPasteCell()
+
     if cell.editable
+      matrix = []
       rowIndex = cell.address[0] - 1
-      for row in table.copiedValues
+      for row in table.copiedCellMatrix.values
         rowIndex++
         colIndex = cell.address[1]
+        matrix[rowIndex] = []
         for value in row
           currentCell = table.getCell(rowIndex, colIndex)
-          console.log(currentCell)
           if currentCell and currentCell.editable
-            currentCell.value(value)
+            matrix[rowIndex].push currentCell.value()
+            currentCell.value(value, false)
           colIndex++
 
       menu.hideBorders()
+      table.addToStack({ type: 'paste', matrix: matrix, oldMatrix: table.copiedCellMatrix.values, address: cell.address })
+
     menu.hide()
 
   undo: (e, table) ->
-    # todo - refactor 'undo' functionality into a global undo
-#    menu = table.contextMenu
-#    beforeActionReturnVal = menu.beforeAction 'Undo'
-#    if beforeActionReturnVal
-#      value = menu.cell.values.pop()
-#      menu.cell.value(value)
-#      menu.afterAction 'Undo'
+    console.log('start undo')
+    table.undo()
+
+  redo: (e, table) ->
+    console.log('start redo')
+    table.redo()
+
 
   fill: (e, table) ->
     menu = table.contextMenu
     cell = menu.getTargetPasteCell()
     if cell.editable
       rowIndex = cell.address[0] - 1
-      for row in table.copiedValues
+      for row in table.copiedCellMatrix.values
         rowIndex++
         colIndex = cell.address[1]
         for value in row
@@ -657,7 +679,6 @@ class ContextMenu
     @element.onclick = (e) ->
       actionName = e.target.getAttribute('name')
       menu.actionCallbacks.byName[actionName](e, menu.table)
-
 
 
 ###
@@ -825,6 +846,14 @@ class SelectCell extends GenericCell
     # stub
 
 
+  ###
+
+    Cell Matrix
+    -----------------------------------------------------------------------------------------
+
+  ###
+
+
 class CellMatrix
   constructor: (@cells) ->
     rows = []
@@ -898,6 +927,98 @@ class CellMatrix
       else
         # right
         cell.element.style.borderRight = "2px dashed blue"
+
+
+###
+
+	ActionStack
+	-----------------------------------------------------------------------------------------
+  used for undo/redo functionality
+
+###
+
+
+class ActionStack
+  constructor: (@table) ->
+    @index = -1;
+    @actions = [];
+
+  getCell: (action) ->
+    @table.getCell(action.address[0], action.address[1])
+
+  addAction: (actionObject) ->
+    console.log('stack: add action')
+    @actions.push(actionObject)
+    @index++;
+
+  undo: ->
+    console.log('stack: undo action')
+    console.log('in index: ', @index)
+    if @index > -1
+      @index--
+      action = @actions[@index + 1]
+
+      switch action.type
+        when 'cell-edit'
+          cell = @getCell(action)
+          cell.value(action.oldValue, false)
+
+        when 'cut'
+          rowIndex = action.address[0] - 1
+          for row in action.matrix
+            rowIndex++
+            colIndex = action.address[1]
+            for value in row
+              currentCell = @table.getCell(rowIndex, colIndex)
+              currentCell.value(value, false)
+              colIndex++
+
+        when 'paste'
+          rowIndex = action.address[0] - 1
+          for row in action.matrix
+            rowIndex++
+            colIndex = action.address[1]
+            for value in row
+              currentCell = @table.getCell(rowIndex, colIndex)
+              currentCell.value(value, false)
+              colIndex++
+
+
+  redo: ->
+    console.log('stack: redo action')
+    console.log('in index: ', @index)
+    if(@index < @actions.length - 1)
+      @index++
+      action = @actions[@index]
+
+      switch action.type
+        when 'cell-edit'
+          cell = @table.getCell(action.address[0], action.address[1])
+          cell.value(action.newValue, false)
+
+        when 'cut'
+          rowIndex = action.address[0] - 1
+          for row in action.matrix
+            rowIndex++
+            colIndex = action.address[1]
+            for value in row
+              currentCell = @table.getCell(rowIndex, colIndex)
+              currentCell.value(value, false)
+              colIndex++
+
+        when 'paste'
+          rowIndex = action.address[0] - 1
+          for row in action.oldMatrix
+            rowIndex++
+            colIndex = action.address[1]
+            for value in row
+              currentCell = @table.getCell(rowIndex, colIndex)
+              currentCell.value(value, false)
+              colIndex++
+
+
+
+
 
 root = exports ? window
 root.GridEdit = GridEdit

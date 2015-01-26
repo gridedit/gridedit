@@ -1,5 +1,5 @@
 (function() {
-  var Cell, CellMatrix, Column, ContextMenu, DateCell, GenericCell, GridEdit, HTMLCell, NumberCell, Row, SelectCell, StringCell, Utilities, root,
+  var ActionStack, Cell, CellMatrix, Column, ContextMenu, DateCell, GenericCell, GridEdit, HTMLCell, NumberCell, Row, SelectCell, StringCell, Utilities, root,
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -86,7 +86,6 @@
       this.redCells = [];
       this.activeCells = [];
       this.copiedCells = null;
-      this.copiedValues = null;
       this.selectionStart = null;
       this.selectionEnd = null;
       this.selectedCol = null;
@@ -111,7 +110,9 @@
       if (this.config.initialize) {
         this.init();
       }
+      this.copiedCellMatrix = null;
       this.contextMenu = new ContextMenu(this.config.contextMenuItems, this);
+      this.actionStack = new ActionStack(this);
     }
 
     GridEdit.prototype.init = function() {
@@ -201,7 +202,10 @@
           };
           if (cmd || ctrl) {
             if (key && key !== 91 && key !== 92) {
-              return table.contextMenu.actionCallbacks.byControl[key](e, table);
+              if (table.contextMenu.actionCallbacks.byControl[key]) {
+                e.preventDefault();
+                return table.contextMenu.actionCallbacks.byControl[key](e, table);
+              }
             }
           } else {
             switch (key) {
@@ -496,6 +500,20 @@
       return false;
     };
 
+    GridEdit.prototype.addToStack = function(action) {
+      return this.actionStack.addAction(action);
+    };
+
+    GridEdit.prototype.undo = function() {
+      console.log('table.undo');
+      return this.actionStack.undo();
+    };
+
+    GridEdit.prototype.redo = function() {
+      console.log('table.redo');
+      return this.actionStack.redo();
+    };
+
     return GridEdit;
 
   })();
@@ -620,8 +638,6 @@
       if (this.col.cellClass) {
         this.element.classList.add(this.col.cellClass);
       }
-      this.values = [this.originalValue];
-      this.previousValue = null;
       this.valueKey = this.col.valueKey;
       this.source = this.table.config.rows[this.address[0]];
       this.initCallbacks();
@@ -682,10 +698,13 @@
       }
     };
 
-    Cell.prototype.value = function(newValue) {
+    Cell.prototype.value = function(newValue, addToStack) {
       var oldValue;
       if (newValue == null) {
         newValue = null;
+      }
+      if (addToStack == null) {
+        addToStack = true;
       }
       if (newValue !== null && newValue !== this.element.textContent) {
         newValue = this.cellTypeObject.formatValue(newValue);
@@ -693,8 +712,14 @@
         if (this.beforeEdit) {
           this.beforeEdit(this, oldValue, newValue);
         }
-        this.previousValue = this.element.textContent;
-        this.values.push(newValue);
+        if (addToStack) {
+          this.table.addToStack({
+            type: 'cell-edit',
+            oldValue: oldValue,
+            newValue: newValue,
+            address: this.address
+          });
+        }
         this.element.textContent = newValue;
         this.cellTypeObject.setValue(newValue);
         Utilities.prototype.setStyles(this.control, this.position());
@@ -1016,6 +1041,11 @@
           shortCut: ctrlOrCmd + '+Z',
           callback: this.undo
         },
+        redo: {
+          name: 'Redo',
+          shortCut: ctrlOrCmd + '+Y',
+          callback: this.redo
+        },
         fill: {
           name: 'Fill',
           shortCut: '',
@@ -1137,15 +1167,19 @@
     };
 
     ContextMenu.prototype.cut = function(e, table) {
-      var cell, menu, _i, _len, _ref;
+      var cell, cellMatrix, menu, _i, _len, _ref;
       menu = table.contextMenu;
-      table.copiedValues = [];
-      table.copiedCellMatrix = new CellMatrix(table.activeCells);
-      table.copiedValues = table.copiedCellMatrix.values;
+      cellMatrix = new CellMatrix(table.activeCells);
+      table.copiedCellMatrix = cellMatrix;
+      table.addToStack({
+        type: 'cut',
+        matrix: cellMatrix.values,
+        address: [cellMatrix.lowRow, cellMatrix.lowCol]
+      });
       _ref = table.activeCells;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         cell = _ref[_i];
-        cell.value('');
+        cell.value('', false);
       }
       menu.displayBorders();
       return menu.hide();
@@ -1154,40 +1188,54 @@
     ContextMenu.prototype.copy = function(e, table) {
       var menu;
       menu = table.contextMenu;
-      table.copiedValues = [];
       table.copiedCellMatrix = new CellMatrix(table.activeCells);
-      table.copiedValues = table.copiedCellMatrix.values;
       menu.displayBorders();
       return menu.hide();
     };
 
     ContextMenu.prototype.paste = function(e, table) {
-      var cell, colIndex, currentCell, menu, row, rowIndex, value, _i, _j, _len, _len1, _ref;
+      var cell, colIndex, currentCell, matrix, menu, row, rowIndex, value, _i, _j, _len, _len1, _ref;
       menu = table.contextMenu;
       cell = menu.getTargetPasteCell();
       if (cell.editable) {
+        matrix = [];
         rowIndex = cell.address[0] - 1;
-        _ref = table.copiedValues;
+        _ref = table.copiedCellMatrix.values;
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           row = _ref[_i];
           rowIndex++;
           colIndex = cell.address[1];
+          matrix[rowIndex] = [];
           for (_j = 0, _len1 = row.length; _j < _len1; _j++) {
             value = row[_j];
             currentCell = table.getCell(rowIndex, colIndex);
-            console.log(currentCell);
             if (currentCell && currentCell.editable) {
-              currentCell.value(value);
+              matrix[rowIndex].push(currentCell.value());
+              currentCell.value(value, false);
             }
             colIndex++;
           }
         }
         menu.hideBorders();
+        table.addToStack({
+          type: 'paste',
+          matrix: matrix,
+          oldMatrix: table.copiedCellMatrix.values,
+          address: cell.address
+        });
       }
       return menu.hide();
     };
 
-    ContextMenu.prototype.undo = function(e, table) {};
+    ContextMenu.prototype.undo = function(e, table) {
+      console.log('start undo');
+      return table.undo();
+    };
+
+    ContextMenu.prototype.redo = function(e, table) {
+      console.log('start redo');
+      return table.redo();
+    };
 
     ContextMenu.prototype.fill = function(e, table) {
       var cell, colIndex, currentCell, menu, row, rowIndex, value, _i, _j, _len, _len1, _ref;
@@ -1195,7 +1243,7 @@
       cell = menu.getTargetPasteCell();
       if (cell.editable) {
         rowIndex = cell.address[0] - 1;
-        _ref = table.copiedValues;
+        _ref = table.copiedCellMatrix.values;
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           row = _ref[_i];
           rowIndex++;
@@ -1501,6 +1549,13 @@
 
     SelectCell.prototype.select = function() {};
 
+
+    /*
+    
+      Cell Matrix
+      -----------------------------------------------------------------------------------------
+     */
+
     return SelectCell;
 
   })(GenericCell);
@@ -1602,6 +1657,151 @@
     };
 
     return CellMatrix;
+
+  })();
+
+
+  /*
+  
+  	ActionStack
+  	-----------------------------------------------------------------------------------------
+    used for undo/redo functionality
+   */
+
+  ActionStack = (function() {
+    function ActionStack(table) {
+      this.table = table;
+      this.index = -1;
+      this.actions = [];
+    }
+
+    ActionStack.prototype.getCell = function(action) {
+      return this.table.getCell(action.address[0], action.address[1]);
+    };
+
+    ActionStack.prototype.addAction = function(actionObject) {
+      console.log('stack: add action');
+      this.actions.push(actionObject);
+      return this.index++;
+    };
+
+    ActionStack.prototype.undo = function() {
+      var action, cell, colIndex, currentCell, row, rowIndex, value, _i, _j, _len, _len1, _ref, _ref1, _results, _results1;
+      console.log('stack: undo action');
+      console.log('in index: ', this.index);
+      if (this.index > -1) {
+        this.index--;
+        action = this.actions[this.index + 1];
+        switch (action.type) {
+          case 'cell-edit':
+            cell = this.getCell(action);
+            return cell.value(action.oldValue, false);
+          case 'cut':
+            rowIndex = action.address[0] - 1;
+            _ref = action.matrix;
+            _results = [];
+            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+              row = _ref[_i];
+              rowIndex++;
+              colIndex = action.address[1];
+              _results.push((function() {
+                var _j, _len1, _results1;
+                _results1 = [];
+                for (_j = 0, _len1 = row.length; _j < _len1; _j++) {
+                  value = row[_j];
+                  currentCell = this.table.getCell(rowIndex, colIndex);
+                  currentCell.value(value, false);
+                  _results1.push(colIndex++);
+                }
+                return _results1;
+              }).call(this));
+            }
+            return _results;
+            break;
+          case 'paste':
+            rowIndex = action.address[0] - 1;
+            _ref1 = action.matrix;
+            _results1 = [];
+            for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+              row = _ref1[_j];
+              rowIndex++;
+              colIndex = action.address[1];
+              _results1.push((function() {
+                var _k, _len2, _results2;
+                _results2 = [];
+                for (_k = 0, _len2 = row.length; _k < _len2; _k++) {
+                  value = row[_k];
+                  currentCell = this.table.getCell(rowIndex, colIndex);
+                  currentCell.value(value, false);
+                  _results2.push(colIndex++);
+                }
+                return _results2;
+              }).call(this));
+            }
+            return _results1;
+        }
+      }
+    };
+
+    ActionStack.prototype.redo = function() {
+      var action, cell, colIndex, currentCell, row, rowIndex, value, _i, _j, _len, _len1, _ref, _ref1, _results, _results1;
+      console.log('stack: redo action');
+      console.log('in index: ', this.index);
+      if (this.index < this.actions.length - 1) {
+        this.index++;
+        action = this.actions[this.index];
+        switch (action.type) {
+          case 'cell-edit':
+            cell = this.table.getCell(action.address[0], action.address[1]);
+            return cell.value(action.newValue, false);
+          case 'cut':
+            rowIndex = action.address[0] - 1;
+            _ref = action.matrix;
+            _results = [];
+            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+              row = _ref[_i];
+              rowIndex++;
+              colIndex = action.address[1];
+              _results.push((function() {
+                var _j, _len1, _results1;
+                _results1 = [];
+                for (_j = 0, _len1 = row.length; _j < _len1; _j++) {
+                  value = row[_j];
+                  currentCell = this.table.getCell(rowIndex, colIndex);
+                  currentCell.value(value, false);
+                  _results1.push(colIndex++);
+                }
+                return _results1;
+              }).call(this));
+            }
+            return _results;
+            break;
+          case 'paste':
+            rowIndex = action.address[0] - 1;
+            _ref1 = action.oldMatrix;
+            _results1 = [];
+            for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+              row = _ref1[_j];
+              rowIndex++;
+              colIndex = action.address[1];
+              _results1.push((function() {
+                var _k, _len2, _results2;
+                _results2 = [];
+                for (_k = 0, _len2 = row.length; _k < _len2; _k++) {
+                  value = row[_k];
+                  currentCell = this.table.getCell(rowIndex, colIndex);
+                  currentCell.value(value, false);
+                  _results2.push(colIndex++);
+                }
+                return _results2;
+              }).call(this));
+            }
+            return _results1;
+        }
+      }
+    };
+
+    return ActionStack;
 
   })();
 
