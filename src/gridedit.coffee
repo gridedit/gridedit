@@ -237,10 +237,8 @@ class GridEdit
   addToStack: (action) ->
     @actionStack.addAction(action)
   undo: ->
-    console.log('table.undo')
     @actionStack.undo()
   redo: ->
-    console.log('table.redo')
     @actionStack.redo()
 
 class Column
@@ -553,15 +551,11 @@ class ContextMenu
     # if the user specifed a contextMenuOrder
     # only add the actions specified
     # order them as in the array
-    console.log(@)
-    console.log(@userDefinedOrder)
     if @userDefinedOrder
       for actionName in @userDefinedOrder
         action = @userDefinedActions[actionName] || @defaultActions[actionName]
         if action
           @addAction action
-
-
     # use the default ordering
     else
       for actionName, action of @defaultActions
@@ -989,7 +983,6 @@ class ActionStack
     @table.getCell(action.address[0], action.address[1])
 
   addAction: (actionObject) ->
-    console.log(@index)
     if @index > - 1 and @index < @actions.length - 1
 
       @actions = @actions.splice(0, @index + 1)
