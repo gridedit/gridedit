@@ -614,7 +614,7 @@
       this.col = this.table.cols[this.index];
       this.type = this.col.type;
       this.meta = this.col;
-      this.editable = this.col.editable != null;
+      this.editable = this.col.editable !== false;
       this.element = document.createElement('td');
       if (this.col.cellClass) {
         this.element.classList.add(this.col.cellClass);
@@ -1179,7 +1179,8 @@
           for (_j = 0, _len1 = row.length; _j < _len1; _j++) {
             value = row[_j];
             currentCell = table.getCell(rowIndex, colIndex);
-            if (currentCell) {
+            console.log(currentCell);
+            if (currentCell && currentCell.editable) {
               currentCell.value(value);
             }
             colIndex++;
@@ -1244,7 +1245,6 @@
           this.displayBorders();
           break;
         case 'Copy':
-          console.log('here');
           this.displayBorders();
           break;
         case 'Paste':

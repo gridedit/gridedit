@@ -291,7 +291,7 @@ class Cell
     @col = @table.cols[@index]
     @type = @col.type
     @meta = @col
-    @editable = @col.editable?
+    @editable = @col.editable != false
     @element = document.createElement 'td'
     @element.classList.add @col.cellClass if @col.cellClass
     @values = [@originalValue]
@@ -616,7 +616,8 @@ class ContextMenu
         colIndex = cell.address[1]
         for value in row
           currentCell = table.getCell(rowIndex, colIndex)
-          if currentCell
+          console.log(currentCell)
+          if currentCell and currentCell.editable
             currentCell.value(value)
           colIndex++
 
@@ -654,7 +655,6 @@ class ContextMenu
       when 'Cut'
         @displayBorders()
       when 'Copy'
-        console.log('here')
         @displayBorders()
       when 'Paste'
         @hideBorders()
