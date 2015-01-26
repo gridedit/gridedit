@@ -111,7 +111,7 @@
         this.init();
       }
       this.copiedCellMatrix = null;
-      this.contextMenu = new ContextMenu(this.config.contextMenuItems, this);
+      this.contextMenu = new ContextMenu(this);
       this.actionStack = new ActionStack(this);
     }
 
@@ -1009,10 +1009,11 @@
    */
 
   ContextMenu = (function() {
-    function ContextMenu(userDefinedActions, table) {
-      var action, actionName, ctrlOrCmd, _ref, _ref1;
-      this.userDefinedActions = userDefinedActions;
+    function ContextMenu(table) {
+      var action, actionName, ctrlOrCmd, _i, _len, _ref, _ref1, _ref2;
       this.table = table;
+      this.userDefinedActions = this.table.config.contextMenuItems;
+      this.userDefinedOrder = this.table.config.contextMenuOrder;
       ctrlOrCmd = /Mac/.test(navigator.platform) ? 'Cmd' : 'Ctrl';
       this.actionNodes = {};
       this.actionCallbacks = {
@@ -1051,6 +1052,11 @@
           shortCut: '',
           hasDivider: true,
           callback: this.fill
+        },
+        selectAll: {
+          name: 'Select All',
+          shortCut: ctrlOrCmd + '+A',
+          callback: this.selectAll
         }
       };
       this.element = document.createElement('div');
@@ -1062,18 +1068,31 @@
         'aria-labelledby': 'aria-labelledby',
         style: 'display:block;position:static;margin-bottom:5px;'
       });
-      _ref = this.defaultActions;
-      for (actionName in _ref) {
-        action = _ref[actionName];
-        if (this.userDefinedActions[actionName] || this.userDefinedActions[actionName] === false) {
-          continue;
+      console.log(this);
+      console.log(this.userDefinedOrder);
+      if (this.userDefinedOrder) {
+        _ref = this.userDefinedOrder;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          actionName = _ref[_i];
+          action = this.userDefinedActions[actionName] || this.defaultActions[actionName];
+          if (action) {
+            this.addAction(action);
+          }
         }
-        this.addAction(action);
-      }
-      _ref1 = this.userDefinedActions;
-      for (actionName in _ref1) {
-        action = _ref1[actionName];
-        this.addAction(action);
+      } else {
+        _ref1 = this.defaultActions;
+        for (actionName in _ref1) {
+          action = _ref1[actionName];
+          if (this.userDefinedActions[actionName] || this.userDefinedActions[actionName] === false) {
+            continue;
+          }
+          this.addAction(action);
+        }
+        _ref2 = this.userDefinedActions;
+        for (actionName in _ref2) {
+          action = _ref2[actionName];
+          this.addAction(action);
+        }
       }
       this.element.appendChild(this.menu);
       this.events(this);
@@ -1227,16 +1246,6 @@
       return menu.hide();
     };
 
-    ContextMenu.prototype.undo = function(e, table) {
-      console.log('start undo');
-      return table.undo();
-    };
-
-    ContextMenu.prototype.redo = function(e, table) {
-      console.log('start redo');
-      return table.redo();
-    };
-
     ContextMenu.prototype.fill = function(e, table) {
       var cell, cellMatrix, colIndex, currentCell, fillValue, matrix, menu, row, rowIndex, value, _i, _j, _len, _len1, _ref;
       menu = table.contextMenu;
@@ -1271,6 +1280,29 @@
         });
       }
       return menu.hide();
+    };
+
+    ContextMenu.prototype.selectAll = function(e, table) {
+      var cell, row, _i, _j, _len, _len1, _ref, _ref1;
+      table.clearActiveCells();
+      _ref = table.rows;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        row = _ref[_i];
+        _ref1 = row.cells;
+        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+          cell = _ref1[_j];
+          cell.addToSelection();
+        }
+      }
+      return null;
+    };
+
+    ContextMenu.prototype.undo = function(e, table) {
+      return table.undo();
+    };
+
+    ContextMenu.prototype.redo = function(e, table) {
+      return table.redo();
     };
 
     ContextMenu.prototype.toggle = function(action) {
@@ -1677,6 +1709,8 @@
   	ActionStack
   	-----------------------------------------------------------------------------------------
     used for undo/redo functionality
+  
+    todo - splice actions array at X elements to conserve memory
    */
 
   ActionStack = (function() {

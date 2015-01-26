@@ -49,7 +49,7 @@ class GridEdit
       delete @config.custom
     do @init if @config.initialize
     @copiedCellMatrix = null
-    @contextMenu = new ContextMenu @config.contextMenuItems, @
+    @contextMenu = new ContextMenu @
     @actionStack = new ActionStack(@)
   init: ->
     do @config.beforeInit if @config.beforeInit
@@ -493,7 +493,10 @@ Context Menu
 
 
 class ContextMenu
-  constructor: (@userDefinedActions, @table) ->
+  constructor: (@table) ->
+    @userDefinedActions = @table.config.contextMenuItems
+    @userDefinedOrder = @table.config.contextMenuOrder
+
     ctrlOrCmd = if /Mac/.test(navigator.platform) then 'Cmd' else 'Ctrl'
     @actionNodes = {}
     @actionCallbacks = {
@@ -532,6 +535,11 @@ class ContextMenu
         shortCut: '',
         hasDivider: true,
         callback: @fill
+      },
+      selectAll: {
+        name: 'Select All',
+        shortCut: ctrlOrCmd + '+A',
+        callback: @selectAll
       }
     }
     # create the contextMenu div
@@ -541,12 +549,29 @@ class ContextMenu
     @menu = document.createElement 'ul'
     # todo - remove bootstrap style dependence
     Utilities::setAttributes @menu, {class: 'dropdown-menu', role: 'menu', 'aria-labelledby', style: 'display:block;position:static;margin-bottom:5px;'}
-    for actionName, action of @defaultActions
-      # allow the user to override defaults, or remove them by setting them to false
-      continue if @userDefinedActions[actionName] || @userDefinedActions[actionName] == false;
-      @addAction action
-    for actionName, action of @userDefinedActions
-      @addAction action
+
+    # if the user specifed a contextMenuOrder
+    # only add the actions specified
+    # order them as in the array
+    console.log(@)
+    console.log(@userDefinedOrder)
+    if @userDefinedOrder
+      for actionName in @userDefinedOrder
+        action = @userDefinedActions[actionName] || @defaultActions[actionName]
+        if action
+          @addAction action
+
+
+    # use the default ordering
+    else
+      for actionName, action of @defaultActions
+        # allow the user to override defaults, or remove them by setting them to false
+        continue if @userDefinedActions[actionName] || @userDefinedActions[actionName] == false;
+        @addAction action
+      for actionName, action of @userDefinedActions
+        @addAction action
+
+
     @element.appendChild @menu
     @events @
 
@@ -644,15 +669,6 @@ class ContextMenu
 
     menu.hide()
 
-  undo: (e, table) ->
-    console.log('start undo')
-    table.undo()
-
-  redo: (e, table) ->
-    console.log('start redo')
-    table.redo()
-
-
   fill: (e, table) ->
     menu = table.contextMenu
     cell = menu.getTargetPasteCell()
@@ -679,6 +695,20 @@ class ContextMenu
 
 
     menu.hide()
+
+  selectAll: (e, table) ->
+    table.clearActiveCells()
+    for row in table.rows
+      for cell in row.cells
+        cell.addToSelection()
+
+    null
+
+  undo: (e, table) ->
+    table.undo()
+
+  redo: (e, table) ->
+    table.redo()
 
   toggle: (action) ->
     classes = @actionNodes[action].classList
@@ -944,6 +974,8 @@ class CellMatrix
 	ActionStack
 	-----------------------------------------------------------------------------------------
   used for undo/redo functionality
+
+  todo - splice actions array at X elements to conserve memory
 
 ###
 
