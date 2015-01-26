@@ -273,8 +273,9 @@
       return document.onclick = function(e) {
         var _ref;
         if (!((table.isDescendant(e.target)) || (e.target === ((_ref = table.activeCell()) != null ? _ref.control : void 0) || table.contextMenu))) {
-          return Utilities.prototype.clearActiveCells(table);
+          Utilities.prototype.clearActiveCells(table);
         }
+        return table.contextMenu.hide();
       };
     };
 
