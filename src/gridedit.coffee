@@ -324,6 +324,10 @@ class Cell
       when 'select'
         node = document.createTextNode @attributes || ''
         @control = @toSelect()
+      when 'string'
+        node = document.createTextNode @attributes
+        @control = document.createElement 'textarea'
+        @control.classList.add 'form-control'
     @element.appendChild node
     delete @attributes
     @events @
