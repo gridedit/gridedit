@@ -1,5 +1,5 @@
 (function() {
-  var Cell, Column, ContextMenu, DateCell, GenericCell, GridEdit, HTMLCell, NumberCell, Row, SelectCell, StringCell, Utilities, root,
+  var Cell, CellMatrix, Column, ContextMenu, DateCell, GenericCell, GridEdit, HTMLCell, NumberCell, Row, SelectCell, StringCell, Utilities, root,
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -85,8 +85,8 @@
       this.source = this.config.rows;
       this.redCells = [];
       this.activeCells = [];
-      this.copiedCells = [];
-      this.copiedValues = [];
+      this.copiedCells = null;
+      this.copiedValues = null;
       this.selectionStart = null;
       this.selectionEnd = null;
       this.selectedCol = null;
@@ -199,83 +199,61 @@
               return table.activeCell().showControl(valueFromKey(key, shift));
             }
           };
-          switch (key) {
-            case 39:
-              if (!table.activeCell().isBeingEdited()) {
-                return moveTo(table.nextCell());
-              }
-              break;
-            case 9:
-              if (shift) {
+          if (cmd || ctrl) {
+            if (key && key !== 91 && key !== 92) {
+              return table.contextMenu.actionCallbacks.byControl[key](e, table);
+            }
+          } else {
+            switch (key) {
+              case 39:
+                if (!table.activeCell().isBeingEdited()) {
+                  return moveTo(table.nextCell());
+                }
+                break;
+              case 9:
+                if (shift) {
+                  return moveTo(table.previousCell());
+                } else {
+                  return moveTo(table.nextCell());
+                }
+                break;
+              case 37:
                 return moveTo(table.previousCell());
-              } else {
-                return moveTo(table.nextCell());
-              }
-              break;
-            case 37:
-              return moveTo(table.previousCell());
-            case 38:
-              return moveTo(table.aboveCell());
-            case 40:
-              return moveTo(table.belowCell());
-            case 32:
-              if (!table.openCell) {
-                return edit(table.activeCell());
-              }
-              break;
-            case 67:
-              if (cmd || ctrl) {
-                return table.contextMenu.copy();
-              } else {
+              case 38:
+                return moveTo(table.aboveCell());
+              case 40:
+                return moveTo(table.belowCell());
+              case 32:
+                if (!table.openCell) {
+                  return edit(table.activeCell());
+                }
+                break;
+              case 13:
+                break;
+              case 16:
+                break;
+              case 17:
+                break;
+              case 91:
+                break;
+              case 8:
+                if (!table.openCell) {
+                  e.preventDefault();
+                  return table["delete"]();
+                }
+                break;
+              case 46:
+                if (!table.openCell) {
+                  e.preventDefault();
+                  return table["delete"]();
+                }
+                break;
+              default:
+                if (__indexOf.call([96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111], key) >= 0) {
+                  key = key - 48;
+                }
                 return openCellAndPopulateInitialValue();
-              }
-              break;
-            case 86:
-              if (cmd || ctrl) {
-                return table.contextMenu.paste();
-              } else {
-                return openCellAndPopulateInitialValue();
-              }
-              break;
-            case 88:
-              if (cmd || ctrl) {
-                return table.contextMenu.cut();
-              } else {
-                return openCellAndPopulateInitialValue();
-              }
-              break;
-            case 90:
-              if (cmd || ctrl) {
-                return table.contextMenu.undo();
-              } else {
-                return openCellAndPopulateInitialValue();
-              }
-              break;
-            case 13:
-              break;
-            case 16:
-              break;
-            case 17:
-              break;
-            case 91:
-              break;
-            case 8:
-              if (!table.openCell) {
-                e.preventDefault();
-                return table["delete"]();
-              }
-              break;
-            case 46:
-              if (!table.openCell) {
-                e.preventDefault();
-                return table["delete"]();
-              }
-              break;
-            default:
-              if (__indexOf.call([96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111], key) >= 0) {
-                key = key - 48;
-              }
-              return openCellAndPopulateInitialValue();
+            }
           }
         }
       };
@@ -294,7 +272,7 @@
       };
       return document.onclick = function(e) {
         var _ref;
-        if (!((table.isDescendant(e.target)) || (e.target === ((_ref = table.activeCell()) != null ? _ref.control : void 0)))) {
+        if (!((table.isDescendant(e.target)) || (e.target === ((_ref = table.activeCell()) != null ? _ref.control : void 0) || table.contextMenu))) {
           return Utilities.prototype.clearActiveCells(table);
         }
       };
@@ -314,7 +292,12 @@
     };
 
     GridEdit.prototype.getCell = function(x, y) {
-      return this.rows[x].cells[y];
+      var e;
+      try {
+        return this.rows[x].cells[y];
+      } catch (_error) {
+        e = _error;
+      }
     };
 
     GridEdit.prototype.activeCell = function() {
@@ -631,7 +614,7 @@
       this.col = this.table.cols[this.index];
       this.type = this.col.type;
       this.meta = this.col;
-      this.editable = this.col.editable !== false;
+      this.editable = this.col.editable != null;
       this.element = document.createElement('td');
       if (this.col.cellClass) {
         this.element.classList.add(this.col.cellClass);
@@ -780,7 +763,7 @@
       if (value == null) {
         value = null;
       }
-      if (this.table.contextMenu.borderedCells.length > 0) {
+      if (this.table.copiedCellMatrix) {
         this.table.contextMenu.hideBorders();
       }
       if (!this.editable) {
@@ -992,85 +975,125 @@
 
   })();
 
+
+  /*
+  
+  Context Menu
+  -----------------------------------------------------------------------------------------
+   */
+
   ContextMenu = (function() {
     function ContextMenu(userDefinedActions, table) {
-      var a, action, ctrlOrCmd, div, divider, li, span, ul, _i, _len, _ref;
+      var action, actionName, ctrlOrCmd, _ref, _ref1;
       this.userDefinedActions = userDefinedActions;
       this.table = table;
       ctrlOrCmd = /Mac/.test(navigator.platform) ? 'Cmd' : 'Ctrl';
-      this.defaultActions = [
-        {
+      this.actionNodes = {};
+      this.actionCallbacks = {
+        byName: {},
+        byControl: {}
+      };
+      this.borderedCells = [];
+      this.defaultActions = {
+        cut: {
           name: 'Cut',
-          value: 'cut',
-          shortCut: ctrlOrCmd + '+X'
-        }, {
+          shortCut: ctrlOrCmd + '+X',
+          callback: this.cut
+        },
+        copy: {
           name: 'Copy',
-          value: 'copy',
-          shortCut: ctrlOrCmd + '+C'
-        }, {
+          shortCut: ctrlOrCmd + '+C',
+          callback: this.copy
+        },
+        paste: {
           name: 'Paste',
-          value: 'paste',
-          shortCut: ctrlOrCmd + '+V'
-        }, {
+          shortCut: ctrlOrCmd + '+V',
+          callback: this.paste
+        },
+        undo: {
           name: 'Undo',
-          value: 'undo',
-          shortCut: ctrlOrCmd + '+Z'
-        }, {
+          shortCut: ctrlOrCmd + '+Z',
+          callback: this.undo
+        },
+        fill: {
           name: 'Fill',
-          value: 'fill',
-          shortCut: ''
+          shortCut: '',
+          hasDivider: true,
+          callback: this.fill
         }
-      ];
+      };
       this.element = document.createElement('div');
       this.element.style.position = 'fixed';
-      this.actionNodes = {};
-      this.borderedCells = [];
-      Utilities.prototype.setAttributes(this.element, {
-        id: 'contextMenu',
-        "class": 'dropdown clearfix'
-      });
-      ul = document.createElement('ul');
-      Utilities.prototype.setAttributes(ul, {
+      this.menu = document.createElement('ul');
+      Utilities.prototype.setAttributes(this.menu, {
         "class": 'dropdown-menu',
         role: 'menu',
         'aria-labelledby': 'aria-labelledby',
         style: 'display:block;position:static;margin-bottom:5px;'
       });
+      _ref = this.defaultActions;
+      for (actionName in _ref) {
+        action = _ref[actionName];
+        if (this.userDefinedActions[actionName] || this.userDefinedActions[actionName] === false) {
+          continue;
+        }
+        this.addAction(action);
+      }
+      _ref1 = this.userDefinedActions;
+      for (actionName in _ref1) {
+        action = _ref1[actionName];
+        this.addAction(action);
+      }
+      this.element.appendChild(this.menu);
+      this.events(this);
+    }
+
+    ContextMenu.prototype.addDivider = function() {
+      var divider;
       divider = document.createElement('li');
       Utilities.prototype.setAttributes(divider, {
         "class": 'divider'
       });
-      _ref = this.defaultActions;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        action = _ref[_i];
-        li = document.createElement('li');
-        div = document.createElement('div');
-        span = document.createElement('span');
-        span.textContent = action.shortCut;
-        span.setAttribute('name', action.name);
-        Utilities.prototype.setAttributes(span, {
-          style: "float: right !important;"
-        });
-        a = document.createElement('a');
-        a.textContent = action.name;
-        a.setAttribute('name', action.name);
-        Utilities.prototype.setAttributes(a, {
-          "class": 'enabled',
-          tabIndex: '-1'
-        });
-        if (action.name === 'Fill') {
-          ul.appendChild(divider);
-        }
-        a.appendChild(span);
-        li.appendChild(a);
-        this.actionNodes[action] = li;
-        ul.appendChild(li);
+      return this.menu.appendChild(divider);
+    };
+
+    ContextMenu.prototype.addAction = function(action) {
+      var a, code, div, key, li, shortCut, span;
+      li = document.createElement('li');
+      div = document.createElement('div');
+      span = document.createElement('span');
+      span.textContent = action.shortCut;
+      span.setAttribute('name', action.name);
+      Utilities.prototype.setAttributes(span, {
+        style: "float: right !important;"
+      });
+      a = document.createElement('a');
+      a.textContent = action.name;
+      a.setAttribute('name', action.name);
+      Utilities.prototype.setAttributes(a, {
+        "class": 'enabled',
+        tabIndex: '-1'
+      });
+      if (action.hasDivider) {
+        this.addDivider();
       }
-      this.element.appendChild(ul);
-      this.events(this);
-    }
+      a.appendChild(span);
+      li.appendChild(a);
+      this.actionNodes[action.name] = li;
+      this.actionCallbacks.byName[action.name] = action.callback;
+      shortCut = action.shortCut;
+      if (shortCut) {
+        if (/(ctrl|cmd)/i.test(shortCut)) {
+          key = shortCut.split('+')[1];
+          code = key.charCodeAt(0);
+          this.actionCallbacks.byControl[code] = action.callback;
+        }
+      }
+      return this.menu.appendChild(li);
+    };
 
     ContextMenu.prototype.show = function(x, y, cell) {
+      this.cell = cell;
       if (!cell.isActive()) {
         cell.makeActive();
       }
@@ -1101,111 +1124,85 @@
     };
 
     ContextMenu.prototype.displayBorders = function() {
-      var cell, index, _i, _len, _ref, _results;
-      this.borderedCells = this.table.activeCells;
-      if (this.borderedCells.length > 1) {
-        _ref = this.borderedCells;
-        _results = [];
-        for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
-          cell = _ref[index];
-          if (index === 0) {
-            cell.element.style.borderTop = "2px dashed blue";
-            cell.element.style.borderLeft = "2px dashed blue";
-            _results.push(cell.element.style.borderRight = "2px dashed blue");
-          } else if (index === this.table.activeCells.length - 1) {
-            cell.element.style.borderBottom = "2px dashed blue";
-            cell.element.style.borderLeft = "2px dashed blue";
-            _results.push(cell.element.style.borderRight = "2px dashed blue");
-          } else {
-            cell.element.style.borderLeft = "2px dashed blue";
-            _results.push(cell.element.style.borderRight = "2px dashed blue");
-          }
-        }
-        return _results;
-      } else {
-        return this.borderedCells[0].element.style.border = "2px dashed blue";
+      if (this.table.copiedCellMatrix) {
+        return this.table.copiedCellMatrix.displayBorders();
       }
     };
 
     ContextMenu.prototype.hideBorders = function() {
-      var cell, index, _i, _len, _ref;
-      _ref = this.borderedCells;
-      for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
-        cell = _ref[index];
-        cell.element.style.border = "";
+      if (this.table.copiedCellMatrix) {
+        return this.table.copiedCellMatrix.removeBorders();
       }
-      this.borderedCells = [];
-      this.table.copiedValues = [];
-      return this.table.copiedCells = [];
     };
 
-    ContextMenu.prototype.cut = function() {
-      var beforeActionReturnVal, cell, _i, _len, _ref;
-      beforeActionReturnVal = this.beforeAction('cut');
+    ContextMenu.prototype.cut = function(e, table) {
+      var beforeActionReturnVal, cell, menu, _i, _len, _ref;
+      menu = table.contextMenu;
+      beforeActionReturnVal = menu.beforeAction('Cut');
       if (beforeActionReturnVal) {
-        this.table.copiedValues = [];
-        this.table.copiedCells = this.table.activeCells;
-        _ref = this.table.activeCells;
+        table.copiedValues = [];
+        table.copiedCellMatrix = new CellMatrix(table.activeCells);
+        table.copiedValues = table.copiedCellMatrix.values;
+        _ref = table.activeCells;
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           cell = _ref[_i];
-          this.table.copiedValues.push(cell.value());
           cell.value('');
         }
-        return this.afterAction('cut');
+        return menu.afterAction('Cut');
       }
     };
 
-    ContextMenu.prototype.copy = function() {
-      var beforeActionReturnVal, cell, _i, _len, _ref;
-      beforeActionReturnVal = this.beforeAction('copy');
+    ContextMenu.prototype.copy = function(e, table) {
+      var beforeActionReturnVal, menu;
+      menu = table.contextMenu;
+      beforeActionReturnVal = menu.beforeAction('Copy');
       if (beforeActionReturnVal) {
-        this.table.copiedValues = [];
-        this.table.copiedCells = this.table.activeCells;
-        _ref = this.table.activeCells;
+        table.copiedValues = [];
+        table.copiedCellMatrix = new CellMatrix(table.activeCells);
+        table.copiedValues = table.copiedCellMatrix.values;
+        return menu.afterAction('Copy');
+      }
+    };
+
+    ContextMenu.prototype.paste = function(e, table) {
+      var beforeActionReturnVal, cell, colIndex, currentCell, menu, row, rowIndex, value, _i, _j, _len, _len1, _ref;
+      menu = table.contextMenu;
+      beforeActionReturnVal = menu.beforeAction('Paste');
+      if (beforeActionReturnVal) {
+        cell = menu.getTargetPasteCell();
+        rowIndex = cell.address[0] - 1;
+        _ref = table.copiedValues;
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          cell = _ref[_i];
-          this.table.copiedValues.push(cell.value());
-        }
-        return this.afterAction('copy');
-      }
-    };
-
-    ContextMenu.prototype.paste = function() {
-      var activeCell, beforeActionReturnVal, cell, index, value, _i, _j, _len, _len1, _ref, _ref1;
-      beforeActionReturnVal = this.beforeAction('paste');
-      if (beforeActionReturnVal) {
-        cell = this.getTargetPasteCell();
-        if (this.table.copiedValues.length > 1) {
-          _ref = this.table.copiedValues;
-          for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
-            value = _ref[index];
-            cell.value(this.table.copiedValues[index]);
-            cell = cell.below();
-          }
-        } else {
-          _ref1 = this.table.activeCells;
-          for (index = _j = 0, _len1 = _ref1.length; _j < _len1; index = ++_j) {
-            activeCell = _ref1[index];
-            activeCell.value(this.table.copiedValues[0]);
+          row = _ref[_i];
+          rowIndex++;
+          colIndex = cell.address[1];
+          for (_j = 0, _len1 = row.length; _j < _len1; _j++) {
+            value = row[_j];
+            currentCell = table.getCell(rowIndex, colIndex);
+            if (currentCell) {
+              currentCell.value(value);
+            }
+            colIndex++;
           }
         }
-        return this.afterAction('paste');
+        return menu.afterAction('Paste');
       }
     };
 
-    ContextMenu.prototype.undo = function() {
-      var beforeActionReturnVal, value;
-      beforeActionReturnVal = this.beforeAction('undo');
+    ContextMenu.prototype.undo = function(e, table) {
+      var beforeActionReturnVal, menu, value;
+      menu = table.contextMenu;
+      beforeActionReturnVal = menu.beforeAction('Undo');
       if (beforeActionReturnVal) {
-        value = this.cell.values.pop();
-        this.cell.value(value);
-        return this.afterAction('undo');
+        value = menu.cell.values.pop();
+        menu.cell.value(value);
+        return menu.afterAction('Undo');
       }
     };
 
-    ContextMenu.prototype.fill = function() {
+    ContextMenu.prototype.fill = function(e, table) {
       var beforeActionReturnVal, cell, index, value, _i, _len, _ref;
-      beforeActionReturnVal = this.beforeAction('fill');
+      beforeActionReturnVal = this.beforeAction('Fill');
       if (beforeActionReturnVal) {
         value = this.getTargetPasteCell().value();
         _ref = this.table.activeCells;
@@ -1213,26 +1210,26 @@
           cell = _ref[index];
           cell.value(value);
         }
-        return this.afterAction('fill');
+        return this.afterAction('Fill');
       }
     };
 
     ContextMenu.prototype.beforeAction = function(action) {
       switch (action) {
-        case 'cut':
+        case 'Cut':
           return true;
-        case 'copy':
+        case 'Copy':
           return true;
-        case 'paste':
+        case 'Paste':
           if (this.getTargetPasteCell().editable) {
             return true;
           } else {
             return false;
           }
           break;
-        case 'undo':
+        case 'Undo':
           return true;
-        case 'fill':
+        case 'Fill':
           if (this.getTargetPasteCell().editable) {
             return true;
           } else {
@@ -1243,18 +1240,19 @@
 
     ContextMenu.prototype.afterAction = function(action) {
       switch (action) {
-        case 'cut':
+        case 'Cut':
           this.displayBorders();
           break;
-        case 'copy':
+        case 'Copy':
+          console.log('here');
           this.displayBorders();
           break;
-        case 'paste':
+        case 'Paste':
           this.hideBorders();
           break;
-        case 'undo':
+        case 'Undo':
           break;
-        case 'fill':
+        case 'Fill':
           break;
       }
       return this.hide();
@@ -1269,27 +1267,24 @@
 
     ContextMenu.prototype.events = function(menu) {
       return this.element.onclick = function(e) {
-        var action;
-        action = e.target.getAttribute('name');
-        console.log(action);
-        switch (action) {
-          case 'Cut':
-            return menu.cut();
-          case 'Copy':
-            return menu.copy();
-          case 'Paste':
-            return menu.paste();
-          case 'Undo':
-            return menu.undo();
-          case 'Fill':
-            return menu.fill();
-        }
+        var actionName;
+        actionName = e.target.getAttribute('name');
+        return menu.actionCallbacks.byName[actionName](e, menu.table);
       };
     };
 
     return ContextMenu;
 
   })();
+
+
+  /*
+  
+    Cell Type Behavior
+    -----------------------------------------------------------------------------------------
+    generic behavior will be in GenericCell class
+    type specific behavior will be in the associated <type>Cell class
+   */
 
   GenericCell = (function() {
     function GenericCell(cell) {
@@ -1553,6 +1548,106 @@
     return SelectCell;
 
   })(GenericCell);
+
+  CellMatrix = (function() {
+    function CellMatrix(cells) {
+      var a, cell, col, colIndex, cols, m, matrix, row, rowIndex, rows, _i, _j, _k, _len, _len1, _len2, _ref;
+      this.cells = cells;
+      rows = [];
+      matrix = {};
+      _ref = this.cells;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        cell = _ref[_i];
+        rowIndex = cell.address[0];
+        colIndex = cell.address[1];
+        if (matrix[rowIndex]) {
+          matrix[rowIndex][colIndex] = cell.value();
+        } else {
+          rows.push(rowIndex);
+          matrix[rowIndex] = {};
+          matrix[rowIndex][colIndex] = cell.value();
+        }
+      }
+      this.matrix = matrix;
+      this.rowCount = rows.length;
+      rows.sort(function(a, b) {
+        return Number(a) > Number(b);
+      });
+      this.lowRow = rows[0];
+      this.highRow = rows[rows.length - 1];
+      cols = Object.keys(this.matrix[this.lowRow]);
+      this.colCount = cols.length;
+      cols.sort(function(a, b) {
+        return Number(a) > Number(b);
+      });
+      this.lowCol = cols[0];
+      this.highCol = cols[this.colCount - 1];
+      m = [];
+      for (_j = 0, _len1 = rows.length; _j < _len1; _j++) {
+        row = rows[_j];
+        a = [];
+        for (_k = 0, _len2 = cols.length; _k < _len2; _k++) {
+          col = cols[_k];
+          a.push(this.matrix[row][col]);
+        }
+        m.push(a);
+      }
+      this.values = m;
+    }
+
+    CellMatrix.prototype.displayBorders = function() {
+      var cell, _i, _len, _ref, _results;
+      _ref = this.cells;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        cell = _ref[_i];
+        _results.push(this.addBorder(cell));
+      }
+      return _results;
+    };
+
+    CellMatrix.prototype.removeBorders = function() {
+      var cell, _i, _len, _ref, _results;
+      _ref = this.cells;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        cell = _ref[_i];
+        _results.push(cell.element.style.border = "");
+      }
+      return _results;
+    };
+
+    CellMatrix.prototype.addBorder = function(cell) {
+      var colIndex, rowIndex;
+      rowIndex = cell.address[0];
+      colIndex = cell.address[1];
+      if (this.lowRow === this.highRow) {
+        cell.element.style.borderTop = "2px dashed blue";
+        cell.element.style.borderBottom = "2px dashed blue";
+      } else {
+        if (rowIndex < this.highRow) {
+          cell.element.style.borderTop = "2px dashed blue";
+          cell.element.style.borderBottom = "2px dashed blue";
+        } else {
+          cell.element.style.borderBottom = "2px dashed blue";
+        }
+      }
+      if (this.lowCol === this.highCol) {
+        cell.element.style.borderLeft = "2px dashed blue";
+        return cell.element.style.borderRight = "2px dashed blue";
+      } else {
+        if (colIndex < this.highCol) {
+          cell.element.style.borderLeft = "2px dashed blue";
+          return cell.element.style.borderRight = "2px dashed blue";
+        } else {
+          return cell.element.style.borderRight = "2px dashed blue";
+        }
+      }
+    };
+
+    return CellMatrix;
+
+  })();
 
   root = typeof exports !== "undefined" && exports !== null ? exports : window;
 

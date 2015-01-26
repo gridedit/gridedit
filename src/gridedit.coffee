@@ -33,8 +33,8 @@ class GridEdit
     @source = @config.rows
     @redCells = []
     @activeCells = []
-    @copiedCells = []
-    @copiedValues = []
+    @copiedCells = null
+    @copiedValues = null
     @selectionStart = null
     @selectionEnd = null
     @selectedCol = null
@@ -80,7 +80,7 @@ class GridEdit
     table.appendChild thead
     table.appendChild tbody
     @tableEl = table
-  rebuild: (newConfig=null) ->
+  rebuild: (newConfig = null) ->
     config = Object.create @config
     if newConfig isnt null
       for option of newConfig
@@ -97,53 +97,56 @@ class GridEdit
         shift = e.shiftKey
         ctrl = e.ctrlKey
         cmd = e.metaKey
+
         valueFromKey = (key, shift) ->
           char = String.fromCharCode key
           if not shift then char.toLowerCase() else char
+
         openCellAndPopulateInitialValue = -> if not table.openCell then table.activeCell().showControl(valueFromKey key, shift)
-        switch key
-          when 39 # right arrow
-            if not table.activeCell().isBeingEdited()
-              moveTo table.nextCell()
-          when 9
-            if shift then moveTo table.previousCell() else moveTo table.nextCell()
-          when 37 then moveTo table.previousCell()
-          when 38 then moveTo table.aboveCell()
-          when 40 then moveTo table.belowCell()
-          when 32 # space
-            if not table.openCell then edit table.activeCell()
-          when 67
-            if cmd or ctrl then table.contextMenu.copy() else openCellAndPopulateInitialValue()
-          when 86
-            if cmd or ctrl then table.contextMenu.paste() else openCellAndPopulateInitialValue()
-          when 88
-            if cmd or ctrl then table.contextMenu.cut() else openCellAndPopulateInitialValue()
-          when 90
-            if cmd or ctrl then table.contextMenu.undo() else openCellAndPopulateInitialValue()
-          when 13 then break
-          when 16 then break
-          when 17 then break
-          when 91 then break
-          when 8
-            if not table.openCell
-              e.preventDefault()
-              table.delete()
-          when 46
-            if not table.openCell
-              e.preventDefault()
-              table.delete()
-          else
-            key = key-48 if key in [96..111] # For numpad
-            openCellAndPopulateInitialValue()
+
+        if cmd or ctrl
+          if key && key != 91 && key != 92
+            table.contextMenu.actionCallbacks.byControl[key](e, table)
+        else
+          switch key
+            when 39 # right arrow
+              if not table.activeCell().isBeingEdited()
+                moveTo table.nextCell()
+            when 9
+              if shift then moveTo table.previousCell() else moveTo table.nextCell()
+            when 37 then moveTo table.previousCell()
+            when 38 then moveTo table.aboveCell()
+            when 40 then moveTo table.belowCell()
+            when 32 # space
+              if not table.openCell then edit table.activeCell()
+            when 13 then break
+            when 16 then break
+            when 17 then break
+            when 91 then break
+            when 8
+              if not table.openCell
+                e.preventDefault()
+                table.delete()
+            when 46
+              if not table.openCell
+                e.preventDefault()
+                table.delete()
+            else
+              key = key - 48 if key in [96..111] # For numpad
+              openCellAndPopulateInitialValue()
     window.onresize = -> Utilities::setStyles table.openCell.control, table.openCell.position() if table.openCell
     window.onscroll = -> table.openCell.reposition() if table.openCell
     @tableEl.oncontextmenu = (e) -> false
-    document.onclick = (e) -> Utilities::clearActiveCells table unless (table.isDescendant e.target) or (e.target is table.activeCell()?.control)
+    document.onclick = (e) -> Utilities::clearActiveCells table unless (table.isDescendant e.target) or (e.target is table.activeCell()?.control or table.contextMenu)
   render: ->
     @element = document.querySelectorAll(@config.element || '#gridedit')[0] if @element.hasChildNodes()
     @element.appendChild @tableEl
   set: (key, value) -> @config[key] = value if key isnt undefined
-  getCell: (x, y) -> @rows[x].cells[y]
+  getCell: (x, y) ->
+    try
+      @rows[x].cells[y]
+    catch e
+      # out of range
   activeCell: -> if @activeCells.length > 1 then @activeCells else @activeCells[0]
   nextCell: -> @activeCell()?.next()
   previousCell: -> @activeCell()?.previous()
@@ -183,7 +186,7 @@ class GridEdit
     else
       console.log("Cannot calculate direction going from cell #{fromCell.address} to cell #{toCell.address}")
     direction
-  edit: (cell, newValue=null) ->
+  edit: (cell, newValue = null) ->
     if newValue isnt null
       cell?.edit newValue
     else
@@ -288,7 +291,7 @@ class Cell
     @col = @table.cols[@index]
     @type = @col.type
     @meta = @col
-    @editable = @col.editable != false
+    @editable = @col.editable?
     @element = document.createElement 'td'
     @element.classList.add @col.cellClass if @col.cellClass
     @values = [@originalValue]
@@ -322,7 +325,7 @@ class Cell
     @afterControlHide = @table.config.afterControlHide if @table.config.afterControlHide
     @onClick = @table.config.onCellClick if @table.config.onCellClick
     @beforeNavigateTo = @table.config.beforeCellNavigateTo if @table.config.beforeCellNavigateTo
-  value: (newValue=null) ->
+  value: (newValue = null) ->
     if newValue isnt null and newValue isnt @element.textContent
       newValue = @cellTypeObject.formatValue(newValue)
       oldValue = @value()
@@ -360,8 +363,8 @@ class Cell
   showRed: ->
     @element.style.cssText = "background-color: #{@table.cellStyles.uneditableColor};"
     @table.redCells.push @
-  showControl: (value=null) ->
-    @table.contextMenu.hideBorders() if @table.contextMenu.borderedCells.length > 0
+  showControl: (value = null) ->
+    @table.contextMenu.hideBorders() if @table.copiedCellMatrix
     if not @editable
       @showRed()
     else
@@ -370,7 +373,7 @@ class Cell
         if value isnt null
           @control.value = value
           control = @control
-          setTimeout( ->
+          setTimeout(->
             control.focus()
           , 0)
         else
@@ -387,7 +390,7 @@ class Cell
         @control.remove() if @isControlInDocument()
         @table.openCell = null
         @afterControlHide @ if @afterControlHide
-  edit: (newValue=null) ->
+  edit: (newValue = null) ->
     if not @editable
       @showRed()
     else
@@ -415,9 +418,6 @@ class Cell
   isBelow: (cell) -> cell.address[0] < @address[0] and cell.address[1] is @address[1]
   addClass: (newClass) -> @element.classList.add newClass
   removeClass: (classToRemove) -> @element.classList.remove classToRemove
-
-
-
   isBeingEdited: -> @control.parentNode?
   events: (cell) ->
     table = cell.table
@@ -454,11 +454,7 @@ class Cell
         when 9
           cell.edit @value
           moveTo table.nextCell()
-
-
-
     @cellTypeObject.addControlEvents(cell)
-
     if table.mobile
       startY = null
       @element.ontouchstart = (e) ->
@@ -471,190 +467,222 @@ class Cell
           e.preventDefault()
           do cell.edit
 
+
+###
+
+Context Menu
+-----------------------------------------------------------------------------------------
+
+###
+
+
 class ContextMenu
   constructor: (@userDefinedActions, @table) ->
     ctrlOrCmd = if /Mac/.test(navigator.platform) then 'Cmd' else 'Ctrl'
-
-    @defaultActions = [
-      {
+    @actionNodes = {}
+    @actionCallbacks = {
+      byName: {},
+      byControl: {}
+    }
+    @borderedCells = []
+    @defaultActions = {
+      cut: {
         name: 'Cut',
-        value: 'cut',
-        shortCut: ctrlOrCmd+'+X'
+        shortCut: ctrlOrCmd + '+X',
+        callback: @cut
       },
-      {
+      copy: {
         name: 'Copy',
-        value: 'copy',
-        shortCut: ctrlOrCmd+'+C'
+        shortCut: ctrlOrCmd + '+C',
+        callback: @copy
       },
-      {
+      paste: {
         name: 'Paste',
-        value: 'paste',
-        shortCut: ctrlOrCmd+'+V'
+        shortCut: ctrlOrCmd + '+V',
+        callback: @paste
       },
-      {
+      undo: {
         name: 'Undo',
-        value: 'undo',
-        shortCut: ctrlOrCmd+'+Z'
+        shortCut: ctrlOrCmd + '+Z',
+        callback: @undo
       },
-      {
+      fill: {
         name: 'Fill',
-        value: 'fill',
-        shortCut: ''
+        shortCut: '',
+        hasDivider: true,
+        callback: @fill
       }
-    ]
-
+    }
+    # create the contextMenu div
     @element = document.createElement 'div'
     @element.style.position = 'fixed'
-    @actionNodes = {}
-    @borderedCells = []
-    Utilities::setAttributes @element, {id: 'contextMenu', class: 'dropdown clearfix'}
-    ul = document.createElement 'ul'
-    Utilities::setAttributes ul, {class: 'dropdown-menu', role: 'menu', 'aria-labelledby', style: 'display:block;position:static;margin-bottom:5px;'}
+    # create the ul to hold context menu items
+    @menu = document.createElement 'ul'
+    # todo - remove bootstrap style dependence
+    Utilities::setAttributes @menu, {class: 'dropdown-menu', role: 'menu', 'aria-labelledby', style: 'display:block;position:static;margin-bottom:5px;'}
+    for actionName, action of @defaultActions
+      # allow the user to override defaults, or remove them by setting them to false
+      continue if @userDefinedActions[actionName] || @userDefinedActions[actionName] == false;
+      @addAction action
+    for actionName, action of @userDefinedActions
+      @addAction action
+    @element.appendChild @menu
+    @events @
 
+  # add a divider to the context menu
+  addDivider: ->
     divider = document.createElement 'li'
     Utilities::setAttributes divider, {class: 'divider'}
+    @menu.appendChild divider
 
-    for action in @defaultActions
-      li = document.createElement 'li'
+  # add an action to the context menu
+  addAction: (action) ->
+    li = document.createElement 'li'
+    div = document.createElement 'div'
+    span = document.createElement 'span'
+    span.textContent = action.shortCut
+    span.setAttribute('name', action.name)
+    Utilities::setAttributes span, {style: "float: right !important;"}
+    a = document.createElement 'a'
+    a.textContent = action.name
+    a.setAttribute('name', action.name)
+    Utilities::setAttributes a, {class: 'enabled', tabIndex: '-1'}
+    @addDivider() if action.hasDivider
+    a.appendChild span
+    li.appendChild a
+    @actionNodes[action.name] = li
+    @actionCallbacks.byName[action.name] = action.callback
+    shortCut = action.shortCut
+    # register shortcuts to the actionCallbacks index
+    # todo - honor shift+key variations ie: Shift+X
+    # todo - honor complex shortcut variations ie: Shift+Ctrl+X
+    # currently only allowing simple variations of <Ctrl|Cmd>+<key>
+    if shortCut
+      if /(ctrl|cmd)/i.test shortCut
+        key = shortCut.split('+')[1]
+        code = key.charCodeAt(0)
+        @actionCallbacks.byControl[code] = action.callback
+    @menu.appendChild li
 
-      div = document.createElement 'div'
-
-      span = document.createElement 'span'
-      span.textContent = action.shortCut
-      span.setAttribute('name', action.name)
-      Utilities::setAttributes span, { style: "float: right !important;" }
-
-      a = document.createElement 'a'
-      a.textContent = action.name
-      a.setAttribute('name', action.name)
-      Utilities::setAttributes a, {class: 'enabled', tabIndex: '-1'}
-
-      if action.name is 'Fill'
-        ul.appendChild divider
-
-      a.appendChild span
-
-      li.appendChild a
-      @actionNodes[action] = li
-
-      ul.appendChild li
-
-
-    @element.appendChild ul
-    @events @
-  show: (x, y, cell) ->
+  show: (x, y, @cell) ->
     cell.makeActive() if not cell.isActive()
     @cells = cell.table.activeCells
     Utilities::setStyles @element, {left: x, top: y}
     @table.tableEl.appendChild @element
+
   hide: -> @table.tableEl.removeChild @element if @isVisible()
+
   isVisible: -> @element.parentNode?
+
   getTargetPasteCell: -> @table.activeCells.sort(@sortFunc)[0]
-  sortFunc: (a,b) -> a.address[0] - b.address[0]
+
+  sortFunc: (a, b) -> a.address[0] - b.address[0]
+
   displayBorders: ->
-    @borderedCells = @table.activeCells
-    if @borderedCells.length > 1
-      for cell, index in @borderedCells
-        if index is 0
-          cell.element.style.borderTop = "2px dashed blue"
-          cell.element.style.borderLeft = "2px dashed blue"
-          cell.element.style.borderRight = "2px dashed blue"
-        else if index is @table.activeCells.length - 1
-          cell.element.style.borderBottom = "2px dashed blue"
-          cell.element.style.borderLeft = "2px dashed blue"
-          cell.element.style.borderRight = "2px dashed blue"
-        else
-          cell.element.style.borderLeft = "2px dashed blue"
-          cell.element.style.borderRight = "2px dashed blue"
-    else
-      @borderedCells[0].element.style.border = "2px dashed blue"
+    @table.copiedCellMatrix.displayBorders() if @table.copiedCellMatrix
+
   hideBorders: ->
-    for cell, index in @borderedCells
-      cell.element.style.border = ""
-    @borderedCells = []
-    @table.copiedValues = []
-    @table.copiedCells = []
-  cut: ->
-    beforeActionReturnVal = @beforeAction 'cut'
+    @table.copiedCellMatrix.removeBorders() if @table.copiedCellMatrix
+
+  cut: (e, table) ->
+    menu = table.contextMenu
+    beforeActionReturnVal = menu.beforeAction 'Cut'
     if beforeActionReturnVal
-      @table.copiedValues = []
-      @table.copiedCells = @table.activeCells
-      for cell in @table.activeCells
-        @table.copiedValues.push cell.value()
+      table.copiedValues = []
+      table.copiedCellMatrix = new CellMatrix(table.activeCells)
+      table.copiedValues = table.copiedCellMatrix.values
+      for cell in table.activeCells
         cell.value('')
-      @afterAction 'cut'
-  copy: ->
-    beforeActionReturnVal = @beforeAction 'copy'
+      menu.afterAction 'Cut'
+
+  copy: (e, table) ->
+    menu = table.contextMenu
+    beforeActionReturnVal = menu.beforeAction 'Copy'
     if beforeActionReturnVal
-      @table.copiedValues = []
-      @table.copiedCells = @table.activeCells
-      for cell in @table.activeCells
-        @table.copiedValues.push cell.value()
-      @afterAction 'copy'
-  paste: ->
-    beforeActionReturnVal = @beforeAction 'paste'
+      table.copiedValues = []
+      table.copiedCellMatrix = new CellMatrix(table.activeCells)
+      table.copiedValues = table.copiedCellMatrix.values
+      menu.afterAction 'Copy'
+
+  paste: (e, table) ->
+    menu = table.contextMenu
+    beforeActionReturnVal = menu.beforeAction 'Paste'
     if beforeActionReturnVal
-      cell = @getTargetPasteCell()
-      if @table.copiedValues.length > 1
-        for value, index in @table.copiedValues
-          cell.value(@table.copiedValues[index])
-          cell = cell.below()
-      else
-        for activeCell, index in @table.activeCells
-          activeCell.value(@table.copiedValues[0])
-      @afterAction 'paste'
-  undo: ->
-    beforeActionReturnVal = @beforeAction 'undo'
+      cell = menu.getTargetPasteCell()
+
+      rowIndex = cell.address[0] - 1
+      for row in table.copiedValues
+        rowIndex++
+        colIndex = cell.address[1]
+        for value in row
+          currentCell = table.getCell(rowIndex, colIndex)
+          if currentCell
+            currentCell.value(value)
+          colIndex++
+
+      menu.afterAction 'Paste'
+
+  undo: (e, table) ->
+    # todo - refactor 'undo' functionality into a global undo
+    menu = table.contextMenu
+    beforeActionReturnVal = menu.beforeAction 'Undo'
     if beforeActionReturnVal
-      value = @cell.values.pop()
-      @cell.value(value)
-      @afterAction 'undo'
-  fill: ->
-    beforeActionReturnVal = @beforeAction 'fill'
+      value = menu.cell.values.pop()
+      menu.cell.value(value)
+      menu.afterAction 'Undo'
+
+  fill: (e, table) ->
+    beforeActionReturnVal = @beforeAction 'Fill'
     if beforeActionReturnVal
       value = @getTargetPasteCell().value()
       for cell, index in @table.activeCells
         cell.value(value)
-      @afterAction 'fill'
+      @afterAction 'Fill'
+
   beforeAction: (action) ->
     switch action
-      when 'cut' then true
-      when 'copy' then true
-      when 'paste'
+      when 'Cut' then true
+      when 'Copy' then true
+      when 'Paste'
         if @getTargetPasteCell().editable then true else false
-      when 'undo' then true
-      when 'fill'
+      when 'Undo' then true
+      when 'Fill'
         if @getTargetPasteCell().editable then true else false
+
   afterAction: (action) ->
     switch action
-      when 'cut'
+      when 'Cut'
         @displayBorders()
-      when 'copy'
+      when 'Copy'
+        console.log('here')
         @displayBorders()
-      when 'paste'
+      when 'Paste'
         @hideBorders()
-      when 'undo' then break
-      when 'fill' then break
+      when 'Undo' then break
+      when 'Fill' then break
     do @hide
+
   toggle: (action) ->
     classes = @actionNodes[action].classList
     classes.toggle 'enabled'
     classes.toggle 'disabled'
+
   events: (menu) ->
     @element.onclick = (e) ->
-      action = e.target.getAttribute('name')
-      console.log(action);
-      switch action
-        when 'Cut' then do menu.cut
-        when 'Copy' then do menu.copy
-        when 'Paste' then do menu.paste
-        when 'Undo' then do menu.undo
-        when 'Fill' then do menu.fill
+      actionName = e.target.getAttribute('name')
+      menu.actionCallbacks.byName[actionName](e, menu.table)
 
 
-# Cell Type Behavior
-# generic behavior will be in GenericCell class
-# type specific behavior will be in the associated <type>Cell class
+
+###
+
+  Cell Type Behavior
+  -----------------------------------------------------------------------------------------
+  generic behavior will be in GenericCell class
+  type specific behavior will be in the associated <type>Cell class
+
+###
+
 
 # Generic Cell
 class GenericCell
@@ -727,28 +755,30 @@ class DateCell extends GenericCell
   value: ->
     @cell.control.valueAsDate
 
-  toDateString: (passedDate=null) ->
+  toDateString: (passedDate = null) ->
     if passedDate and passedDate isnt ''
       date = new Date(passedDate)
     else
       if @value() then date = new Date(@value()) else null
     if date instanceof Date
-      ('0' + (date.getMonth()+1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2) + '-' + date.getFullYear()
+      ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2) + '-' + date.getFullYear()
       # date.getFullYear() + '-' + ('0' + (date.getMonth()+1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2)
     else
       ''
+
   toDate: ->
     input = document.createElement 'input'
     input.type = 'date'
     input.value = @toDateString()
     input
-  toDateInputString: (passedDate=null) ->
+
+  toDateInputString: (passedDate = null) ->
     if passedDate and passedDate isnt ''
       date = new Date(passedDate)
     else
       if @value() then date = new Date(@value()) else null
     if date instanceof Date
-      date.getFullYear() + '-' + ('0' + (date.getMonth()+1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2)
+      date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2)
     else
       ''
 
@@ -807,6 +837,81 @@ class SelectCell extends GenericCell
 
   select: ->
     # stub
+
+
+class CellMatrix
+  constructor: (@cells) ->
+    rows = []
+    matrix = {}
+    for cell in @cells
+      rowIndex = cell.address[0]
+      colIndex = cell.address[1]
+      if(matrix[rowIndex])
+        matrix[rowIndex][colIndex] = cell.value()
+      else
+        rows.push rowIndex
+        matrix[rowIndex] = {}
+        matrix[rowIndex][colIndex] = cell.value()
+
+    # store row metaData
+    @matrix = matrix
+    @rowCount = rows.length
+    rows.sort (a,b) -> Number(a) > Number(b)
+    @lowRow = rows[0]
+    @highRow = rows[rows.length - 1]
+
+    # store column metaData
+    cols = Object.keys(@matrix[@lowRow])
+    @colCount = cols.length
+    cols.sort (a,b) -> Number(a) > Number(b)
+    @lowCol = cols[0]
+    @highCol = cols[@colCount - 1]
+
+    # create a matrix of values
+    m = []
+    for row in rows
+      a = []
+      for col in cols
+        a.push @matrix[row][col]
+      m.push a
+
+    @values = m
+
+  displayBorders: ->
+    for cell in @cells
+      @addBorder cell
+
+  removeBorders: ->
+    for cell in @cells
+      cell.element.style.border = ""
+
+  addBorder: (cell) ->
+    rowIndex = cell.address[0]
+    colIndex = cell.address[1]
+
+    if @lowRow == @highRow
+      cell.element.style.borderTop = "2px dashed blue"
+      cell.element.style.borderBottom = "2px dashed blue"
+    else
+      if rowIndex < @highRow
+        # top or middle
+        cell.element.style.borderTop = "2px dashed blue"
+        cell.element.style.borderBottom = "2px dashed blue"
+      else
+        # bottom
+        cell.element.style.borderBottom = "2px dashed blue"
+
+    if @lowCol == @highCol
+      cell.element.style.borderLeft = "2px dashed blue"
+      cell.element.style.borderRight = "2px dashed blue"
+    else
+      if colIndex < @highCol
+        # left or middle
+        cell.element.style.borderLeft = "2px dashed blue"
+        cell.element.style.borderRight = "2px dashed blue"
+      else
+        # right
+        cell.element.style.borderRight = "2px dashed blue"
 
 root = exports ? window
 root.GridEdit = GridEdit
