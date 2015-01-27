@@ -944,6 +944,8 @@ class GridChange
     useBlank = value == 'ge-blank'
     @changes = []
     @table = @cells[0].col.table
+    @borderStyle = @table.config.selectionBorderStyle || "2px dashed blue"
+
 
     @highRow = 0
     @highCol = 0
@@ -1014,34 +1016,34 @@ class GridChange
       cell.element.style.border = ""
 
   addBorder: (cell) ->
-    borderStyle = "2px dashed blue"
+
     rowIndex = cell.address[0]
     colIndex = cell.address[1]
 
     if @scattered
-      cell.element.style.border = borderStyle
+      cell.element.style.border = @borderStyle
     else
       if @firstCell.row == @highRow
-        cell.element.style.borderTop = borderStyle
-        cell.element.style.borderBottom = borderStyle
+        cell.element.style.borderTop = @borderStyle
+        cell.element.style.borderBottom = @borderStyle
       else
         if rowIndex == @lowRow
           # top
-          cell.element.style.borderTop = borderStyle
+          cell.element.style.borderTop = @borderStyle
         else if rowIndex == @highRow
           # bottom
-          cell.element.style.borderBottom = borderStyle
+          cell.element.style.borderBottom = @borderStyle
 
       if @firstCell.col == @highCol
-        cell.element.style.borderRight = borderStyle
-        cell.element.style.borderLeft = borderStyle
+        cell.element.style.borderRight = @borderStyle
+        cell.element.style.borderLeft = @borderStyle
       else
         if colIndex == @lowCol
           # left
-          cell.element.style.borderLeft = borderStyle
+          cell.element.style.borderLeft = @borderStyle
         else if colIndex == @highCol
           # right
-          cell.element.style.borderRight = borderStyle
+          cell.element.style.borderRight = @borderStyle
 
 
 ###

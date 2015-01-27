@@ -1703,6 +1703,7 @@
       useBlank = value === 'ge-blank';
       this.changes = [];
       this.table = this.cells[0].col.table;
+      this.borderStyle = this.table.config.selectionBorderStyle || "2px dashed blue";
       this.highRow = 0;
       this.highCol = 0;
       for (_i = 0, _len = cells.length; _i < _len; _i++) {
@@ -1817,31 +1818,30 @@
     };
 
     GridChange.prototype.addBorder = function(cell) {
-      var borderStyle, colIndex, rowIndex;
-      borderStyle = "2px dashed blue";
+      var colIndex, rowIndex;
       rowIndex = cell.address[0];
       colIndex = cell.address[1];
       if (this.scattered) {
-        return cell.element.style.border = borderStyle;
+        return cell.element.style.border = this.borderStyle;
       } else {
         if (this.firstCell.row === this.highRow) {
-          cell.element.style.borderTop = borderStyle;
-          cell.element.style.borderBottom = borderStyle;
+          cell.element.style.borderTop = this.borderStyle;
+          cell.element.style.borderBottom = this.borderStyle;
         } else {
           if (rowIndex === this.lowRow) {
-            cell.element.style.borderTop = borderStyle;
+            cell.element.style.borderTop = this.borderStyle;
           } else if (rowIndex === this.highRow) {
-            cell.element.style.borderBottom = borderStyle;
+            cell.element.style.borderBottom = this.borderStyle;
           }
         }
         if (this.firstCell.col === this.highCol) {
-          cell.element.style.borderRight = borderStyle;
-          return cell.element.style.borderLeft = borderStyle;
+          cell.element.style.borderRight = this.borderStyle;
+          return cell.element.style.borderLeft = this.borderStyle;
         } else {
           if (colIndex === this.lowCol) {
-            return cell.element.style.borderLeft = borderStyle;
+            return cell.element.style.borderLeft = this.borderStyle;
           } else if (colIndex === this.highCol) {
-            return cell.element.style.borderRight = borderStyle;
+            return cell.element.style.borderRight = this.borderStyle;
           }
         }
       }
