@@ -241,10 +241,6 @@ class GridEdit
   redo: ->
     @actionStack.redo()
 
-
-
-
-
   addRow: (index) ->
     row = {}
     for c in @cols
@@ -257,20 +253,13 @@ class GridEdit
 
     @rebuild({ rows: @source, initialize: true })
 
-
-
-
-
-
-
   insertBelow: ->
     cell = @.contextMenu.getTargetPasteCell()
     @addRow(cell.address[0] + 1)
 
-
-
-
-
+  insertAbove: ->
+    cell = @.contextMenu.getTargetPasteCell()
+    @addRow(cell.address[0] - 1)
 
 class Column
   constructor: (@attributes, @table) ->
@@ -575,6 +564,11 @@ class ContextMenu
         name: 'Insert Row Below',
         shortCut: '',
         callback: @insertBelow
+      },
+      insertAbove: {
+        name: 'Insert Row Above',
+        shortCut: '',
+        callback: @insertAbove
       }
     }
     # create the contextMenu div
@@ -736,6 +730,8 @@ class ContextMenu
   insertBelow: (e, table) ->
     table.insertBelow()
 
+  insertAbove: (e, table) ->
+    table.insertAbove()
 
   undo: (e, table) ->
     table.undo()

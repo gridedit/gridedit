@@ -539,6 +539,12 @@
       return this.addRow(cell.address[0] + 1);
     };
 
+    GridEdit.prototype.insertAbove = function() {
+      var cell;
+      cell = this.contextMenu.getTargetPasteCell();
+      return this.addRow(cell.address[0] - 1);
+    };
+
     return GridEdit;
 
   })();
@@ -1088,6 +1094,11 @@
           name: 'Insert Row Below',
           shortCut: '',
           callback: this.insertBelow
+        },
+        insertAbove: {
+          name: 'Insert Row Above',
+          shortCut: '',
+          callback: this.insertAbove
         }
       };
       this.element = document.createElement('div');
@@ -1334,6 +1345,10 @@
 
     ContextMenu.prototype.insertBelow = function(e, table) {
       return table.insertBelow();
+    };
+
+    ContextMenu.prototype.insertAbove = function(e, table) {
+      return table.insertAbove();
     };
 
     ContextMenu.prototype.undo = function(e, table) {
