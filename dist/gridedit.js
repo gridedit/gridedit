@@ -675,6 +675,11 @@
         case 'select':
           node = document.createTextNode(this.attributes || '');
           this.control = this.toSelect();
+          break;
+        case 'textarea':
+          node = document.createTextNode(this.attributes);
+          this.control = document.createElement('textarea');
+          this.control.classList.add('form-control');
       }
       this.element.appendChild(node);
       delete this.attributes;
