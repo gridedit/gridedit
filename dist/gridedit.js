@@ -1,5 +1,5 @@
 (function() {
-  var ActionStack, Cell, CellMatrix, Column, ContextMenu, DateCell, GenericCell, GridEdit, HTMLCell, NumberCell, Row, SelectCell, StringCell, Utilities, root,
+  var ActionStack, Cell, Column, ContextMenu, DateCell, GenericCell, GridChange, GridEdit, HTMLCell, NumberCell, Row, SelectCell, StringCell, Utilities, root,
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -33,6 +33,7 @@
 
     Utilities.prototype.clearActiveCells = function(table) {
       var activeCell, activeCells, index, redCell, redCells, _i, _j, _len, _len1;
+      console.log('clearing inactive');
       redCells = table.redCells;
       activeCells = table.activeCells;
       if (redCells.length > 0) {
@@ -79,7 +80,6 @@
       var key, value, _ref;
       this.config = config;
       this.actionStack = actionStack;
-      console.log(actionStack);
       this.element = document.querySelectorAll(this.config.element || '#gridedit')[0];
       this.headers = [];
       this.rows = [];
@@ -114,7 +114,6 @@
       }
       this.copiedCellMatrix = null;
       this.contextMenu = new ContextMenu(this);
-      console.log(this.actionStack);
       if (!this.actionStack) {
         this.actionStack = new ActionStack(this);
       }
@@ -517,8 +516,11 @@
       return this.actionStack.redo();
     };
 
-    GridEdit.prototype.addRow = function(index) {
+    GridEdit.prototype.addRow = function(index, addToStack) {
       var c, row, _i, _len, _ref;
+      if (addToStack == null) {
+        addToStack = true;
+      }
       row = {};
       _ref = this.cols;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -531,10 +533,12 @@
         index = this.source.length - 1;
         this.source.push(row);
       }
-      this.addToStack({
-        type: 'add-row',
-        index: index
-      });
+      if (addToStack) {
+        this.addToStack({
+          type: 'add-row',
+          index: index
+        });
+      }
       return this.rebuild({
         rows: this.source,
         initialize: true
@@ -553,9 +557,18 @@
       return this.addRow(cell.address[0] - 1);
     };
 
-    GridEdit.prototype.removeRow = function(index) {
+    GridEdit.prototype.removeRow = function(index, addToStack) {
       var rows;
+      if (addToStack == null) {
+        addToStack = true;
+      }
       rows = this.source.splice(index, 1);
+      if (addToStack) {
+        this.addToStack({
+          type: 'remove-row',
+          index: index
+        });
+      }
       return this.rebuild({
         rows: this.source,
         initialize: true
@@ -781,21 +794,28 @@
       }
     };
 
-    Cell.prototype.makeActive = function() {
+    Cell.prototype.makeActive = function(clearActiveCells) {
       var beforeActivateReturnVal;
-      if (this.beforeActivate) {
-        beforeActivateReturnVal = this.beforeActivate(this);
+      if (clearActiveCells == null) {
+        clearActiveCells = true;
       }
-      if (this.beforeActivate && beforeActivateReturnVal !== false || !this.beforeActivate) {
-        Utilities.prototype.clearActiveCells(this.table);
-        this.showActive();
-        this.table.activeCells.push(this);
-        this.table.selectionStart = this;
-        if (this.table.openCell) {
-          this.table.openCell.edit(this.table.openCell.control.value);
+      if (!this.active) {
+        if (this.beforeActivate) {
+          beforeActivateReturnVal = this.beforeActivate(this);
         }
-        if (this.afterActivate) {
-          return this.afterActivate(this);
+        if (this.beforeActivate && beforeActivateReturnVal !== false || !this.beforeActivate) {
+          if (clearActiveCells) {
+            Utilities.prototype.clearActiveCells(this.table);
+          }
+          this.showActive();
+          this.table.activeCells.push(this);
+          this.table.selectionStart = this;
+          if (this.table.openCell) {
+            this.table.openCell.edit(this.table.openCell.control.value);
+          }
+          if (this.afterActivate) {
+            return this.afterActivate(this);
+          }
         }
       }
     };
@@ -819,9 +839,11 @@
 
     Cell.prototype.showActive = function() {
       var cssText;
-      cssText = this.element.style.cssText;
-      this.oldCssText = cssText;
-      return this.element.style.cssText = cssText + ' ' + ("background-color: " + this.table.cellStyles.activeColor + ";");
+      if (!this.isActive()) {
+        cssText = this.element.style.cssText;
+        this.oldCssText = cssText;
+        return this.element.style.cssText = cssText + ' ' + ("background-color: " + this.table.cellStyles.activeColor + ";");
+      }
     };
 
     Cell.prototype.showInactive = function() {
@@ -980,24 +1002,65 @@
       redCells = table.redCells;
       activeCells = table.activeCells;
       this.element.onclick = function(e) {
-        var onClickReturnVal;
+        var activateRow, cellFrom, cellFromCol, cellFromRow, cellToCol, cellToRow, onClickReturnVal, row, shift, _i, _j;
+        shift = e.shiftKey;
+        if (shift) {
+          cellFrom = table.activeCells[table.activeCells.length - 2];
+          cellFromRow = cellFrom.address[0];
+          cellFromCol = cellFrom.address[1];
+          cellToRow = cell.address[0];
+          cellToCol = cell.address[1];
+          activateRow = function(row) {
+            var c, col, _i, _j, _results, _results1;
+            if (cellFromCol <= cellToCol) {
+              _results = [];
+              for (col = _i = cellFromCol; cellFromCol <= cellToCol ? _i <= cellToCol : _i >= cellToCol; col = cellFromCol <= cellToCol ? ++_i : --_i) {
+                c = table.getCell(row, col);
+                _results.push(c.makeActive(false));
+              }
+              return _results;
+            } else {
+              _results1 = [];
+              for (col = _j = cellToCol; cellToCol <= cellFromCol ? _j <= cellFromCol : _j >= cellFromCol; col = cellToCol <= cellFromCol ? ++_j : --_j) {
+                c = table.getCell(row, col);
+                _results1.push(c.makeActive(false));
+              }
+              return _results1;
+            }
+          };
+          if (cellFromRow <= cellToRow) {
+            for (row = _i = cellFromRow; cellFromRow <= cellToRow ? _i <= cellToRow : _i >= cellToRow; row = cellFromRow <= cellToRow ? ++_i : --_i) {
+              activateRow(row);
+            }
+          } else {
+            for (row = _j = cellToRow; cellToRow <= cellFromRow ? _j <= cellFromRow : _j >= cellFromRow; row = cellToRow <= cellFromRow ? ++_j : --_j) {
+              activateRow(row);
+            }
+          }
+        }
         if (cell.onClick) {
           onClickReturnVal = cell.onClick(cell, e);
         }
-        if (onClickReturnVal === false) {
-          return false;
-        }
+        return onClickReturnVal !== false;
       };
       this.element.ondblclick = function() {
         return cell.edit();
       };
       this.element.onmousedown = function(e) {
+        var cmd, ctrl, shift;
         if (e.which === 3) {
           table.contextMenu.show(e.x, e.y, cell);
           return;
         }
         table.state = "selecting";
-        cell.makeActive();
+        shift = e.shiftKey;
+        ctrl = e.ctrlKey;
+        cmd = e.metaKey;
+        if (shift || ctrl || cmd) {
+          cell.makeActive(false);
+        } else {
+          cell.makeActive();
+        }
         return false;
       };
       this.element.onmouseover = function(e) {
@@ -1231,32 +1294,28 @@
     };
 
     ContextMenu.prototype.displayBorders = function() {
-      if (this.table.copiedCellMatrix) {
-        return this.table.copiedCellMatrix.displayBorders();
+      if (this.table.copiedGridChange) {
+        return this.table.copiedGridChange.displayBorders();
       }
     };
 
     ContextMenu.prototype.hideBorders = function() {
-      if (this.table.copiedCellMatrix) {
-        return this.table.copiedCellMatrix.removeBorders();
+      if (this.table.copiedGridChange) {
+        return this.table.copiedGridChange.removeBorders();
       }
     };
 
     ContextMenu.prototype.cut = function(e, table) {
-      var cell, cellMatrix, menu, _i, _len, _ref;
+      var gridChange, menu;
       menu = table.contextMenu;
-      cellMatrix = new CellMatrix(table.activeCells);
-      table.copiedCellMatrix = cellMatrix;
+      menu.hideBorders();
+      gridChange = new GridChange(table.activeCells, 'ge-blank');
+      gridChange.apply(false, false);
+      table.copiedGridChange = gridChange;
       table.addToStack({
         type: 'cut',
-        oldMatrix: cellMatrix.values,
-        address: [cellMatrix.lowRow, cellMatrix.lowCol]
+        grid: gridChange
       });
-      _ref = table.activeCells;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        cell = _ref[_i];
-        cell.value('', false);
-      }
       menu.displayBorders();
       return menu.hide();
     };
@@ -1264,78 +1323,41 @@
     ContextMenu.prototype.copy = function(e, table) {
       var menu;
       menu = table.contextMenu;
-      table.copiedCellMatrix = new CellMatrix(table.activeCells);
+      table.copiedGridChange = new GridChange(table.activeCells);
       menu.displayBorders();
       return menu.hide();
     };
 
     ContextMenu.prototype.paste = function(e, table) {
-      var cell, colIndex, currentCell, matrix, menu, row, rowIndex, value, _i, _j, _len, _len1, _ref;
+      var cell, gridChange, menu, x, y;
       menu = table.contextMenu;
+      menu.hide();
       cell = menu.getTargetPasteCell();
       if (cell.editable) {
-        matrix = [];
-        rowIndex = cell.address[0] - 1;
-        _ref = table.copiedCellMatrix.values;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          row = _ref[_i];
-          rowIndex++;
-          colIndex = cell.address[1];
-          matrix[rowIndex] = [];
-          for (_j = 0, _len1 = row.length; _j < _len1; _j++) {
-            value = row[_j];
-            currentCell = table.getCell(rowIndex, colIndex);
-            if (currentCell && currentCell.editable) {
-              matrix[rowIndex].push(currentCell.value());
-              currentCell.value(value, false);
-            }
-            colIndex++;
-          }
-        }
-        menu.hideBorders();
-        table.addToStack({
+        gridChange = table.copiedGridChange;
+        x = cell.address[0];
+        y = cell.address[1];
+        gridChange.apply(x, y);
+        return table.addToStack({
           type: 'paste',
-          oldMatrix: matrix,
-          matrix: table.copiedCellMatrix.values,
-          address: cell.address
+          grid: gridChange,
+          x: x,
+          y: y
         });
       }
-      return menu.hide();
     };
 
     ContextMenu.prototype.fill = function(e, table) {
-      var cell, cellMatrix, colIndex, currentCell, fillValue, matrix, menu, row, rowIndex, value, _i, _j, _len, _len1, _ref;
+      var cell, fillValue, gridChange, menu;
       menu = table.contextMenu;
       cell = menu.getTargetPasteCell();
       fillValue = cell.value();
-      cellMatrix = new CellMatrix(table.activeCells);
-      table.copiedCellMatrix = cellMatrix;
-      if (cell.editable) {
-        matrix = [];
-        rowIndex = cellMatrix.lowRow - 1;
-        _ref = cellMatrix.values;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          row = _ref[_i];
-          rowIndex++;
-          colIndex = cellMatrix.lowCol;
-          matrix[rowIndex] = [];
-          for (_j = 0, _len1 = row.length; _j < _len1; _j++) {
-            value = row[_j];
-            currentCell = table.getCell(rowIndex, colIndex);
-            if (currentCell && currentCell.editable) {
-              matrix[rowIndex].push(currentCell.value());
-              currentCell.value(fillValue, false);
-            }
-            colIndex++;
-          }
-        }
-        table.addToStack({
-          type: 'fill',
-          oldMatrix: matrix,
-          fillValue: fillValue,
-          address: [cellMatrix.lowRow, cellMatrix.lowCol]
-        });
-      }
+      gridChange = new GridChange(table.activeCells, fillValue);
+      gridChange.apply(false, false);
+      table.addToStack({
+        type: 'fill',
+        grid: gridChange
+      });
       return menu.hide();
     };
 
@@ -1666,61 +1688,113 @@
 
     /*
     
-      Cell Matrix
-      -----------------------------------------------------------------------------------------
+    	Grid Change
+    	-----------------------------------------------------------------------------------------
      */
 
     return SelectCell;
 
   })(GenericCell);
 
-  CellMatrix = (function() {
-    function CellMatrix(cells) {
-      var a, cell, col, colIndex, cols, m, matrix, row, rowIndex, rows, _i, _j, _k, _len, _len1, _len2, _ref;
+  GridChange = (function() {
+    function GridChange(cells, value) {
+      var area, cell, change, colIndex, height, rowIndex, thisChange, useBlank, width, _i, _j, _len, _len1, _ref;
       this.cells = cells;
-      rows = [];
-      matrix = {};
-      _ref = this.cells;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        cell = _ref[_i];
+      useBlank = value === 'ge-blank';
+      this.changes = [];
+      this.table = this.cells[0].col.table;
+      this.highRow = 0;
+      this.highCol = 0;
+      for (_i = 0, _len = cells.length; _i < _len; _i++) {
+        cell = cells[_i];
         rowIndex = cell.address[0];
         colIndex = cell.address[1];
-        if (matrix[rowIndex]) {
-          matrix[rowIndex][colIndex] = cell.value();
+        thisChange = {
+          row: rowIndex,
+          col: colIndex,
+          value: useBlank ? '' : value || cell.value()
+        };
+        if (this.firstCell) {
+          if (thisChange.row < this.firstCell.row) {
+            this.firstCell = thisChange;
+          } else if (thisChange.row === this.firstCell.row) {
+            if (thisChange.col < this.firstCell.col) {
+              this.firstCell = thisChange;
+            }
+          }
         } else {
-          rows.push(rowIndex);
-          matrix[rowIndex] = {};
-          matrix[rowIndex][colIndex] = cell.value();
+          this.firstCell = thisChange;
+          this.lowRow = thisChange.row;
+          this.lowCol = thisChange.col;
         }
-      }
-      this.matrix = matrix;
-      this.rowCount = rows.length;
-      rows.sort(function(a, b) {
-        return Number(a) - Number(b);
-      });
-      this.lowRow = rows[0];
-      this.highRow = rows[rows.length - 1];
-      cols = Object.keys(this.matrix[this.lowRow]);
-      this.colCount = cols.length;
-      cols = cols.sort(function(a, b) {
-        return Number(a) - Number(b);
-      });
-      this.lowCol = cols[0];
-      this.highCol = cols[this.colCount - 1];
-      m = [];
-      for (_j = 0, _len1 = rows.length; _j < _len1; _j++) {
-        row = rows[_j];
-        a = [];
-        for (_k = 0, _len2 = cols.length; _k < _len2; _k++) {
-          col = cols[_k];
-          a.push(this.matrix[row][col]);
+        if (thisChange.row > this.highRow) {
+          this.highRow = thisChange.row;
         }
-        m.push(a);
+        if (thisChange.col > this.highCol) {
+          this.highCol = thisChange.col;
+        }
+        if (thisChange.row < this.lowRow) {
+          this.lowRow = thisChange.row;
+        }
+        if (thisChange.col < this.lowCol) {
+          this.lowCol = thisChange.col;
+        }
+        this.changes.push(thisChange);
       }
-      this.values = m;
+      _ref = this.changes;
+      for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
+        change = _ref[_j];
+        change.rowVector = change.row - this.firstCell.row;
+        change.colVector = change.col - this.firstCell.col;
+      }
+      width = this.highCol - this.lowCol + 1;
+      height = this.highRow - this.lowRow + 1;
+      area = width * height;
+      this.scattered = this.cells.length !== area;
     }
 
-    CellMatrix.prototype.displayBorders = function() {
+    GridChange.prototype.apply = function(x, y) {
+      var cell, change, _i, _len, _ref, _results;
+      if (x === false || y === false) {
+        x = this.firstCell.row;
+        y = this.firstCell.col;
+      }
+      _ref = this.changes;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        change = _ref[_i];
+        cell = this.table.getCell(x + change.rowVector, y + change.colVector);
+        change.oldValue = cell.value();
+        if (cell && cell.editable) {
+          _results.push(cell.value(change.value, false));
+        } else {
+          _results.push(void 0);
+        }
+      }
+      return _results;
+    };
+
+    GridChange.prototype.undo = function(x, y) {
+      var cell, change, _i, _len, _ref, _results;
+      if (x === false || y === false) {
+        x = this.firstCell.row;
+        y = this.firstCell.col;
+      }
+      _ref = this.changes;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        change = _ref[_i];
+        cell = this.table.getCell(x + change.rowVector, y + change.colVector);
+        if (cell && cell.editable) {
+          _results.push(cell.value(change.oldValue, false));
+        } else {
+          _results.push(void 0);
+        }
+      }
+      return _results;
+    };
+
+    GridChange.prototype.displayBorders = function() {
       var cell, _i, _len, _ref, _results;
       _ref = this.cells;
       _results = [];
@@ -1731,7 +1805,7 @@
       return _results;
     };
 
-    CellMatrix.prototype.removeBorders = function() {
+    GridChange.prototype.removeBorders = function() {
       var cell, _i, _len, _ref, _results;
       _ref = this.cells;
       _results = [];
@@ -1742,36 +1816,38 @@
       return _results;
     };
 
-    CellMatrix.prototype.addBorder = function(cell) {
+    GridChange.prototype.addBorder = function(cell) {
       var borderStyle, colIndex, rowIndex;
       borderStyle = "2px dashed blue";
       rowIndex = cell.address[0];
       colIndex = cell.address[1];
-      if (this.lowRow === this.highRow) {
-        cell.element.style.borderTop = borderStyle;
-        cell.element.style.borderBottom = borderStyle;
+      if (this.scattered) {
+        return cell.element.style.border = borderStyle;
       } else {
-        if (rowIndex < this.highRow) {
+        if (this.firstCell.row === this.highRow) {
           cell.element.style.borderTop = borderStyle;
           cell.element.style.borderBottom = borderStyle;
         } else {
-          cell.element.style.borderBottom = borderStyle;
+          if (rowIndex === this.lowRow) {
+            cell.element.style.borderTop = borderStyle;
+          } else if (rowIndex === this.highRow) {
+            cell.element.style.borderBottom = borderStyle;
+          }
         }
-      }
-      if (this.lowCol === this.highCol) {
-        cell.element.style.borderLeft = borderStyle;
-        return cell.element.style.borderRight = borderStyle;
-      } else {
-        if (colIndex < this.highCol) {
-          cell.element.style.borderLeft = borderStyle;
-          return cell.element.style.borderRight = borderStyle;
+        if (this.firstCell.col === this.highCol) {
+          cell.element.style.borderRight = borderStyle;
+          return cell.element.style.borderLeft = borderStyle;
         } else {
-          return cell.element.style.borderRight = borderStyle;
+          if (colIndex === this.lowCol) {
+            return cell.element.style.borderLeft = borderStyle;
+          } else if (colIndex === this.highCol) {
+            return cell.element.style.borderRight = borderStyle;
+          }
         }
       }
     };
 
-    return CellMatrix;
+    return GridChange;
 
   })();
 
@@ -1814,20 +1890,21 @@
             cell = this.getCell(action);
             return cell.value(action.oldValue, false);
           case 'cut':
-            return this.updateMatrix(action, 'oldMatrix');
+            return action.grid.undo(false, false);
           case 'paste':
-            return this.updateMatrix(action, 'oldMatrix');
+            return action.grid.undo(action.x, action.y);
           case 'fill':
-            return this.updateMatrix(action, 'oldMatrix');
+            return action.grid.undo(false, false);
           case 'add-row':
-            console.log('here');
-            return this.table.removeRow(action.index);
+            return this.table.removeRow(action.index, false);
+          case 'remove-row':
+            return this.table.addRow(action.index, false);
         }
       }
     };
 
     ActionStack.prototype.redo = function() {
-      var action, cell, colIndex, currentCell, row, rowIndex, value, _i, _j, _len, _len1, _ref, _ref1, _results, _results1;
+      var action, cell;
       if (this.index < this.actions.length - 1) {
         this.index++;
         action = this.actions[this.index];
@@ -1836,79 +1913,17 @@
             cell = this.table.getCell(action.address[0], action.address[1]);
             return cell.value(action.newValue, false);
           case 'cut':
-            rowIndex = action.address[0] - 1;
-            _ref = action.oldMatrix;
-            _results = [];
-            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-              row = _ref[_i];
-              rowIndex++;
-              colIndex = action.address[1];
-              _results.push((function() {
-                var _j, _len1, _results1;
-                _results1 = [];
-                for (_j = 0, _len1 = row.length; _j < _len1; _j++) {
-                  value = row[_j];
-                  currentCell = this.table.getCell(rowIndex, colIndex);
-                  currentCell.value('', false);
-                  _results1.push(colIndex++);
-                }
-                return _results1;
-              }).call(this));
-            }
-            return _results;
-            break;
+            return action.grid.apply(false, false);
           case 'paste':
-            return this.updateMatrix(action, 'oldMatrix');
+            return action.grid.apply(action.x, action.y);
           case 'fill':
-            rowIndex = action.address[0] - 1;
-            _ref1 = action.oldMatrix;
-            _results1 = [];
-            for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-              row = _ref1[_j];
-              rowIndex++;
-              colIndex = action.address[1];
-              _results1.push((function() {
-                var _k, _len2, _results2;
-                _results2 = [];
-                for (_k = 0, _len2 = row.length; _k < _len2; _k++) {
-                  value = row[_k];
-                  currentCell = this.table.getCell(rowIndex, colIndex);
-                  currentCell.value(action.fillValue, false);
-                  _results2.push(colIndex++);
-                }
-                return _results2;
-              }).call(this));
-            }
-            return _results1;
-            break;
+            return action.grid.apply(false, false);
           case 'add-row':
-            return this.table.addRow(action.index);
+            return this.table.addRow(action.index, false);
+          case 'remove-row':
+            return this.table.removeRow(action.index, false);
         }
       }
-    };
-
-    ActionStack.prototype.updateMatrix = function(action, matrixKey) {
-      var colIndex, currentCell, row, rowIndex, value, _i, _len, _ref, _results;
-      rowIndex = action.address[0] - 1;
-      _ref = action[matrixKey];
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        row = _ref[_i];
-        rowIndex++;
-        colIndex = action.address[1];
-        _results.push((function() {
-          var _j, _len1, _results1;
-          _results1 = [];
-          for (_j = 0, _len1 = row.length; _j < _len1; _j++) {
-            value = row[_j];
-            currentCell = this.table.getCell(rowIndex, colIndex);
-            currentCell.value(value, false);
-            _results1.push(colIndex++);
-          }
-          return _results1;
-        }).call(this));
-      }
-      return _results;
     };
 
     return ActionStack;

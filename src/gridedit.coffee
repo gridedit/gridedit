@@ -7,6 +7,7 @@ class Utilities
     for key, value of styles
       el.style[key] = "#{value}px"
   clearActiveCells: (table) ->
+    console.log('clearing inactive')
     redCells = table.redCells
     activeCells = table.activeCells
     if redCells.length > 0
@@ -26,7 +27,6 @@ class Utilities
 
 class GridEdit
   constructor: (@config, @actionStack) ->
-    console.log(actionStack)
     @element = document.querySelectorAll(@config.element || '#gridedit')[0]
     @headers = []
     @rows = []
@@ -51,7 +51,6 @@ class GridEdit
     do @init if @config.initialize
     @copiedCellMatrix = null
     @contextMenu = new ContextMenu @
-    console.log(@actionStack)
     @actionStack = new ActionStack(@) unless @actionStack
   init: ->
     do @config.beforeInit if @config.beforeInit
@@ -244,7 +243,7 @@ class GridEdit
   redo: ->
     @actionStack.redo()
 
-  addRow: (index) ->
+  addRow: (index, addToStack=true) ->
     row = {}
     for c in @cols
       row[c.valueKey] = c.defaultValue || ''
@@ -255,7 +254,7 @@ class GridEdit
       index = @source.length - 1
       @source.push(row)
 
-    @addToStack({ type: 'add-row', index: index })
+    @addToStack({ type: 'add-row', index: index }) if addToStack
     @rebuild({ rows: @source, initialize: true })
 
 
@@ -268,8 +267,9 @@ class GridEdit
     @addRow(cell.address[0] - 1)
 
 
-  removeRow: (index) ->
+  removeRow: (index, addToStack=true) ->
     rows = @source.splice(index, 1)
+    @addToStack({ type: 'remove-row', index: index }) if addToStack
     @rebuild({ rows: @source, initialize: true })
 
 class Column
@@ -339,8 +339,6 @@ class Cell
     @editable = @col.editable != false
     @element = document.createElement 'td'
     @element.classList.add @col.cellClass if @col.cellClass
-#    @values = [@originalValue]
-#    @previousValue = null
     @valueKey = @col.valueKey
     @source = @table.config.rows[@address[0]]
     @initCallbacks()
@@ -375,9 +373,7 @@ class Cell
       newValue = @cellTypeObject.formatValue(newValue)
       oldValue = @value()
       @beforeEdit(@, oldValue, newValue) if @beforeEdit
-#      @previousValue = @element.textContent
       @table.addToStack { type: 'cell-edit', oldValue: oldValue, newValue: newValue, address: @address } if addToStack
-#      @values.push newValue
       @element.textContent = newValue
       @cellTypeObject.setValue(newValue)
       Utilities::setStyles @control, @position()
@@ -385,26 +381,30 @@ class Cell
       return newValue
     else
       @cellTypeObject.render()
-  makeActive: ->
-    beforeActivateReturnVal = @beforeActivate @ if @beforeActivate
-    if @beforeActivate and beforeActivateReturnVal isnt false or not @beforeActivate
-      Utilities::clearActiveCells @table
-      @showActive()
-      @table.activeCells.push @
-      @table.selectionStart = @
-      if @table.openCell
-        @table.openCell.edit @table.openCell.control.value
-      @afterActivate @ if @afterActivate
+  makeActive: (clearActiveCells = true) ->
+
+    unless @active
+      beforeActivateReturnVal = @beforeActivate @ if @beforeActivate
+      if @beforeActivate and beforeActivateReturnVal isnt false or not @beforeActivate
+        Utilities::clearActiveCells @table if clearActiveCells
+        @showActive()
+        @table.activeCells.push @
+        @table.selectionStart = @
+        if @table.openCell
+          @table.openCell.edit @table.openCell.control.value
+        @afterActivate @ if @afterActivate
   makeInactive: -> @showInactive()
   addToSelection: ->
     @showActive()
     @table.activeCells.push @
   isActive: -> @table.activeCells.indexOf(@) isnt -1
-  removeFromSelection: -> @showInactive()
+  removeFromSelection: ->
+    @showInactive()
   showActive: ->
-    cssText = @element.style.cssText
-    @oldCssText = cssText
-    @element.style.cssText = cssText + ' ' + "background-color: #{@table.cellStyles.activeColor};"
+    unless @isActive()
+      cssText = @element.style.cssText
+      @oldCssText = cssText
+      @element.style.cssText = cssText + ' ' + "background-color: #{@table.cellStyles.activeColor};"
   showInactive: -> @element.style.cssText = @oldCssText
   showRed: ->
     @element.style.cssText = "background-color: #{@table.cellStyles.uneditableColor};"
@@ -470,9 +470,35 @@ class Cell
     redCells = table.redCells
     activeCells = table.activeCells
     @element.onclick = (e) ->
+      shift = e.shiftKey
+      if shift
+        cellFrom = table.activeCells[table.activeCells.length - 2] # one for length vs index, and 1 for the current element
+        cellFromRow = cellFrom.address[0]
+        cellFromCol = cellFrom.address[1]
+
+        cellToRow = cell.address[0]
+        cellToCol = cell.address[1]
+
+        activateRow = (row) ->
+          if cellFromCol <= cellToCol
+            for col in [cellFromCol..cellToCol]
+              c = table.getCell(row, col)
+              c.makeActive(false)
+          else
+            for col in [cellToCol..cellFromCol]
+              c = table.getCell(row, col)
+              c.makeActive(false)
+
+        if cellFromRow <= cellToRow
+          for row in [cellFromRow..cellToRow]
+            activateRow row
+        else
+          for row in [cellToRow..cellFromRow]
+            activateRow row
+
       onClickReturnVal = cell.onClick(cell, e) if cell.onClick
-      if onClickReturnVal is false
-        return false
+      onClickReturnVal != false
+
     @element.ondblclick = ->
       do cell.edit
     @element.onmousedown = (e) ->
@@ -480,7 +506,14 @@ class Cell
         table.contextMenu.show(e.x, e.y, cell)
         return
       table.state = "selecting"
-      do cell.makeActive
+
+      shift = e.shiftKey
+      ctrl = e.ctrlKey
+      cmd = e.metaKey
+      if shift or ctrl or cmd
+        cell.makeActive(false)
+      else
+        cell.makeActive()
       false
     @element.onmouseover = (e) ->
       if table.state is 'selecting'
@@ -494,10 +527,10 @@ class Cell
     @control.onkeydown = (e) ->
       key = e.which
       switch key
-        when 13
+        when 13 #return
           cell.edit @value
           cell.below()?.makeActive()
-        when 9
+        when 9 #tab
           cell.edit @value
           moveTo table.nextCell()
     @cellTypeObject.addControlEvents(cell)
@@ -661,75 +694,46 @@ class ContextMenu
   sortFunc: (a, b) -> a.address[0] - b.address[0]
 
   displayBorders: ->
-    @table.copiedCellMatrix.displayBorders() if @table.copiedCellMatrix
+    @table.copiedGridChange.displayBorders() if @table.copiedGridChange
 
   hideBorders: ->
-    @table.copiedCellMatrix.removeBorders() if @table.copiedCellMatrix
+    @table.copiedGridChange.removeBorders() if @table.copiedGridChange
 
   cut: (e, table) ->
     menu = table.contextMenu
-    cellMatrix = new CellMatrix(table.activeCells)
-    table.copiedCellMatrix = cellMatrix
-    table.addToStack({ type: 'cut', oldMatrix: cellMatrix.values, address: [cellMatrix.lowRow, cellMatrix.lowCol ] })
-    for cell in table.activeCells
-      cell.value('', false)
+    menu.hideBorders()
+    gridChange = new GridChange(table.activeCells, 'ge-blank')
+    gridChange.apply(false, false)
+    table.copiedGridChange = gridChange
+    table.addToStack({ type: 'cut', grid: gridChange })
     menu.displayBorders()
     menu.hide()
 
   copy: (e, table) ->
     menu = table.contextMenu
-    table.copiedCellMatrix = new CellMatrix(table.activeCells)
+    table.copiedGridChange = new GridChange(table.activeCells)
     menu.displayBorders()
     menu.hide()
 
   paste: (e, table) ->
     menu = table.contextMenu
+    menu.hide()
     cell = menu.getTargetPasteCell()
 
     if cell.editable
-      matrix = []
-      rowIndex = cell.address[0] - 1
-      for row in table.copiedCellMatrix.values
-        rowIndex++
-        colIndex = cell.address[1]
-        matrix[rowIndex] = []
-        for value in row
-          currentCell = table.getCell(rowIndex, colIndex)
-          if currentCell and currentCell.editable
-            matrix[rowIndex].push currentCell.value()
-            currentCell.value(value, false)
-          colIndex++
-
-      menu.hideBorders()
-      table.addToStack({ type: 'paste', oldMatrix: matrix, matrix: table.copiedCellMatrix.values, address: cell.address })
-
-    menu.hide()
+      gridChange = table.copiedGridChange
+      x = cell.address[0]
+      y = cell.address[1]
+      gridChange.apply(x, y)
+      table.addToStack({ type: 'paste', grid: gridChange, x: x, y: y })
 
   fill: (e, table) ->
     menu = table.contextMenu
     cell = menu.getTargetPasteCell()
     fillValue = cell.value()
-
-    cellMatrix = new CellMatrix(table.activeCells)
-    table.copiedCellMatrix = cellMatrix
-
-    if cell.editable
-      matrix = []
-      rowIndex = cellMatrix.lowRow - 1
-      for row in cellMatrix.values
-        rowIndex++
-        colIndex = cellMatrix.lowCol
-        matrix[rowIndex] = []
-        for value in row
-          currentCell = table.getCell(rowIndex, colIndex)
-          if currentCell and currentCell.editable
-            matrix[rowIndex].push currentCell.value()
-            currentCell.value(fillValue, false)
-          colIndex++
-
-      table.addToStack({ type: 'fill', oldMatrix: matrix, fillValue: fillValue, address: [ cellMatrix.lowRow, cellMatrix.lowCol ] })
-
-
+    gridChange = new GridChange(table.activeCells, fillValue)
+    gridChange.apply(false, false)
+    table.addToStack({ type: 'fill', grid: gridChange })
     menu.hide()
 
   selectAll: (e, table) ->
@@ -928,49 +932,78 @@ class SelectCell extends GenericCell
 
   ###
 
-    Cell Matrix
-    -----------------------------------------------------------------------------------------
+	Grid Change
+	-----------------------------------------------------------------------------------------
 
   ###
 
 
-class CellMatrix
-  constructor: (@cells) ->
-    rows = []
-    matrix = {}
-    for cell in @cells
+class GridChange
+
+  constructor: (@cells, value) ->
+    useBlank = value == 'ge-blank'
+    @changes = []
+    @table = @cells[0].col.table
+
+    @highRow = 0
+    @highCol = 0
+
+    for cell in cells
       rowIndex = cell.address[0]
       colIndex = cell.address[1]
-      if(matrix[rowIndex])
-        matrix[rowIndex][colIndex] = cell.value()
+
+      thisChange = {
+        row: rowIndex,
+        col: colIndex,
+        value: if useBlank then '' else value or cell.value()
+      }
+
+      if @firstCell
+        if thisChange.row < @firstCell.row
+          @firstCell = thisChange
+        else if thisChange.row == @firstCell.row
+          if thisChange.col < @firstCell.col
+            @firstCell = thisChange
       else
-        rows.push rowIndex
-        matrix[rowIndex] = {}
-        matrix[rowIndex][colIndex] = cell.value()
+        @firstCell = thisChange
+        @lowRow = thisChange.row
+        @lowCol = thisChange.col
 
-    # store row metaData
-    @matrix = matrix
-    @rowCount = rows.length
-    rows.sort (a,b) -> Number(a) - Number(b)
-    @lowRow = rows[0]
-    @highRow = rows[rows.length - 1]
+      @highRow = thisChange.row if thisChange.row > @highRow
+      @highCol = thisChange.col if thisChange.col > @highCol
+      @lowRow = thisChange.row if thisChange.row < @lowRow
+      @lowCol = thisChange.col if thisChange.col < @lowCol
+      @changes.push(thisChange)
 
-    # store column metaData
-    cols = Object.keys(@matrix[@lowRow])
-    @colCount = cols.length
-    cols =  cols.sort (a,b) -> Number(a) - Number(b)
-    @lowCol = cols[0]
-    @highCol = cols[@colCount - 1]
+    # get relative coordinates for each change
+    for change in @changes
+      change.rowVector = change.row - @firstCell.row
+      change.colVector = change.col - @firstCell.col
 
-    # create a matrix of values
-    m = []
-    for row in rows
-      a = []
-      for col in cols
-        a.push @matrix[row][col]
-      m.push a
+    # determine whether this was a scattered change <ctrl>+click
+    width = @highCol - @lowCol + 1
+    height = @highRow - @lowRow + 1
+    area = width * height
+    @scattered = @cells.length != area
 
-    @values = m
+  apply: (x, y) ->
+    if x == false or y == false
+      x = @firstCell.row
+      y = @firstCell.col
+
+    for change in @changes
+      cell = @table.getCell(x + change.rowVector, y + change.colVector)
+      change.oldValue = cell.value()
+      cell.value(change.value, false) if cell and cell.editable
+
+  undo: (x, y) ->
+    if x == false or y == false
+      x = @firstCell.row
+      y = @firstCell.col
+
+    for change in @changes
+      cell = @table.getCell(x + change.rowVector, y + change.colVector)
+      cell.value(change.oldValue, false) if cell and cell.editable
 
   displayBorders: ->
     for cell in @cells
@@ -985,29 +1018,30 @@ class CellMatrix
     rowIndex = cell.address[0]
     colIndex = cell.address[1]
 
-    if @lowRow == @highRow
-      cell.element.style.borderTop = borderStyle
-      cell.element.style.borderBottom = borderStyle
+    if @scattered
+      cell.element.style.border = borderStyle
     else
-      if rowIndex < @highRow
-        # top or middle
+      if @firstCell.row == @highRow
         cell.element.style.borderTop = borderStyle
         cell.element.style.borderBottom = borderStyle
       else
-        # bottom
-        cell.element.style.borderBottom = borderStyle
+        if rowIndex == @lowRow
+          # top
+          cell.element.style.borderTop = borderStyle
+        else if rowIndex == @highRow
+          # bottom
+          cell.element.style.borderBottom = borderStyle
 
-    if @lowCol == @highCol
-      cell.element.style.borderLeft = borderStyle
-      cell.element.style.borderRight = borderStyle
-    else
-      if colIndex < @highCol
-        # left or middle
+      if @firstCell.col == @highCol
+        cell.element.style.borderRight = borderStyle
         cell.element.style.borderLeft = borderStyle
-        cell.element.style.borderRight = borderStyle
       else
-        # right
-        cell.element.style.borderRight = borderStyle
+        if colIndex == @lowCol
+          # left
+          cell.element.style.borderLeft = borderStyle
+        else if colIndex == @highCol
+          # right
+          cell.element.style.borderRight = borderStyle
 
 
 ###
@@ -1031,7 +1065,6 @@ class ActionStack
 
   addAction: (actionObject) ->
     if @index > - 1 and @index < @actions.length - 1
-
       @actions = @actions.splice(0, @index + 1)
     @actions.push(actionObject)
     @index++;
@@ -1040,23 +1073,25 @@ class ActionStack
     if @index > -1
       @index--
       action = @actions[@index + 1]
-
       switch action.type
         when 'cell-edit'
           cell = @getCell(action)
           cell.value(action.oldValue, false)
 
         when 'cut'
-          @updateMatrix(action, 'oldMatrix')
+          action.grid.undo(false, false)
 
         when 'paste'
-          @updateMatrix(action, 'oldMatrix')
+          action.grid.undo(action.x, action.y)
 
         when 'fill'
-          @updateMatrix(action, 'oldMatrix')
+          action.grid.undo(false, false)
 
         when 'add-row'
-          @table.removeRow(action.index)
+          @table.removeRow(action.index, false)
+
+        when 'remove-row'
+          @table.addRow(action.index, false)
 
   redo: ->
     if(@index < @actions.length - 1)
@@ -1069,40 +1104,20 @@ class ActionStack
           cell.value(action.newValue, false)
 
         when 'cut'
-          rowIndex = action.address[0] - 1
-          for row in action.oldMatrix
-            rowIndex++
-            colIndex = action.address[1]
-            for value in row
-              currentCell = @table.getCell(rowIndex, colIndex)
-              currentCell.value('', false)
-              colIndex++
+          action.grid.apply(false, false)
 
         when 'paste'
-          @updateMatrix(action, 'oldMatrix')
+          action.grid.apply(action.x, action.y)
 
         when 'fill'
-          rowIndex = action.address[0] - 1
-          for row in action.oldMatrix
-            rowIndex++
-            colIndex = action.address[1]
-            for value in row
-              currentCell = @table.getCell(rowIndex, colIndex)
-              currentCell.value(action.fillValue, false)
-              colIndex++
+          action.grid.apply(false, false)
 
         when 'add-row'
-          @table.addRow(action.index)
+          @table.addRow(action.index, false)
 
-  updateMatrix: (action, matrixKey) ->
-    rowIndex = action.address[0] - 1
-    for row in action[matrixKey]
-      rowIndex++
-      colIndex = action.address[1]
-      for value in row
-        currentCell = @table.getCell(rowIndex, colIndex)
-        currentCell.value(value, false)
-        colIndex++
+        when 'remove-row'
+          @table.removeRow(action.index, false)
+
 
 root = exports ? window
 root.GridEdit = GridEdit
