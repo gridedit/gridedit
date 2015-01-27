@@ -26,6 +26,7 @@ class Utilities
 
 class GridEdit
   constructor: (@config, @actionStack) ->
+    console.log(actionStack)
     @element = document.querySelectorAll(@config.element || '#gridedit')[0]
     @headers = []
     @rows = []
@@ -50,6 +51,7 @@ class GridEdit
     do @init if @config.initialize
     @copiedCellMatrix = null
     @contextMenu = new ContextMenu @
+    console.log(@actionStack)
     @actionStack = new ActionStack(@) unless @actionStack
   init: ->
     do @config.beforeInit if @config.beforeInit
@@ -86,8 +88,9 @@ class GridEdit
     if newConfig isnt null
       for optionKey, optionValue of newConfig
         config[optionKey] = newConfig[optionKey]
+    actionStack = @actionStack
     do @destroy
-    @constructor(config, @actionStack)
+    @constructor(config, actionStack)
   events: ->
     table = @
     moveTo = table.moveTo
@@ -249,9 +252,12 @@ class GridEdit
     if index
       @source.splice(index, 0, row)
     else
+      index = @source.length - 1
       @source.push(row)
 
+    @addToStack({ type: 'add-row', index: index })
     @rebuild({ rows: @source, initialize: true })
+
 
   insertBelow: ->
     cell = @.contextMenu.getTargetPasteCell()
@@ -260,6 +266,11 @@ class GridEdit
   insertAbove: ->
     cell = @.contextMenu.getTargetPasteCell()
     @addRow(cell.address[0] - 1)
+
+
+  removeRow: (index) ->
+    rows = @source.splice(index, 1)
+    @rebuild({ rows: @source, initialize: true })
 
 class Column
   constructor: (@attributes, @table) ->
@@ -1041,9 +1052,11 @@ class ActionStack
         when 'paste'
           @updateMatrix(action, 'oldMatrix')
 
-
         when 'fill'
           @updateMatrix(action, 'oldMatrix')
+
+        when 'add-row'
+          @table.removeRow(action.index)
 
   redo: ->
     if(@index < @actions.length - 1)
@@ -1077,6 +1090,9 @@ class ActionStack
               currentCell = @table.getCell(rowIndex, colIndex)
               currentCell.value(action.fillValue, false)
               colIndex++
+
+        when 'add-row'
+          @table.addRow(action.index)
 
   updateMatrix: (action, matrixKey) ->
     rowIndex = action.address[0] - 1

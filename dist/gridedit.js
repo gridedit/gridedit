@@ -79,6 +79,7 @@
       var key, value, _ref;
       this.config = config;
       this.actionStack = actionStack;
+      console.log(actionStack);
       this.element = document.querySelectorAll(this.config.element || '#gridedit')[0];
       this.headers = [];
       this.rows = [];
@@ -113,6 +114,7 @@
       }
       this.copiedCellMatrix = null;
       this.contextMenu = new ContextMenu(this);
+      console.log(this.actionStack);
       if (!this.actionStack) {
         this.actionStack = new ActionStack(this);
       }
@@ -161,7 +163,7 @@
     };
 
     GridEdit.prototype.rebuild = function(newConfig) {
-      var config, optionKey, optionValue;
+      var actionStack, config, optionKey, optionValue;
       if (newConfig == null) {
         newConfig = null;
       }
@@ -172,8 +174,9 @@
           config[optionKey] = newConfig[optionKey];
         }
       }
+      actionStack = this.actionStack;
       this.destroy();
-      return this.constructor(config, this.actionStack);
+      return this.constructor(config, actionStack);
     };
 
     GridEdit.prototype.events = function() {
@@ -525,8 +528,13 @@
       if (index) {
         this.source.splice(index, 0, row);
       } else {
+        index = this.source.length - 1;
         this.source.push(row);
       }
+      this.addToStack({
+        type: 'add-row',
+        index: index
+      });
       return this.rebuild({
         rows: this.source,
         initialize: true
@@ -543,6 +551,15 @@
       var cell;
       cell = this.contextMenu.getTargetPasteCell();
       return this.addRow(cell.address[0] - 1);
+    };
+
+    GridEdit.prototype.removeRow = function(index) {
+      var rows;
+      rows = this.source.splice(index, 1);
+      return this.rebuild({
+        rows: this.source,
+        initialize: true
+      });
     };
 
     return GridEdit;
@@ -1802,6 +1819,9 @@
             return this.updateMatrix(action, 'oldMatrix');
           case 'fill':
             return this.updateMatrix(action, 'oldMatrix');
+          case 'add-row':
+            console.log('here');
+            return this.table.removeRow(action.index);
         }
       }
     };
@@ -1860,6 +1880,9 @@
               }).call(this));
             }
             return _results1;
+            break;
+          case 'add-row':
+            return this.table.addRow(action.index);
         }
       }
     };
