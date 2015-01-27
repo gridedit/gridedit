@@ -25,7 +25,7 @@ class Utilities
   capitalize: (string) -> string.toLowerCase().replace /\b./g, (a) -> a.toUpperCase()
 
 class GridEdit
-  constructor: (@config) ->
+  constructor: (@config, @actionStack) ->
     @element = document.querySelectorAll(@config.element || '#gridedit')[0]
     @headers = []
     @rows = []
@@ -50,7 +50,7 @@ class GridEdit
     do @init if @config.initialize
     @copiedCellMatrix = null
     @contextMenu = new ContextMenu @
-    @actionStack = new ActionStack(@)
+    @actionStack = new ActionStack(@) unless @actionStack
   init: ->
     do @config.beforeInit if @config.beforeInit
     do @build
@@ -84,10 +84,10 @@ class GridEdit
   rebuild: (newConfig = null) ->
     config = Object.create @config
     if newConfig isnt null
-      for option of newConfig
-        if newConfig[option] then config[option] = newConfig[option]
+      for optionKey, optionValue of newConfig
+        config[optionKey] = newConfig[optionKey]
     do @destroy
-    @constructor config
+    @constructor(config, @actionStack)
   events: ->
     table = @
     moveTo = table.moveTo
@@ -241,9 +241,41 @@ class GridEdit
   redo: ->
     @actionStack.redo()
 
+
+
+
+
+  addRow: (index) ->
+    row = {}
+    for c in @cols
+      row[c.valueKey] = c.defaultValue || ''
+
+    if index
+      @source.splice(index, 0, row)
+    else
+      @source.push(row)
+
+    @rebuild({ rows: @source, initialize: true })
+
+
+
+
+
+
+
+  insertBelow: ->
+    cell = @.contextMenu.getTargetPasteCell()
+    @addRow(cell.address[0] + 1)
+
+
+
+
+
+
 class Column
   constructor: (@attributes, @table) ->
     @id = @index = @table.cols.length
+    @defaultValue = @attributes.defaultValue
     @cellClass = @attributes.cellClass
     @cells = []
     @element = document.createElement 'th'
@@ -538,6 +570,11 @@ class ContextMenu
         name: 'Select All',
         shortCut: ctrlOrCmd + '+A',
         callback: @selectAll
+      },
+      insertBelow: {
+        name: 'Insert Row Below',
+        shortCut: '',
+        callback: @insertBelow
       }
     }
     # create the contextMenu div
@@ -696,7 +733,9 @@ class ContextMenu
       for cell in row.cells
         cell.addToSelection()
 
-    null
+  insertBelow: (e, table) ->
+    table.insertBelow()
+
 
   undo: (e, table) ->
     table.undo()
@@ -826,7 +865,7 @@ class DateCell extends GenericCell
 # HTML Cell
 class HTMLCell extends GenericCell
   constructor: (@cell) ->
-    @cell.htmlContent = @cell.originalValue
+    @cell.htmlContent = @cell.col.defaultValue || @cell.originalValue
     node = @toFragment()
     @cell.control = document.createElement 'input'
     @cell.element.appendChild node
@@ -935,32 +974,33 @@ class CellMatrix
       cell.element.style.border = ""
 
   addBorder: (cell) ->
+    borderStyle = "2px dashed blue"
     rowIndex = cell.address[0]
     colIndex = cell.address[1]
 
     if @lowRow == @highRow
-      cell.element.style.borderTop = "2px dashed blue"
-      cell.element.style.borderBottom = "2px dashed blue"
+      cell.element.style.borderTop = borderStyle
+      cell.element.style.borderBottom = borderStyle
     else
       if rowIndex < @highRow
         # top or middle
-        cell.element.style.borderTop = "2px dashed blue"
-        cell.element.style.borderBottom = "2px dashed blue"
+        cell.element.style.borderTop = borderStyle
+        cell.element.style.borderBottom = borderStyle
       else
         # bottom
-        cell.element.style.borderBottom = "2px dashed blue"
+        cell.element.style.borderBottom = borderStyle
 
     if @lowCol == @highCol
-      cell.element.style.borderLeft = "2px dashed blue"
-      cell.element.style.borderRight = "2px dashed blue"
+      cell.element.style.borderLeft = borderStyle
+      cell.element.style.borderRight = borderStyle
     else
       if colIndex < @highCol
         # left or middle
-        cell.element.style.borderLeft = "2px dashed blue"
-        cell.element.style.borderRight = "2px dashed blue"
+        cell.element.style.borderLeft = borderStyle
+        cell.element.style.borderRight = borderStyle
       else
         # right
-        cell.element.style.borderRight = "2px dashed blue"
+        cell.element.style.borderRight = borderStyle
 
 
 ###

@@ -75,9 +75,10 @@
   })();
 
   GridEdit = (function() {
-    function GridEdit(config) {
+    function GridEdit(config, actionStack) {
       var key, value, _ref;
       this.config = config;
+      this.actionStack = actionStack;
       this.element = document.querySelectorAll(this.config.element || '#gridedit')[0];
       this.headers = [];
       this.rows = [];
@@ -112,7 +113,9 @@
       }
       this.copiedCellMatrix = null;
       this.contextMenu = new ContextMenu(this);
-      this.actionStack = new ActionStack(this);
+      if (!this.actionStack) {
+        this.actionStack = new ActionStack(this);
+      }
     }
 
     GridEdit.prototype.init = function() {
@@ -158,20 +161,19 @@
     };
 
     GridEdit.prototype.rebuild = function(newConfig) {
-      var config, option;
+      var config, optionKey, optionValue;
       if (newConfig == null) {
         newConfig = null;
       }
       config = Object.create(this.config);
       if (newConfig !== null) {
-        for (option in newConfig) {
-          if (newConfig[option]) {
-            config[option] = newConfig[option];
-          }
+        for (optionKey in newConfig) {
+          optionValue = newConfig[optionKey];
+          config[optionKey] = newConfig[optionKey];
         }
       }
       this.destroy();
-      return this.constructor(config);
+      return this.constructor(config, this.actionStack);
     };
 
     GridEdit.prototype.events = function() {
@@ -512,6 +514,31 @@
       return this.actionStack.redo();
     };
 
+    GridEdit.prototype.addRow = function(index) {
+      var c, row, _i, _len, _ref;
+      row = {};
+      _ref = this.cols;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        c = _ref[_i];
+        row[c.valueKey] = c.defaultValue || '';
+      }
+      if (index) {
+        this.source.splice(index, 0, row);
+      } else {
+        this.source.push(row);
+      }
+      return this.rebuild({
+        rows: this.source,
+        initialize: true
+      });
+    };
+
+    GridEdit.prototype.insertBelow = function() {
+      var cell;
+      cell = this.contextMenu.getTargetPasteCell();
+      return this.addRow(cell.address[0] + 1);
+    };
+
     return GridEdit;
 
   })();
@@ -522,6 +549,7 @@
       this.attributes = attributes;
       this.table = table;
       this.id = this.index = this.table.cols.length;
+      this.defaultValue = this.attributes.defaultValue;
       this.cellClass = this.attributes.cellClass;
       this.cells = [];
       this.element = document.createElement('th');
@@ -1055,6 +1083,11 @@
           name: 'Select All',
           shortCut: ctrlOrCmd + '+A',
           callback: this.selectAll
+        },
+        insertBelow: {
+          name: 'Insert Row Below',
+          shortCut: '',
+          callback: this.insertBelow
         }
       };
       this.element = document.createElement('div');
@@ -1279,18 +1312,28 @@
     };
 
     ContextMenu.prototype.selectAll = function(e, table) {
-      var cell, row, _i, _j, _len, _len1, _ref, _ref1;
+      var cell, row, _i, _len, _ref, _results;
       table.clearActiveCells();
       _ref = table.rows;
+      _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         row = _ref[_i];
-        _ref1 = row.cells;
-        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-          cell = _ref1[_j];
-          cell.addToSelection();
-        }
+        _results.push((function() {
+          var _j, _len1, _ref1, _results1;
+          _ref1 = row.cells;
+          _results1 = [];
+          for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+            cell = _ref1[_j];
+            _results1.push(cell.addToSelection());
+          }
+          return _results1;
+        })());
       }
-      return null;
+      return _results;
+    };
+
+    ContextMenu.prototype.insertBelow = function(e, table) {
+      return table.insertBelow();
     };
 
     ContextMenu.prototype.undo = function(e, table) {
@@ -1503,7 +1546,7 @@
     function HTMLCell(cell) {
       var node;
       this.cell = cell;
-      this.cell.htmlContent = this.cell.originalValue;
+      this.cell.htmlContent = this.cell.col.defaultValue || this.cell.originalValue;
       node = this.toFragment();
       this.cell.control = document.createElement('input');
       this.cell.element.appendChild(node);
@@ -1668,29 +1711,30 @@
     };
 
     CellMatrix.prototype.addBorder = function(cell) {
-      var colIndex, rowIndex;
+      var borderStyle, colIndex, rowIndex;
+      borderStyle = "2px dashed blue";
       rowIndex = cell.address[0];
       colIndex = cell.address[1];
       if (this.lowRow === this.highRow) {
-        cell.element.style.borderTop = "2px dashed blue";
-        cell.element.style.borderBottom = "2px dashed blue";
+        cell.element.style.borderTop = borderStyle;
+        cell.element.style.borderBottom = borderStyle;
       } else {
         if (rowIndex < this.highRow) {
-          cell.element.style.borderTop = "2px dashed blue";
-          cell.element.style.borderBottom = "2px dashed blue";
+          cell.element.style.borderTop = borderStyle;
+          cell.element.style.borderBottom = borderStyle;
         } else {
-          cell.element.style.borderBottom = "2px dashed blue";
+          cell.element.style.borderBottom = borderStyle;
         }
       }
       if (this.lowCol === this.highCol) {
-        cell.element.style.borderLeft = "2px dashed blue";
-        return cell.element.style.borderRight = "2px dashed blue";
+        cell.element.style.borderLeft = borderStyle;
+        return cell.element.style.borderRight = borderStyle;
       } else {
         if (colIndex < this.highCol) {
-          cell.element.style.borderLeft = "2px dashed blue";
-          return cell.element.style.borderRight = "2px dashed blue";
+          cell.element.style.borderLeft = borderStyle;
+          return cell.element.style.borderRight = borderStyle;
         } else {
-          return cell.element.style.borderRight = "2px dashed blue";
+          return cell.element.style.borderRight = borderStyle;
         }
       }
     };
