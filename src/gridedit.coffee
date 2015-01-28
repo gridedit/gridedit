@@ -7,7 +7,6 @@ class Utilities
     for key, value of styles
       el.style[key] = "#{value}px"
   clearActiveCells: (table) ->
-    console.log('clearing inactive')
     redCells = table.redCells
     activeCells = table.activeCells
     if redCells.length > 0
@@ -207,7 +206,7 @@ class GridEdit
   clearActiveCells: -> Utilities::clearActiveCells @
   setSelection: ->
     if @selectionStart isnt @selectionEnd
-      do cell.removeFromSelection for cell in @activeCells
+      do cell.showInactive for cell in @activeCells
       @activeCells = []
       rowRange = [@selectionStart.address[0]..@selectionEnd.address[0]]
       colRange = [@selectionStart.address[1]..@selectionEnd.address[1]]
@@ -272,6 +271,10 @@ class GridEdit
     @addToStack({ type: 'remove-row', index: index }) if addToStack
     @rebuild({ rows: @source, initialize: true })
 
+  selectRow: (index) ->
+    row = @rows[index]
+    row.select()
+
 class Column
   constructor: (@attributes, @table) ->
     @id = @index = @table.cols.length
@@ -325,6 +328,9 @@ class Row
     delete @attributes
   below: -> @table.rows[@index + 1]
   above: -> @table.rows[@index - 1]
+  select: ->
+    for cell in @cells
+      cell.addToSelection()
 
 # Creates a cell object in memory to store in a row
 class Cell
@@ -382,8 +388,7 @@ class Cell
     else
       @cellTypeObject.render()
   makeActive: (clearActiveCells = true) ->
-
-    unless @active
+    unless @isActive()
       beforeActivateReturnVal = @beforeActivate @ if @beforeActivate
       if @beforeActivate and beforeActivateReturnVal isnt false or not @beforeActivate
         Utilities::clearActiveCells @table if clearActiveCells
@@ -399,13 +404,17 @@ class Cell
     @table.activeCells.push @
   isActive: -> @table.activeCells.indexOf(@) isnt -1
   removeFromSelection: ->
+    index = @table.activeCells.indexOf(@)
+    @table.activeCells.splice(index, 1)
     @showInactive()
   showActive: ->
     unless @isActive()
       cssText = @element.style.cssText
       @oldCssText = cssText
       @element.style.cssText = cssText + ' ' + "background-color: #{@table.cellStyles.activeColor};"
-  showInactive: -> @element.style.cssText = @oldCssText
+  showInactive: ->
+    console.log('deactivating the thing')
+    @element.style.cssText = @oldCssText
   showRed: ->
     @element.style.cssText = "background-color: #{@table.cellStyles.uneditableColor};"
     @table.redCells.push @
@@ -465,65 +474,78 @@ class Cell
   addClass: (newClass) -> @element.classList.add newClass
   removeClass: (classToRemove) -> @element.classList.remove classToRemove
   isBeingEdited: -> @control.parentNode?
+
+  toggleActive: ->
+    if @isActive()
+      @removeFromSelection()
+    else
+      @makeActive(false)
   events: (cell) ->
     table = cell.table
     redCells = table.redCells
     activeCells = table.activeCells
     @element.onclick = (e) ->
-      shift = e.shiftKey
-      if shift
-        cellFrom = table.activeCells[table.activeCells.length - 2] # one for length vs index, and 1 for the current element
-        cellFromRow = cellFrom.address[0]
-        cellFromCol = cellFrom.address[1]
+      onClickReturnVal = true
+      onClickReturnVal = cell.col.onClick(cell, e) if cell.col.onClick
 
-        cellToRow = cell.address[0]
-        cellToCol = cell.address[1]
+      if onClickReturnVal != false
+        ctrl = e.ctrlKey
+        cmd = e.metaKey
+        shift = e.shiftKey
 
-        activateRow = (row) ->
-          if cellFromCol <= cellToCol
-            for col in [cellFromCol..cellToCol]
-              c = table.getCell(row, col)
-              c.makeActive(false)
+        if ctrl or cmd
+          cell.toggleActive()
+
+        if shift
+          cellFrom = table.activeCells[0]
+          cellFromRow = cellFrom.address[0]
+          cellFromCol = cellFrom.address[1]
+
+          cellToRow = cell.address[0]
+          cellToCol = cell.address[1]
+
+          activateRow = (row) ->
+            if cellFromCol <= cellToCol
+              for col in [cellFromCol..cellToCol]
+                c = table.getCell(row, col)
+                c.makeActive(false)
+            else
+              for col in [cellToCol..cellFromCol]
+                c = table.getCell(row, col)
+                c.makeActive(false)
+
+          if cellFromRow <= cellToRow
+            for row in [cellFromRow..cellToRow]
+              activateRow row
           else
-            for col in [cellToCol..cellFromCol]
-              c = table.getCell(row, col)
-              c.makeActive(false)
+            for row in [cellToRow..cellFromRow]
+              activateRow row
 
-        if cellFromRow <= cellToRow
-          for row in [cellFromRow..cellToRow]
-            activateRow row
-        else
-          for row in [cellToRow..cellFromRow]
-            activateRow row
-
-      onClickReturnVal = cell.onClick(cell, e) if cell.onClick
-      onClickReturnVal != false
+      console.log(table.activeCells)
 
     @element.ondblclick = ->
       do cell.edit
+
     @element.onmousedown = (e) ->
       if e.which is 3
         table.contextMenu.show(e.x, e.y, cell)
         return
-      table.state = "selecting"
-
-      shift = e.shiftKey
-      ctrl = e.ctrlKey
-      cmd = e.metaKey
-      if shift or ctrl or cmd
-        cell.makeActive(false)
       else
-        cell.makeActive()
-      false
+        unless e.shiftKey or e.ctrlKey or e.metaKey
+          table.state = "selecting"
+          cell.makeActive()
+
     @element.onmouseover = (e) ->
       if table.state is 'selecting'
         table.selectionEnd = cell
         do table.setSelection
+
     @element.onmouseup = (e) ->
-      if e.which isnt 3
+      if e.which != 3
         table.selectionEnd = cell
-        do table.setSelection
         table.state = "ready"
+        do table.setSelection unless e.metaKey or e.ctrlKey
+
     @control.onkeydown = (e) ->
       key = e.which
       switch key
@@ -533,7 +555,9 @@ class Cell
         when 9 #tab
           cell.edit @value
           moveTo table.nextCell()
+
     @cellTypeObject.addControlEvents(cell)
+
     if table.mobile
       startY = null
       @element.ontouchstart = (e) ->
@@ -639,7 +663,6 @@ class ContextMenu
         @addAction action
       for actionName, action of @userDefinedActions
         @addAction action
-
 
     @element.appendChild @menu
     @events @
@@ -1119,7 +1142,6 @@ class ActionStack
 
         when 'remove-row'
           @table.removeRow(action.index, false)
-
 
 root = exports ? window
 root.GridEdit = GridEdit

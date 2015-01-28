@@ -33,7 +33,6 @@
 
     Utilities.prototype.clearActiveCells = function(table) {
       var activeCell, activeCells, index, redCell, redCells, _i, _j, _len, _len1;
-      console.log('clearing inactive');
       redCells = table.redCells;
       activeCells = table.activeCells;
       if (redCells.length > 0) {
@@ -422,7 +421,7 @@
         _ref = this.activeCells;
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           cell = _ref[_i];
-          cell.removeFromSelection();
+          cell.showInactive();
         }
         this.activeCells = [];
         rowRange = (function() {
@@ -575,6 +574,12 @@
       });
     };
 
+    GridEdit.prototype.selectRow = function(index) {
+      var row;
+      row = this.rows[index];
+      return row.select();
+    };
+
     return GridEdit;
 
   })();
@@ -677,6 +682,17 @@
 
     Row.prototype.above = function() {
       return this.table.rows[this.index - 1];
+    };
+
+    Row.prototype.select = function() {
+      var cell, _i, _len, _ref, _results;
+      _ref = this.cells;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        cell = _ref[_i];
+        _results.push(cell.addToSelection());
+      }
+      return _results;
     };
 
     return Row;
@@ -799,7 +815,7 @@
       if (clearActiveCells == null) {
         clearActiveCells = true;
       }
-      if (!this.active) {
+      if (!this.isActive()) {
         if (this.beforeActivate) {
           beforeActivateReturnVal = this.beforeActivate(this);
         }
@@ -834,6 +850,9 @@
     };
 
     Cell.prototype.removeFromSelection = function() {
+      var index;
+      index = this.table.activeCells.indexOf(this);
+      this.table.activeCells.splice(index, 1);
       return this.showInactive();
     };
 
@@ -847,6 +866,7 @@
     };
 
     Cell.prototype.showInactive = function() {
+      console.log('deactivating the thing');
       return this.element.style.cssText = this.oldCssText;
     };
 
@@ -996,72 +1016,81 @@
       return this.control.parentNode != null;
     };
 
+    Cell.prototype.toggleActive = function() {
+      if (this.isActive()) {
+        return this.removeFromSelection();
+      } else {
+        return this.makeActive(false);
+      }
+    };
+
     Cell.prototype.events = function(cell) {
       var activeCells, redCells, startY, table;
       table = cell.table;
       redCells = table.redCells;
       activeCells = table.activeCells;
       this.element.onclick = function(e) {
-        var activateRow, cellFrom, cellFromCol, cellFromRow, cellToCol, cellToRow, onClickReturnVal, row, shift, _i, _j;
-        shift = e.shiftKey;
-        if (shift) {
-          cellFrom = table.activeCells[table.activeCells.length - 2];
-          cellFromRow = cellFrom.address[0];
-          cellFromCol = cellFrom.address[1];
-          cellToRow = cell.address[0];
-          cellToCol = cell.address[1];
-          activateRow = function(row) {
-            var c, col, _i, _j, _results, _results1;
-            if (cellFromCol <= cellToCol) {
-              _results = [];
-              for (col = _i = cellFromCol; cellFromCol <= cellToCol ? _i <= cellToCol : _i >= cellToCol; col = cellFromCol <= cellToCol ? ++_i : --_i) {
-                c = table.getCell(row, col);
-                _results.push(c.makeActive(false));
+        var activateRow, cellFrom, cellFromCol, cellFromRow, cellToCol, cellToRow, cmd, ctrl, onClickReturnVal, row, shift, _i, _j;
+        onClickReturnVal = true;
+        if (cell.col.onClick) {
+          onClickReturnVal = cell.col.onClick(cell, e);
+        }
+        if (onClickReturnVal !== false) {
+          ctrl = e.ctrlKey;
+          cmd = e.metaKey;
+          shift = e.shiftKey;
+          if (ctrl || cmd) {
+            cell.toggleActive();
+          }
+          if (shift) {
+            cellFrom = table.activeCells[0];
+            cellFromRow = cellFrom.address[0];
+            cellFromCol = cellFrom.address[1];
+            cellToRow = cell.address[0];
+            cellToCol = cell.address[1];
+            activateRow = function(row) {
+              var c, col, _i, _j, _results, _results1;
+              if (cellFromCol <= cellToCol) {
+                _results = [];
+                for (col = _i = cellFromCol; cellFromCol <= cellToCol ? _i <= cellToCol : _i >= cellToCol; col = cellFromCol <= cellToCol ? ++_i : --_i) {
+                  c = table.getCell(row, col);
+                  _results.push(c.makeActive(false));
+                }
+                return _results;
+              } else {
+                _results1 = [];
+                for (col = _j = cellToCol; cellToCol <= cellFromCol ? _j <= cellFromCol : _j >= cellFromCol; col = cellToCol <= cellFromCol ? ++_j : --_j) {
+                  c = table.getCell(row, col);
+                  _results1.push(c.makeActive(false));
+                }
+                return _results1;
               }
-              return _results;
+            };
+            if (cellFromRow <= cellToRow) {
+              for (row = _i = cellFromRow; cellFromRow <= cellToRow ? _i <= cellToRow : _i >= cellToRow; row = cellFromRow <= cellToRow ? ++_i : --_i) {
+                activateRow(row);
+              }
             } else {
-              _results1 = [];
-              for (col = _j = cellToCol; cellToCol <= cellFromCol ? _j <= cellFromCol : _j >= cellFromCol; col = cellToCol <= cellFromCol ? ++_j : --_j) {
-                c = table.getCell(row, col);
-                _results1.push(c.makeActive(false));
+              for (row = _j = cellToRow; cellToRow <= cellFromRow ? _j <= cellFromRow : _j >= cellFromRow; row = cellToRow <= cellFromRow ? ++_j : --_j) {
+                activateRow(row);
               }
-              return _results1;
-            }
-          };
-          if (cellFromRow <= cellToRow) {
-            for (row = _i = cellFromRow; cellFromRow <= cellToRow ? _i <= cellToRow : _i >= cellToRow; row = cellFromRow <= cellToRow ? ++_i : --_i) {
-              activateRow(row);
-            }
-          } else {
-            for (row = _j = cellToRow; cellToRow <= cellFromRow ? _j <= cellFromRow : _j >= cellFromRow; row = cellToRow <= cellFromRow ? ++_j : --_j) {
-              activateRow(row);
             }
           }
         }
-        if (cell.onClick) {
-          onClickReturnVal = cell.onClick(cell, e);
-        }
-        return onClickReturnVal !== false;
+        return console.log(table.activeCells);
       };
       this.element.ondblclick = function() {
         return cell.edit();
       };
       this.element.onmousedown = function(e) {
-        var cmd, ctrl, shift;
         if (e.which === 3) {
           table.contextMenu.show(e.x, e.y, cell);
-          return;
-        }
-        table.state = "selecting";
-        shift = e.shiftKey;
-        ctrl = e.ctrlKey;
-        cmd = e.metaKey;
-        if (shift || ctrl || cmd) {
-          cell.makeActive(false);
         } else {
-          cell.makeActive();
+          if (!(e.shiftKey || e.ctrlKey || e.metaKey)) {
+            table.state = "selecting";
+            return cell.makeActive();
+          }
         }
-        return false;
       };
       this.element.onmouseover = function(e) {
         if (table.state === 'selecting') {
@@ -1072,8 +1101,10 @@
       this.element.onmouseup = function(e) {
         if (e.which !== 3) {
           table.selectionEnd = cell;
-          table.setSelection();
-          return table.state = "ready";
+          table.state = "ready";
+          if (!(e.metaKey || e.ctrlKey)) {
+            return table.setSelection();
+          }
         }
       };
       this.control.onkeydown = function(e) {
