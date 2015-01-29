@@ -874,7 +874,6 @@
     };
 
     Cell.prototype.showInactive = function() {
-      console.log('deactivating the thing');
       return this.element.style.cssText = this.oldCssText;
     };
 
@@ -1038,7 +1037,7 @@
       redCells = table.redCells;
       activeCells = table.activeCells;
       this.element.onclick = function(e) {
-        var activateRow, cellFrom, cellFromCol, cellFromRow, cellToCol, cellToRow, cmd, ctrl, onClickReturnVal, row, shift, _i, _j;
+        var activateRow, cellFrom, cellFromCol, cellFromRow, cellToCol, cellToRow, cmd, ctrl, onClickReturnVal, row, shift, _i, _j, _results, _results1;
         onClickReturnVal = true;
         if (cell.col.onClick) {
           onClickReturnVal = cell.col.onClick(cell, e);
@@ -1075,17 +1074,20 @@
               }
             };
             if (cellFromRow <= cellToRow) {
+              _results = [];
               for (row = _i = cellFromRow; cellFromRow <= cellToRow ? _i <= cellToRow : _i >= cellToRow; row = cellFromRow <= cellToRow ? ++_i : --_i) {
-                activateRow(row);
+                _results.push(activateRow(row));
               }
+              return _results;
             } else {
+              _results1 = [];
               for (row = _j = cellToRow; cellToRow <= cellFromRow ? _j <= cellFromRow : _j >= cellFromRow; row = cellToRow <= cellFromRow ? ++_j : --_j) {
-                activateRow(row);
+                _results1.push(activateRow(row));
               }
+              return _results1;
             }
           }
         }
-        return console.log(table.activeCells);
       };
       this.element.ondblclick = function() {
         return cell.edit();
