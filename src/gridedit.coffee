@@ -651,7 +651,10 @@ class ContextMenu
     # order them as in the array
     if @userDefinedOrder
       for actionName in @userDefinedOrder
-        action = @userDefinedActions[actionName] || @defaultActions[actionName]
+        if @userDefinedActions
+          action = @userDefinedActions[actionName] || @defaultActions[actionName]
+        else
+          action = @defaultActions[actionName]
         if action
           @addAction action
     # use the default ordering

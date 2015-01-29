@@ -1235,7 +1235,11 @@
         _ref = this.userDefinedOrder;
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           actionName = _ref[_i];
-          action = this.userDefinedActions[actionName] || this.defaultActions[actionName];
+          if (this.userDefinedActions) {
+            action = this.userDefinedActions[actionName] || this.defaultActions[actionName];
+          } else {
+            action = this.defaultActions[actionName];
+          }
           if (action) {
             this.addAction(action);
           }
