@@ -350,7 +350,7 @@ class Row
 # Creates a cell object in memory to store in a row
 class Cell
   constructor: (@originalValue, @row) ->
-    @originalValue = '' if @originalValue == undefined 
+    @originalValue = '' if @originalValue == undefined
     @id = "#{@row.id}-#{@row.cells.length}"
     @address = [@row.id, @row.cells.length]
     @index = @row.cells.length
