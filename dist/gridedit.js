@@ -526,7 +526,7 @@
         c = _ref[_i];
         row[c.valueKey] = c.defaultValue || '';
       }
-      if (index) {
+      if (index || index === 0) {
         this.source.splice(index, 0, row);
       } else {
         index = this.source.length - 1;
@@ -553,7 +553,7 @@
     GridEdit.prototype.insertAbove = function() {
       var cell;
       cell = this.contextMenu.getTargetPasteCell();
-      return this.addRow(cell.address[0] - 1);
+      return this.addRow(cell.address[0]);
     };
 
     GridEdit.prototype.removeRow = function(index, addToStack) {
