@@ -350,6 +350,7 @@ class Row
 # Creates a cell object in memory to store in a row
 class Cell
   constructor: (@originalValue, @row) ->
+    @originalValue = '' if @originalValue == undefined 
     @id = "#{@row.id}-#{@row.cells.length}"
     @address = [@row.id, @row.cells.length]
     @index = @row.cells.length
@@ -402,7 +403,7 @@ class Cell
       @afterEdit(@, oldValue, newValue, @table.contextMenu.getTargetPasteCell()) if @afterEdit
       return newValue
     else
-      @cellTypeObject.render()
+      @source[@valueKey]
   makeActive: (clearActiveCells = true) ->
     unless @isActive()
       beforeActivateReturnVal = @beforeActivate @ if @beforeActivate

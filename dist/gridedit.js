@@ -731,6 +731,9 @@
       var styleName;
       this.originalValue = originalValue;
       this.row = row;
+      if (this.originalValue === void 0) {
+        this.originalValue = '';
+      }
       this.id = "" + this.row.id + "-" + this.row.cells.length;
       this.address = [this.row.id, this.row.cells.length];
       this.index = this.row.cells.length;
@@ -836,7 +839,7 @@
         }
         return newValue;
       } else {
-        return this.cellTypeObject.render();
+        return this.source[this.valueKey];
       }
     };
 
