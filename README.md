@@ -90,7 +90,7 @@ An array of contextMenuItem keys determining the display order of the context me
 contextMenuOrder: [ 'cut', 'paste', 'insertAbove' ]
 ```
 *Note: If this option is supplied, only the menu items listed in the array will display in the context menu.*
-##### Default Context Menu Items
+####  Default Context Menu Items
 The code block below shows the default context menu items, their corresponding keys, and keyboard shortcuts.
 ``` coffeescript
 @defaultActions = {
