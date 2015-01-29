@@ -250,7 +250,7 @@ class GridEdit
       for c in @cols
         row[c.valueKey] = c.defaultValue || ''
 
-    if index
+    if index or index == 0
       @source.splice(index, 0, row)
     else
       index = @source.length - 1
@@ -266,7 +266,7 @@ class GridEdit
 
   insertAbove: ->
     cell = @.contextMenu.getTargetPasteCell()
-    @addRow(cell.address[0] - 1)
+    @addRow(cell.address[0])
 
 
   removeRow: (index, addToStack=true) ->
