@@ -1017,8 +1017,11 @@ class GridChange
 
     for change in @changes
       cell = @table.getCell(x + change.rowVector, y + change.colVector)
-      change.oldValue = cell.value()
-      cell.value(change.value, false) if cell and cell.editable
+      if cell and cell.editable
+        change.oldValue = cell.value()
+        cell.value(change.value, false)
+      else
+        change.oldValue = ''
 
   undo: (x, y) ->
     if x == false or y == false

@@ -1806,11 +1806,11 @@
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         change = _ref[_i];
         cell = this.table.getCell(x + change.rowVector, y + change.colVector);
-        change.oldValue = cell.value();
         if (cell && cell.editable) {
+          change.oldValue = cell.value();
           _results.push(cell.value(change.value, false));
         } else {
-          _results.push(void 0);
+          _results.push(change.oldValue = '');
         }
       }
       return _results;
