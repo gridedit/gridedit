@@ -1248,7 +1248,7 @@
         _ref1 = this.defaultActions;
         for (actionName in _ref1) {
           action = _ref1[actionName];
-          if (this.userDefinedActions[actionName] || this.userDefinedActions[actionName] === false) {
+          if (this.userDefinedActions && (this.userDefinedActions[actionName] || this.userDefinedActions[actionName] === false)) {
             continue;
           }
           this.addAction(action);

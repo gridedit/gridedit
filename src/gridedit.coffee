@@ -661,7 +661,7 @@ class ContextMenu
     else
       for actionName, action of @defaultActions
         # allow the user to override defaults, or remove them by setting them to false
-        continue if @userDefinedActions[actionName] || @userDefinedActions[actionName] == false;
+        continue if @userDefinedActions and (@userDefinedActions[actionName] || @userDefinedActions[actionName] == false)
         @addAction action
       for actionName, action of @userDefinedActions
         @addAction action
