@@ -1,5 +1,5 @@
 (function() {
-  var ActionStack, Cell, Column, ContextMenu, DateCell, GenericCell, GenericRow, GridChange, GridEdit, HTMLCell, NumberCell, Row, SelectCell, StaticRow, StringCell, Utilities, root,
+  var ActionStack, Cell, Column, ContextMenu, DateCell, GenericCell, GenericRow, GridChange, GridEdit, HTMLCell, NumberCell, Row, SelectCell, StaticRow, StringCell, SubTotalRow, Utilities, root,
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -82,6 +82,7 @@
       this.element = document.querySelectorAll(this.config.element || '#gridedit')[0];
       this.headers = [];
       this.rows = [];
+      this.subtotalRows = [];
       this.cols = [];
       this.source = this.config.rows;
       this.redCells = [];
@@ -587,6 +588,17 @@
       return row.select();
     };
 
+    GridEdit.prototype.calculateSubtotals = function() {
+      var row, _i, _len, _ref, _results;
+      _ref = this.subtotalRows;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        row = _ref[_i];
+        _results.push(row.calculate());
+      }
+      return _results;
+    };
+
     return GridEdit;
 
   })();
@@ -678,6 +690,9 @@
       switch (this.attributes.gridEditRowType) {
         case 'static':
           this.rowTypeObject = new StaticRow(this);
+          break;
+        case 'subtotal':
+          this.rowTypeObject = new SubTotalRow(this);
           break;
         default:
           this.rowTypeObject = new GenericRow(this);
@@ -813,6 +828,9 @@
         this.element.textContent = this.col.format(newValue);
         this.cellTypeObject.setValue(newValue);
         Utilities.prototype.setStyles(this.control, this.position());
+        if (this.row.rowTypeObject) {
+          this.row.rowTypeObject.afterEdit();
+        }
         if (this.afterEdit) {
           this.afterEdit(this, oldValue, newValue, this.table.contextMenu.getTargetPasteCell());
         }
@@ -1975,6 +1993,15 @@
 
   })();
 
+
+  /*
+  
+  Row Type Behavior
+  -----------------------------------------------------------------------------------------
+  generic behavior will be in GenericRow class
+  type specific behavior will be in the associated <type>Row class
+   */
+
   GenericRow = (function() {
     function GenericRow(row) {
       var cell, col, i, _i, _len, _ref;
@@ -1990,6 +2017,10 @@
       }
     }
 
+    GenericRow.prototype.afterEdit = function() {
+      return this.row.table.calculateSubtotals();
+    };
+
     return GenericRow;
 
   })();
@@ -1997,12 +2028,73 @@
   StaticRow = (function() {
     function StaticRow(row) {
       this.row = row;
-      console.log('this is a static row');
       this.row.editable = this.row.attributes.editable !== false;
       this.row.element.innerHTML = this.row.attributes.html;
     }
 
     return StaticRow;
+
+  })();
+
+  SubTotalRow = (function() {
+    function SubTotalRow(row) {
+      var cell, col, i, _i, _len, _ref;
+      this.row = row;
+      this.cols = {};
+      _ref = this.row.table.cols;
+      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+        col = _ref[i];
+        cell = new Cell('', this.row);
+        cell.editable = false;
+        this.row.cells.push(cell);
+        this.row.table.cols[i].cells.push(cell);
+        this.row.element.appendChild(cell.element);
+        if (this.row.attributes.subtotal[col.valueKey]) {
+          this.cols[col.valueKey] = i;
+        }
+      }
+      this.row.table.subtotalRows.push(this);
+      this.calculate();
+    }
+
+    SubTotalRow.prototype.calculate = function() {
+      var cell, col, index, row, rowIndex, start, sub, total, _i, _j, _len, _len1, _ref, _ref1, _ref2, _results;
+      start = -1;
+      _ref = this.row.table.subtotalRows;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        sub = _ref[_i];
+        rowIndex = sub.row.index;
+        if (rowIndex < this.row.index && rowIndex > start) {
+          start = rowIndex;
+        }
+      }
+      _ref1 = this.cols;
+      _results = [];
+      for (col in _ref1) {
+        index = _ref1[col];
+        total = 0;
+        _ref2 = this.row.table.rows;
+        for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
+          row = _ref2[_j];
+          if (!(row.index > start)) {
+            continue;
+          }
+          if (row.index === this.row.index) {
+            break;
+          }
+          cell = row.cells[index];
+          if (cell) {
+            total += Number(cell.value());
+          }
+        }
+        _results.push(this.row.cells[index].value(total, false));
+      }
+      return _results;
+    };
+
+    SubTotalRow.prototype.afterEdit = function() {};
+
+    return SubTotalRow;
 
   })();
 

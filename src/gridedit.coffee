@@ -29,6 +29,7 @@ class GridEdit
     @element = document.querySelectorAll(@config.element || '#gridedit')[0]
     @headers = []
     @rows = []
+    @subtotalRows = []
     @cols = []
     @source = @config.rows
     @redCells = []
@@ -278,6 +279,10 @@ class GridEdit
     row = @rows[index]
     row.select()
 
+  calculateSubtotals: () ->
+    for row in @subtotalRows
+      row.calculate()
+
 class Column
   constructor: (@attributes, @table) ->
     @id = @index = @table.cols.length
@@ -326,6 +331,8 @@ class Row
     switch @attributes.gridEditRowType
       when 'static'
         @rowTypeObject = new StaticRow(@)
+      when 'subtotal'
+        @rowTypeObject = new SubTotalRow(@)
       else
         @rowTypeObject = new GenericRow(@)
 
@@ -391,6 +398,7 @@ class Cell
       @element.textContent = @col.format(newValue)
       @cellTypeObject.setValue(newValue)
       Utilities::setStyles @control, @position()
+      @row.rowTypeObject.afterEdit() if @row.rowTypeObject
       @afterEdit(@, oldValue, newValue, @table.contextMenu.getTargetPasteCell()) if @afterEdit
       return newValue
     else
@@ -1151,6 +1159,17 @@ class ActionStack
         when 'remove-row'
           @table.removeRow(action.index, false)
 
+
+###
+
+Row Type Behavior
+-----------------------------------------------------------------------------------------
+generic behavior will be in GenericRow class
+type specific behavior will be in the associated <type>Row class
+
+###
+
+
 class GenericRow
   constructor: (@row) ->
     @row.editable = true
@@ -1161,15 +1180,50 @@ class GenericRow
       @row.table.cols[i].cells.push cell
       @row.element.appendChild cell.element
 
+  afterEdit: () ->
+    @row.table.calculateSubtotals()
+
 
 class StaticRow
   constructor: (@row) ->
-    console.log('this is a static row')
     @row.editable = @row.attributes.editable != false
     @row.element.innerHTML = @row.attributes.html
 
 
+class SubTotalRow
+  constructor: (@row) ->
+    @cols = {}
 
+    for col, i in @row.table.cols
+      cell = new Cell '', @row
+      cell.editable = false
+      @row.cells.push cell
+      @row.table.cols[i].cells.push cell
+      @row.element.appendChild cell.element
+
+      if(@row.attributes.subtotal[col.valueKey])
+        @cols[col.valueKey] = i
+
+    @row.table.subtotalRows.push(@)
+    @calculate()
+
+  calculate: () ->
+    start = -1
+    for sub in @row.table.subtotalRows
+      rowIndex = sub.row.index
+      if rowIndex < @row.index and rowIndex > start
+        start = rowIndex
+
+    for col, index of @cols
+      total = 0
+      for row in @row.table.rows when row.index > start
+        break if row.index == @row.index
+        cell = row.cells[index]
+        total += Number(cell.value()) if cell
+      @row.cells[index].value(total, false)
+
+  afterEdit: () ->
+    # do not calculate
 
 root = exports ? window
 root.GridEdit = GridEdit
