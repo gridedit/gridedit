@@ -284,6 +284,8 @@ class Column
     @element = document.createElement 'th'
     @textNode = document.createTextNode @attributes.label
     @element.appendChild @textNode
+    format = @attributes.format
+    @format = (v) -> if format then format(v) else v
     for key, value of @attributes
       @[key] = value
     delete @attributes
@@ -380,7 +382,7 @@ class Cell
       oldValue = @value()
       @beforeEdit(@, oldValue, newValue) if @beforeEdit
       @table.addToStack { type: 'cell-edit', oldValue: oldValue, newValue: newValue, address: @address } if addToStack
-      @element.textContent = newValue
+      @element.textContent = @col.format(newValue)
       @cellTypeObject.setValue(newValue)
       Utilities::setStyles @control, @position()
       @afterEdit(@, oldValue, newValue, @table.contextMenu.getTargetPasteCell()) if @afterEdit
@@ -413,7 +415,6 @@ class Cell
       @oldCssText = cssText
       @element.style.cssText = cssText + ' ' + "background-color: #{@table.cellStyles.activeColor};"
   showInactive: ->
-    console.log('deactivating the thing')
     @element.style.cssText = @oldCssText
   showRed: ->
     @element.style.cssText = "background-color: #{@table.cellStyles.uneditableColor};"
@@ -520,8 +521,6 @@ class Cell
           else
             for row in [cellToRow..cellFromRow]
               activateRow row
-
-      console.log(table.activeCells)
 
     @element.ondblclick = ->
       do cell.edit

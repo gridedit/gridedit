@@ -586,7 +586,7 @@
 
   Column = (function() {
     function Column(attributes, table) {
-      var key, value, _ref;
+      var format, key, value, _ref;
       this.attributes = attributes;
       this.table = table;
       this.id = this.index = this.table.cols.length;
@@ -596,6 +596,14 @@
       this.element = document.createElement('th');
       this.textNode = document.createTextNode(this.attributes.label);
       this.element.appendChild(this.textNode);
+      format = this.attributes.format;
+      this.format = function(v) {
+        if (format) {
+          return format(v);
+        } else {
+          return v;
+        }
+      };
       _ref = this.attributes;
       for (key in _ref) {
         value = _ref[key];
@@ -798,7 +806,7 @@
             address: this.address
           });
         }
-        this.element.textContent = newValue;
+        this.element.textContent = this.col.format(newValue);
         this.cellTypeObject.setValue(newValue);
         Utilities.prototype.setStyles(this.control, this.position());
         if (this.afterEdit) {
@@ -918,7 +926,7 @@
         }
         if (this.beforeControlHide && beforeControlHideReturnVal !== false || !this.beforeControlHide) {
           if (this.isControlInDocument()) {
-            this.control.remove();
+            this.control.parentNode.removeChild(this.control);
           }
           this.table.openCell = null;
           if (this.afterControlHide) {
