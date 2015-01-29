@@ -242,10 +242,13 @@ class GridEdit
   redo: ->
     @actionStack.redo()
 
-  addRow: (index, addToStack=true) ->
-    row = {}
-    for c in @cols
-      row[c.valueKey] = c.defaultValue || ''
+  addRow: (index, addToStack=true, rowObject=false) ->
+    if rowObject
+      row = rowObject
+    else
+      row = {}
+      for c in @cols
+        row[c.valueKey] = c.defaultValue || ''
 
     if index
       @source.splice(index, 0, row)
@@ -319,14 +322,17 @@ class Row
     @cells = []
     @index = @table.rows.length
     @element = document.createElement 'tr'
-    @editable = true
+
+    switch @attributes.gridEditRowType
+      when 'static'
+        @rowTypeObject = new StaticRow(@)
+      else
+        @rowTypeObject = new GenericRow(@)
+
     Utilities::setAttributes @element,
       id: "row-#{@id}"
-    for col, i in @table.cols
-      cell = new Cell @attributes[col.valueKey], @
-      @cells.push cell
-      @table.cols[i].cells.push cell
-      @element.appendChild cell.element
+
+
     delete @attributes
   below: -> @table.rows[@index + 1]
   above: -> @table.rows[@index - 1]
@@ -1144,6 +1150,26 @@ class ActionStack
 
         when 'remove-row'
           @table.removeRow(action.index, false)
+
+class GenericRow
+  constructor: (@row) ->
+    @row.editable = true
+
+    for col, i in @row.table.cols
+      cell = new Cell @row.attributes[col.valueKey], @row
+      @row.cells.push cell
+      @row.table.cols[i].cells.push cell
+      @row.element.appendChild cell.element
+
+
+class StaticRow
+  constructor: (@row) ->
+    console.log('this is a static row')
+    @row.editable = @row.attributes.editable != false
+    @row.element.innerHTML = @row.attributes.html
+
+
+
 
 root = exports ? window
 root.GridEdit = GridEdit

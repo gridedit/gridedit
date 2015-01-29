@@ -1,5 +1,5 @@
 (function() {
-  var ActionStack, Cell, Column, ContextMenu, DateCell, GenericCell, GridChange, GridEdit, HTMLCell, NumberCell, Row, SelectCell, StringCell, Utilities, root,
+  var ActionStack, Cell, Column, ContextMenu, DateCell, GenericCell, GenericRow, GridChange, GridEdit, HTMLCell, NumberCell, Row, SelectCell, StaticRow, StringCell, Utilities, root,
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -515,16 +515,23 @@
       return this.actionStack.redo();
     };
 
-    GridEdit.prototype.addRow = function(index, addToStack) {
+    GridEdit.prototype.addRow = function(index, addToStack, rowObject) {
       var c, row, _i, _len, _ref;
       if (addToStack == null) {
         addToStack = true;
       }
-      row = {};
-      _ref = this.cols;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        c = _ref[_i];
-        row[c.valueKey] = c.defaultValue || '';
+      if (rowObject == null) {
+        rowObject = false;
+      }
+      if (rowObject) {
+        row = rowObject;
+      } else {
+        row = {};
+        _ref = this.cols;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          c = _ref[_i];
+          row[c.valueKey] = c.defaultValue || '';
+        }
       }
       if (index) {
         this.source.splice(index, 0, row);
@@ -662,25 +669,22 @@
 
   Row = (function() {
     function Row(attributes, table) {
-      var cell, col, i, _i, _len, _ref;
       this.attributes = attributes;
       this.table = table;
       this.id = this.table.rows.length;
       this.cells = [];
       this.index = this.table.rows.length;
       this.element = document.createElement('tr');
-      this.editable = true;
+      switch (this.attributes.gridEditRowType) {
+        case 'static':
+          this.rowTypeObject = new StaticRow(this);
+          break;
+        default:
+          this.rowTypeObject = new GenericRow(this);
+      }
       Utilities.prototype.setAttributes(this.element, {
         id: "row-" + this.id
       });
-      _ref = this.table.cols;
-      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
-        col = _ref[i];
-        cell = new Cell(this.attributes[col.valueKey], this);
-        this.cells.push(cell);
-        this.table.cols[i].cells.push(cell);
-        this.element.appendChild(cell.element);
-      }
       delete this.attributes;
     }
 
@@ -1968,6 +1972,37 @@
     };
 
     return ActionStack;
+
+  })();
+
+  GenericRow = (function() {
+    function GenericRow(row) {
+      var cell, col, i, _i, _len, _ref;
+      this.row = row;
+      this.row.editable = true;
+      _ref = this.row.table.cols;
+      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+        col = _ref[i];
+        cell = new Cell(this.row.attributes[col.valueKey], this.row);
+        this.row.cells.push(cell);
+        this.row.table.cols[i].cells.push(cell);
+        this.row.element.appendChild(cell.element);
+      }
+    }
+
+    return GenericRow;
+
+  })();
+
+  StaticRow = (function() {
+    function StaticRow(row) {
+      this.row = row;
+      console.log('this is a static row');
+      this.row.editable = this.row.attributes.editable !== false;
+      this.row.element.innerHTML = this.row.attributes.html;
+    }
+
+    return StaticRow;
 
   })();
 
