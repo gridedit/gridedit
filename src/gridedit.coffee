@@ -442,7 +442,7 @@ class Cell
     if @table.openCell isnt null
       beforeControlHideReturnVal = @beforeControlHide @ if @beforeControlHide
       if @beforeControlHide and beforeControlHideReturnVal isnt false or not @beforeControlHide
-        @control.remove() if @isControlInDocument()
+        @control.parentNode.removeChild(@control) if @isControlInDocument()
         @table.openCell = null
         @afterControlHide @ if @afterControlHide
   edit: (newValue = null) ->
