@@ -808,13 +808,15 @@
         }
         this.element.textContent = this.col.format(newValue);
         this.cellTypeObject.setValue(newValue);
-        Utilities.prototype.setStyles(this.control, this.position());
+        if (this.control) {
+          Utilities.prototype.setStyles(this.control, this.position());
+        }
         if (this.afterEdit) {
           this.afterEdit(this, oldValue, newValue, this.table.contextMenu.getTargetPasteCell());
         }
         return newValue;
       } else {
-        return this.cellTypeObject.render();
+        return this.source[this.valueKey];
       }
     };
 
@@ -887,6 +889,7 @@
       if (value == null) {
         value = null;
       }
+      Utilities.prototype.clearActiveCells(this.table);
       if (this.table.copiedCellMatrix) {
         this.table.contextMenu.hideBorders();
       }
@@ -1129,7 +1132,6 @@
             return moveTo(table.nextCell());
         }
       };
-      this.cellTypeObject.addControlEvents(cell);
       if (table.mobile) {
         startY = null;
         this.element.ontouchstart = function(e) {
@@ -1492,8 +1494,6 @@
       return this.cell.source[this.cell.valueKey] = newValue;
     };
 
-    GenericCell.prototype.addControlEvents = function(cell) {};
-
     GenericCell.prototype.value = function() {
       return this.cell.value();
     };
@@ -1573,12 +1573,6 @@
     DateCell.prototype.initControl = function() {
       DateCell.__super__.initControl.call(this);
       return this.cell.control.value = this.toDateInputString(this.cell.value());
-    };
-
-    DateCell.prototype.addControlEvents = function(cell) {
-      return this.cell.control.onchange = function(e) {
-        return cell.edit(e.target.value);
-      };
     };
 
     DateCell.prototype.value = function() {
@@ -1683,12 +1677,13 @@
       var node;
       this.cell = cell;
       node = document.createTextNode(this.cell.originalValue || '');
-      this.cell.control = this.initControl;
+      this.initControl();
       this.cell.element.appendChild(node);
     }
 
     SelectCell.prototype.initControl = function() {
-      var choice, index, option, select, subchoice, _i, _j, _len, _len1, _ref;
+      var cell, choice, index, option, select, subchoice, _i, _j, _len, _len1, _ref;
+      cell = this.cell;
       select = document.createElement("select");
       if (!this.cell.meta.choices) {
         console.log("There is not a 'choices' key in cell " + this.cell.address + " and you specified that it was of type 'select'");
@@ -1710,22 +1705,16 @@
         } else {
           option.value = option.text = choice;
         }
-        if (this.cell.value() === choice) {
+        if (cell.value() === choice) {
           option.selected = true;
         }
         select.add(option);
       }
       select.classList.add('form-control');
-      this.cell.control = select;
-      return this.cell.control.onchange = function(e) {
-        return this.cell.edit(e.target.value);
-      };
-    };
-
-    SelectCell.prototype.addControlEvents = function(cell) {
-      return this.cell.control.onchange = function(e) {
+      select.onchange = function(e) {
         return cell.edit(e.target.value);
       };
+      return this.cell.control = select;
     };
 
     SelectCell.prototype.select = function() {};
@@ -1918,7 +1907,7 @@
     };
 
     ActionStack.prototype.addAction = function(actionObject) {
-      if (this.index > -1 && this.index < this.actions.length - 1) {
+      if (this.actions.length > 0 && this.index < this.actions.length - 1) {
         this.actions = this.actions.splice(0, this.index + 1);
       }
       this.actions.push(actionObject);

@@ -384,11 +384,11 @@ class Cell
       @table.addToStack { type: 'cell-edit', oldValue: oldValue, newValue: newValue, address: @address } if addToStack
       @element.textContent = @col.format(newValue)
       @cellTypeObject.setValue(newValue)
-      Utilities::setStyles @control, @position()
+      Utilities::setStyles @control, @position() if @control
       @afterEdit(@, oldValue, newValue, @table.contextMenu.getTargetPasteCell()) if @afterEdit
       return newValue
     else
-      @cellTypeObject.render()
+      @source[@valueKey]
   makeActive: (clearActiveCells = true) ->
     unless @isActive()
       beforeActivateReturnVal = @beforeActivate @ if @beforeActivate
@@ -420,6 +420,7 @@ class Cell
     @element.style.cssText = "background-color: #{@table.cellStyles.uneditableColor};"
     @table.redCells.push @
   showControl: (value = null) ->
+    Utilities::clearActiveCells(@table)
     @table.contextMenu.hideBorders() if @table.copiedCellMatrix
     if not @editable
       @showRed()
@@ -554,8 +555,6 @@ class Cell
         when 9 #tab
           cell.edit @value
           moveTo table.nextCell()
-
-    @cellTypeObject.addControlEvents(cell)
 
     if table.mobile
       startY = null
@@ -816,9 +815,6 @@ class GenericCell
   setValue: (newValue) ->
     @cell.source[@cell.valueKey] = newValue
 
-  addControlEvents: (cell) ->
-    # stub
-
   value: ->
     @cell.value()
 
@@ -863,10 +859,6 @@ class DateCell extends GenericCell
   initControl: ->
     super()
     @cell.control.value = @toDateInputString(@cell.value())
-
-  addControlEvents: (cell) ->
-    @cell.control.onchange = (e) ->
-      cell.edit e.target.value
 
   value: ->
     @cell.control.valueAsDate
@@ -926,10 +918,11 @@ class HTMLCell extends GenericCell
 class SelectCell extends GenericCell
   constructor: (@cell) ->
     node = document.createTextNode @cell.originalValue || ''
-    @cell.control = @initControl
+    @initControl()
     @cell.element.appendChild node
 
   initControl: ->
+    cell = @cell
     select = document.createElement "select"
     console.log "There is not a 'choices' key in cell #{@cell.address} and you specified that it was of type 'select'" if not @cell.meta.choices
     for choice in @cell.meta.choices
@@ -940,16 +933,12 @@ class SelectCell extends GenericCell
           option.text = subchoice if index is 1
       else
         option.value = option.text = choice
-      option.selected = true if @cell.value() is choice
+      option.selected = true if cell.value() is choice
       select.add option
     select.classList.add 'form-control'
-    @cell.control = select
-    @cell.control.onchange = (e) ->
-      @cell.edit e.target.value
-
-  addControlEvents: (cell) ->
-    @cell.control.onchange = (e) ->
+    select.onchange = (e) ->
       cell.edit e.target.value
+    @cell.control = select
 
   select: ->
     # stub
@@ -1094,7 +1083,7 @@ class ActionStack
     @table.getCell(action.address[0], action.address[1])
 
   addAction: (actionObject) ->
-    if @index > - 1 and @index < @actions.length - 1
+    if @actions.length > 0 and @index < @actions.length - 1
       @actions = @actions.splice(0, @index + 1)
     @actions.push(actionObject)
     @index++;
