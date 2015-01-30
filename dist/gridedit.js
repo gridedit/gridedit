@@ -76,7 +76,7 @@
 
   GridEdit = (function() {
     function GridEdit(config, actionStack) {
-      var key, value, _ref;
+      var cell, key, value, _ref;
       this.config = config;
       this.actionStack = actionStack;
       this.element = document.querySelectorAll(this.config.element || '#gridedit')[0];
@@ -115,6 +115,13 @@
       this.contextMenu = new ContextMenu(this);
       if (!this.actionStack) {
         this.actionStack = new ActionStack(this);
+      }
+      if (this.config.selectedCell) {
+        cell = this.getCell(this.config.selectedCell[0], this.config.selectedCell[1]);
+        if (cell) {
+          cell.makeActive();
+        }
+        this.config.selectedCell = void 0;
       }
     }
 
@@ -540,7 +547,8 @@
       }
       return this.rebuild({
         rows: this.source,
-        initialize: true
+        initialize: true,
+        selectedCell: [index, 0]
       });
     };
 
@@ -570,7 +578,8 @@
       }
       return this.rebuild({
         rows: this.source,
-        initialize: true
+        initialize: true,
+        selectedCell: [index, 0]
       });
     };
 

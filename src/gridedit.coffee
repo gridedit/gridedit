@@ -51,6 +51,10 @@ class GridEdit
     @copiedCellMatrix = null
     @contextMenu = new ContextMenu @
     @actionStack = new ActionStack(@) unless @actionStack
+    if @config.selectedCell
+      cell = @getCell(@config.selectedCell[0], @config.selectedCell[1])
+      cell.makeActive() if cell
+      @config.selectedCell = undefined # don't let this propagate to next rebuild
   init: ->
     do @config.beforeInit if @config.beforeInit
     do @build
@@ -254,7 +258,7 @@ class GridEdit
       @source.push(row)
 
     @addToStack({ type: 'add-row', index: index }) if addToStack
-    @rebuild({ rows: @source, initialize: true })
+    @rebuild({ rows: @source, initialize: true, selectedCell: [index, 0] })
 
 
   insertBelow: ->
@@ -269,7 +273,7 @@ class GridEdit
   removeRow: (index, addToStack=true) ->
     rows = @source.splice(index, 1)
     @addToStack({ type: 'remove-row', index: index }) if addToStack
-    @rebuild({ rows: @source, initialize: true })
+    @rebuild({ rows: @source, initialize: true, selectedCell: [ index, 0 ] })
 
   selectRow: (index) ->
     row = @rows[index]
