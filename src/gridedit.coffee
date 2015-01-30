@@ -52,6 +52,10 @@ class GridEdit
     @copiedCellMatrix = null
     @contextMenu = new ContextMenu @
     @actionStack = new ActionStack(@) unless @actionStack
+    if @config.selectedCell
+      cell = @getCell(@config.selectedCell[0], @config.selectedCell[1])
+      cell.makeActive() if cell
+      @config.selectedCell = undefined # don't let this propagate to next rebuild
   init: ->
     do @config.beforeInit if @config.beforeInit
     do @build
@@ -258,7 +262,7 @@ class GridEdit
       @source.push(row)
 
     @addToStack({ type: 'add-row', index: index }) if addToStack
-    @rebuild({ rows: @source, initialize: true })
+    @rebuild({ rows: @source, initialize: true, selectedCell: [index, 0] })
 
 
   insertBelow: ->
@@ -273,7 +277,7 @@ class GridEdit
   removeRow: (index, addToStack=true) ->
     rows = @source.splice(index, 1)
     @addToStack({ type: 'remove-row', index: index }) if addToStack
-    @rebuild({ rows: @source, initialize: true })
+    @rebuild({ rows: @source, initialize: true, selectedCell: [ index, 0 ] })
 
   selectRow: (index) ->
     row = @rows[index]
@@ -398,7 +402,7 @@ class Cell
       @table.addToStack { type: 'cell-edit', oldValue: oldValue, newValue: newValue, address: @address } if addToStack
       @element.textContent = @col.format(newValue)
       @cellTypeObject.setValue(newValue)
-      Utilities::setStyles @control, @position()
+      Utilities::setStyle @control, @position if @control
       @row.rowTypeObject.afterEdit() if @row.rowTypeObject
       @afterEdit(@, oldValue, newValue, @table.contextMenu.getTargetPasteCell()) if @afterEdit
       return newValue
@@ -435,6 +439,7 @@ class Cell
     @element.style.cssText = "background-color: #{@table.cellStyles.uneditableColor};"
     @table.redCells.push @
   showControl: (value = null) ->
+    Utilities::clearActiveCells(@table)
     @table.contextMenu.hideBorders() if @table.copiedCellMatrix
     if not @editable
       @showRed()
@@ -570,8 +575,6 @@ class Cell
           cell.edit @value
           moveTo table.nextCell()
 
-    @cellTypeObject.addControlEvents(cell)
-
     if table.mobile
       startY = null
       @element.ontouchstart = (e) ->
@@ -666,14 +669,17 @@ class ContextMenu
     # order them as in the array
     if @userDefinedOrder
       for actionName in @userDefinedOrder
-        action = @userDefinedActions[actionName] || @defaultActions[actionName]
+        if @userDefinedActions
+          action = @userDefinedActions[actionName] || @defaultActions[actionName]
+        else
+          action = @defaultActions[actionName]
         if action
           @addAction action
     # use the default ordering
     else
       for actionName, action of @defaultActions
         # allow the user to override defaults, or remove them by setting them to false
-        continue if @userDefinedActions[actionName] || @userDefinedActions[actionName] == false;
+        continue if @userDefinedActions and (@userDefinedActions[actionName] || @userDefinedActions[actionName] == false)
         @addAction action
       for actionName, action of @userDefinedActions
         @addAction action
@@ -828,9 +834,6 @@ class GenericCell
   setValue: (newValue) ->
     @cell.source[@cell.valueKey] = newValue
 
-  addControlEvents: (cell) ->
-    # stub
-
   value: ->
     @cell.value()
 
@@ -875,10 +878,6 @@ class DateCell extends GenericCell
   initControl: ->
     super()
     @cell.control.value = @toDateInputString(@cell.value())
-
-  addControlEvents: (cell) ->
-    @cell.control.onchange = (e) ->
-      cell.edit e.target.value
 
   value: ->
     @cell.control.valueAsDate
@@ -938,10 +937,11 @@ class HTMLCell extends GenericCell
 class SelectCell extends GenericCell
   constructor: (@cell) ->
     node = document.createTextNode @cell.originalValue || ''
-    @cell.control = @initControl
+    @initControl()
     @cell.element.appendChild node
 
   initControl: ->
+    cell = @cell
     select = document.createElement "select"
     console.log "There is not a 'choices' key in cell #{@cell.address} and you specified that it was of type 'select'" if not @cell.meta.choices
     for choice in @cell.meta.choices
@@ -952,16 +952,12 @@ class SelectCell extends GenericCell
           option.text = subchoice if index is 1
       else
         option.value = option.text = choice
-      option.selected = true if @cell.value() is choice
+      option.selected = true if cell.value() is choice
       select.add option
     select.classList.add 'form-control'
-    @cell.control = select
-    @cell.control.onchange = (e) ->
-      @cell.edit e.target.value
-
-  addControlEvents: (cell) ->
-    @cell.control.onchange = (e) ->
+    select.onchange = (e) ->
       cell.edit e.target.value
+    @cell.control = select
 
   select: ->
     # stub
@@ -1106,7 +1102,7 @@ class ActionStack
     @table.getCell(action.address[0], action.address[1])
 
   addAction: (actionObject) ->
-    if @index > - 1 and @index < @actions.length - 1
+    if @actions.length > 0 and @index < @actions.length - 1
       @actions = @actions.splice(0, @index + 1)
     @actions.push(actionObject)
     @index++;
