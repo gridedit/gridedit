@@ -209,7 +209,7 @@ class GridEdit
       cell.value('')
   clearActiveCells: -> Utilities::clearActiveCells @
   setSelection: ->
-    if @selectionStart isnt @selectionEnd
+    if @selectionStart and @selectionEnd and @selectionStart isnt @selectionEnd
       do cell.showInactive for cell in @activeCells
       @activeCells = []
       rowRange = [@selectionStart.address[0]..@selectionEnd.address[0]]
@@ -341,6 +341,7 @@ class Row
 # Creates a cell object in memory to store in a row
 class Cell
   constructor: (@originalValue, @row) ->
+    @originalValue = '' if @originalValue == undefined
     @id = "#{@row.id}-#{@row.cells.length}"
     @address = [@row.id, @row.cells.length]
     @index = @row.cells.length
@@ -353,6 +354,7 @@ class Cell
     @element.classList.add @col.cellClass if @col.cellClass
     @valueKey = @col.valueKey
     @source = @table.config.rows[@address[0]]
+    @source[@valueKey] = @originalValue
     @initCallbacks()
     if @col.style
       for styleName of @col.style
@@ -368,6 +370,8 @@ class Cell
         @cellTypeObject = new HTMLCell(@)
       when 'select'
         @cellTypeObject = new SelectCell(@)
+      when 'textarea'
+        @cellTypeObject = new TextAreaCell(@)
     @events @
   initCallbacks: ->
     @beforeEdit = @table.config.beforeEdit if @table.config.beforeEdit
@@ -806,7 +810,7 @@ class ContextMenu
 # Generic Cell
 class GenericCell
   constructor: (@cell) ->
-    node = document.createTextNode @cell.originalValue
+    node = document.createTextNode @cell.col.format(@cell.originalValue)
     @cell.control = document.createElement 'input'
     @cell.element.appendChild node
 
@@ -897,7 +901,7 @@ class DateCell extends GenericCell
 # HTML Cell
 class HTMLCell extends GenericCell
   constructor: (@cell) ->
-    @cell.htmlContent = @cell.col.defaultValue || @cell.originalValue
+    @cell.htmlContent = @cell.col.defaultValue || @cell.originalValue || ''
     node = @toFragment()
     @cell.control = document.createElement 'input'
     @cell.element.appendChild node
@@ -923,7 +927,6 @@ class SelectCell extends GenericCell
   constructor: (@cell) ->
     node = document.createTextNode @cell.originalValue || ''
     @initControl()
-    @cell.element.appendChild node
 
   initControl: ->
     cell = @cell
@@ -946,6 +949,15 @@ class SelectCell extends GenericCell
 
   select: ->
     # stub
+
+# TextArea Cell
+class TextAreaCell extends GenericCell
+  constructor: (@cell) ->
+    node = document.createTextNode @cell.originalValue || ''
+    @cell.element.appendChild node
+
+    @cell.control = document.createElement 'textarea'
+    @cell.control.classList.add 'form-control'
 
 
   ###
