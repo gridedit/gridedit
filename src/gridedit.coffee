@@ -215,7 +215,7 @@ class GridEdit
       cell.value('')
   clearActiveCells: -> Utilities::clearActiveCells @
   setSelection: ->
-    if @selectionStart isnt @selectionEnd
+    if @selectionStart and @selectionEnd and @selectionStart isnt @selectionEnd
       do cell.showInactive for cell in @activeCells
       @activeCells = []
       rowRange = [@selectionStart.address[0]..@selectionEnd.address[0]]
@@ -387,6 +387,8 @@ class Cell
         @cellTypeObject = new HTMLCell(@)
       when 'select'
         @cellTypeObject = new SelectCell(@)
+      when 'textarea'
+        @cellTypeObject = new TextAreaCell(@)
     @events @
   initCallbacks: ->
     @beforeEdit = @table.config.beforeEdit if @table.config.beforeEdit
@@ -825,7 +827,7 @@ class ContextMenu
 # Generic Cell
 class GenericCell
   constructor: (@cell) ->
-    node = document.createTextNode @cell.originalValue
+    node = document.createTextNode @cell.col.format(@cell.originalValue)
     @cell.control = document.createElement 'input'
     @cell.element.appendChild node
 
@@ -916,7 +918,7 @@ class DateCell extends GenericCell
 # HTML Cell
 class HTMLCell extends GenericCell
   constructor: (@cell) ->
-    @cell.htmlContent = @cell.col.defaultValue || @cell.originalValue
+    @cell.htmlContent = @cell.col.defaultValue || @cell.originalValue || ''
     node = @toFragment()
     @cell.control = document.createElement 'input'
     @cell.element.appendChild node
@@ -965,6 +967,13 @@ class SelectCell extends GenericCell
 
   select: ->
     # stub
+
+# TextArea Cell
+class TextAreaCell extends GenericCell
+  constructor: (@cell) ->
+    node = document.createTextNode @cell.originalValue || ''
+    @cell.control = document.createElement 'textarea'
+    @cell.control.classList.add 'form-control'
 
 
   ###
