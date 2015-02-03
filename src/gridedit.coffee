@@ -81,7 +81,13 @@ class GridEdit
     # Build Table Body
     tbody = document.createElement 'tbody'
     for rowAttributes, i in @source
-      row = new Row rowAttributes, @
+      switch rowAttributes.gridEditRowType
+        when 'static'
+          row = new StaticRow(rowAttributes, @)
+        when 'subtotal'
+          row = new SubTotalRow(rowAttributes, @)
+        else
+          row = new GenericRow(rowAttributes, @)
       @rows.push row
       tbody.appendChild row.element
 
@@ -284,9 +290,30 @@ class GridEdit
     @addToStack({ type: 'remove-row', index: index }) if addToStack
     @rebuild({ rows: @source, initialize: true, selectedCell: [ index, 0 ] })
 
-  selectRow: (index) ->
-    row = @rows[index]
-    row.select()
+  selectRow: (e, index) ->
+    if @activeCell() and e
+      currentRowIndex = @activeCells[0].address[0]
+      shift = e.shiftKey
+      ctrl = e.ctrlKey
+      cmd = e.metaKey
+
+      if !(ctrl or cmd)
+        Utilities::clearActiveCells(@)
+
+      if shift
+        diff = currentRowIndex - index
+        if diff < 0
+          for row in @rows[currentRowIndex..index]
+            row.select()
+        else
+          for row in @rows[index..currentRowIndex]
+            row.select()
+      else
+        row = @rows[index]
+        row.select()
+    else
+      row = @rows[index]
+      row.select()
 
   calculateSubtotals: () ->
     for row in @subtotalRows
@@ -329,33 +356,6 @@ class Column
         return
       false
 
-# Receives an array or object of Cells and is passed to a GridEdit
-class Row
-  constructor: (@attributes, @table) ->
-    @id = @table.rows.length
-    @cells = []
-    @index = @table.rows.length
-    @element = document.createElement 'tr'
-
-    switch @attributes.gridEditRowType
-      when 'static'
-        @rowTypeObject = new StaticRow(@)
-      when 'subtotal'
-        @rowTypeObject = new SubTotalRow(@)
-      else
-        @rowTypeObject = new GenericRow(@)
-
-    Utilities::setAttributes @element,
-      id: "row-#{@id}"
-
-
-    delete @attributes
-  below: -> @table.rows[@index + 1]
-  above: -> @table.rows[@index - 1]
-  select: ->
-    for cell in @cells
-      cell.addToSelection()
-
 # Creates a cell object in memory to store in a row
 class Cell
   constructor: (@originalValue, @row) ->
@@ -372,6 +372,7 @@ class Cell
     @element.classList.add @col.cellClass if @col.cellClass
     @valueKey = @col.valueKey
     @source = @table.config.rows[@address[0]]
+    @source[@valueKey] = @originalValue
     @initCallbacks()
     if @col.style
       for styleName of @col.style
@@ -410,7 +411,7 @@ class Cell
       @element.textContent = @col.format(newValue)
       @cellTypeObject.setValue(newValue)
       Utilities::setStyles @control, @position() if @control
-      @row.rowTypeObject.afterEdit() if @row.rowTypeObject
+      @row.afterEdit()
       @afterEdit(@, oldValue, newValue, @table.contextMenu.getTargetPasteCell()) if @afterEdit
       return newValue
     else
@@ -944,7 +945,6 @@ class SelectCell extends GenericCell
   constructor: (@cell) ->
     node = document.createTextNode @cell.originalValue || ''
     @initControl()
-    @cell.element.appendChild node
 
   initControl: ->
     cell = @cell
@@ -972,6 +972,7 @@ class SelectCell extends GenericCell
 class TextAreaCell extends GenericCell
   constructor: (@cell) ->
     node = document.createTextNode @cell.originalValue || ''
+    @cell.element.appendChild node
     @cell.control = document.createElement 'textarea'
     @cell.control.classList.add 'form-control'
 
@@ -1182,75 +1183,105 @@ type specific behavior will be in the associated <type>Row class
 # Handle Cell
 class HandleCell
   constructor: (@row) ->
+    row = @row
     @element = document.createElement 'td'
+    @element.onclick = (e) ->
+      index = row.index
+      row.table.selectRow(e, index)
+
     @element.className = 'handle'
     node = document.createElement 'div'
     node.innerHTML = '<span></span><span></span><span></span>'
     @element.appendChild(node)
     @
 
-class GenericRow
-  constructor: (@row) ->
-    @row.editable = true
-    includeRowHandles = @row.table.config.includeRowHandles
+class Row
+  constructor: (@attributes, @table) ->
+    @id = @table.rows.length
+    @cells = []
+    @index = @table.rows.length
+    @element = document.createElement 'tr'
+    @includeRowHandles = @.table.config.includeRowHandles
 
-    if includeRowHandles
-      console.log('add handle');
-      cell = new HandleCell @row
-      @row.element.appendChild cell.element
+    Utilities::setAttributes @element,
+      id: "row-#{@id}"
 
-    for col, i in @row.table.cols
-      continue if includeRowHandles and i == 0
-      cell = new Cell @row.attributes[col.valueKey], @row
-      @row.cells.push cell
-      @row.table.cols[i].cells.push cell
-      @row.element.appendChild cell.element
+  below: -> @table.rows[@index + 1]
+  above: -> @table.rows[@index - 1]
+  select: ->
+    for cell in @cells
+      cell.addToSelection()
 
   afterEdit: () ->
-    @row.table.calculateSubtotals()
+    @.table.calculateSubtotals()
+
+  addHandle: () ->
+    if @includeRowHandles
+      cell = new HandleCell @
+      @element.appendChild cell.element
+
+class GenericRow extends Row
+  constructor: (@attributes, @table) ->
+    super
+    @editable = true
+
+    @addHandle()
+
+    for col, i in @table.cols
+      cell = new Cell @attributes[col.valueKey], @
+      @.cells.push cell
+      @.table.cols[i].cells.push cell
+      @.element.appendChild cell.element
+
+    delete @attributes
+
+class StaticRow extends Row
+  constructor: (@attributes, @table) ->
+    @editable = @attributes.editable != false
+    @element.innerHTML = @attributes.html
+    delete @attributes
 
 
-class StaticRow
-  constructor: (@row) ->
-    @row.editable = @row.attributes.editable != false
-    @row.element.innerHTML = @row.attributes.html
+class SubTotalRow extends Row
+  constructor: (@attributes, @table) ->
+    super
+    @subtotalColumns = {}
+    @labels = @attributes.labels
 
+    @addHandle()
 
-class SubTotalRow
-  constructor: (@row) ->
-    @cols = {}
-    @labels = @row.attributes.labels
-
-    for col, i in @row.table.cols
-      cell = new Cell '', @row
+    for col, i in @table.cols
+      cell = new Cell '', @
       cell.editable = false
       if @labels
         value = @labels[col.valueKey]
         cell.value(value, false) if value
-      @row.cells.push cell
-      @row.table.cols[i].cells.push cell
-      @row.element.appendChild cell.element
+      @cells.push cell
+      @table.cols[i].cells.push cell
+      @element.appendChild cell.element
 
-      if(@row.attributes.subtotal[col.valueKey])
-        @cols[col.valueKey] = i
+      if(@attributes.subtotal[col.valueKey])
+        @subtotalColumns[col.valueKey] = i
 
-    @row.table.subtotalRows.push(@)
+    @table.subtotalRows.push(@)
     @calculate()
 
   calculate: () ->
     start = -1
-    for sub in @row.table.subtotalRows
-      rowIndex = sub.row.index
-      if rowIndex < @row.index and rowIndex > start
+    for sub in @table.subtotalRows
+      rowIndex = sub.index
+      if rowIndex < @index and rowIndex > start
         start = rowIndex
 
-    for col, index of @cols
+    for col, index of @subtotalColumns
       total = 0
-      for row in @row.table.rows when row.index > start
-        break if row.index == @row.index
+      for row in @table.rows when row.index > start
+        break if row.index == @index
         cell = row.cells[index]
         total += Number(cell.value()) if cell
-      @row.cells[index].value(total, false)
+      @cells[index].value(total, false)
+
+    delete @attributes
 
   afterEdit: () ->
     # do not calculate

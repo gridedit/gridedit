@@ -1,24 +1,8 @@
 (function() {
-<<<<<<< HEAD
-  var ActionStack, Cell, Column, ContextMenu, DateCell, GenericCell, GenericRow, GridChange, GridEdit, HTMLCell, HandleCell, NumberCell, Row, SelectCell, StaticRow, StringCell, SubTotalRow, Utilities, root,
-=======
-  var ActionStack, Cell, Column, ContextMenu, DateCell, GenericCell, GridChange, GridEdit, HTMLCell, NumberCell, Row, SelectCell, StringCell, TextAreaCell, Utilities, root,
->>>>>>> master
+  var ActionStack, Cell, Column, ContextMenu, DateCell, GenericCell, GenericRow, GridChange, GridEdit, HTMLCell, HandleCell, NumberCell, Row, SelectCell, StaticRow, StringCell, SubTotalRow, TextAreaCell, Utilities, root,
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __hasProp = {}.hasOwnProperty,
-    __extends = function (child, parent) {
-      for (var key in parent) {
-        if (__hasProp.call(parent, key)) child[key] = parent[key];
-      }
-      function ctor() {
-        this.constructor = child;
-      }
-
-      ctor.prototype = parent.prototype;
-      child.prototype = new ctor();
-      child.__super__ = parent.prototype;
-      return child;
-    };
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   Utilities = (function() {
     function Utilities() {}
@@ -174,7 +158,16 @@
       _ref1 = this.source;
       for (i = _j = 0, _len1 = _ref1.length; _j < _len1; i = ++_j) {
         rowAttributes = _ref1[i];
-        row = new Row(rowAttributes, this);
+        switch (rowAttributes.gridEditRowType) {
+          case 'static':
+            row = new StaticRow(rowAttributes, this);
+            break;
+          case 'subtotal':
+            row = new SubTotalRow(rowAttributes, this);
+            break;
+          default:
+            row = new GenericRow(rowAttributes, this);
+        }
         this.rows.push(row);
         tbody.appendChild(row.element);
       }
@@ -611,10 +604,43 @@
       });
     };
 
-    GridEdit.prototype.selectRow = function(index) {
-      var row;
-      row = this.rows[index];
-      return row.select();
+    GridEdit.prototype.selectRow = function(e, index) {
+      var cmd, ctrl, currentRowIndex, diff, row, shift, _i, _j, _len, _len1, _ref, _ref1, _results, _results1;
+      if (this.activeCell() && e) {
+        currentRowIndex = this.activeCells[0].address[0];
+        shift = e.shiftKey;
+        ctrl = e.ctrlKey;
+        cmd = e.metaKey;
+        if (!(ctrl || cmd)) {
+          Utilities.prototype.clearActiveCells(this);
+        }
+        if (shift) {
+          diff = currentRowIndex - index;
+          if (diff < 0) {
+            _ref = this.rows.slice(currentRowIndex, +index + 1 || 9e9);
+            _results = [];
+            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+              row = _ref[_i];
+              _results.push(row.select());
+            }
+            return _results;
+          } else {
+            _ref1 = this.rows.slice(index, +currentRowIndex + 1 || 9e9);
+            _results1 = [];
+            for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+              row = _ref1[_j];
+              _results1.push(row.select());
+            }
+            return _results1;
+          }
+        } else {
+          row = this.rows[index];
+          return row.select();
+        }
+      } else {
+        row = this.rows[index];
+        return row.select();
+      }
     };
 
     GridEdit.prototype.calculateSubtotals = function() {
@@ -708,65 +734,14 @@
 
   })();
 
-  Row = (function() {
-    function Row(attributes, table) {
-      this.attributes = attributes;
-      this.table = table;
-      this.id = this.table.rows.length;
-      this.cells = [];
-      this.index = this.table.rows.length;
-      this.element = document.createElement('tr');
-      switch (this.attributes.gridEditRowType) {
-        case 'static':
-          this.rowTypeObject = new StaticRow(this);
-          break;
-        case 'subtotal':
-          this.rowTypeObject = new SubTotalRow(this);
-          break;
-        default:
-          this.rowTypeObject = new GenericRow(this);
-      }
-      Utilities.prototype.setAttributes(this.element, {
-        id: "row-" + this.id
-      });
-      delete this.attributes;
-    }
-
-    Row.prototype.below = function() {
-      return this.table.rows[this.index + 1];
-    };
-
-    Row.prototype.above = function() {
-      return this.table.rows[this.index - 1];
-    };
-
-    Row.prototype.select = function() {
-      var cell, _i, _len, _ref, _results;
-      _ref = this.cells;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        cell = _ref[_i];
-        _results.push(cell.addToSelection());
-      }
-      return _results;
-    };
-
-    return Row;
-
-  })();
-
   Cell = (function() {
     function Cell(originalValue, row) {
       var styleName;
       this.originalValue = originalValue;
       this.row = row;
-<<<<<<< HEAD
       if (this.originalValue === void 0) {
         this.originalValue = '';
       }
-=======
-      this.originalValue = this.originalValue ? this.originalValue : '';
->>>>>>> master
       this.id = "" + this.row.id + "-" + this.row.cells.length;
       this.address = [this.row.id, this.row.cells.length];
       this.index = this.row.cells.length;
@@ -781,6 +756,7 @@
       }
       this.valueKey = this.col.valueKey;
       this.source = this.table.config.rows[this.address[0]];
+      this.source[this.valueKey] = this.originalValue;
       this.initCallbacks();
       if (this.col.style) {
         for (styleName in this.col.style) {
@@ -869,9 +845,7 @@
         if (this.control) {
           Utilities.prototype.setStyles(this.control, this.position());
         }
-        if (this.row.rowTypeObject) {
-          this.row.rowTypeObject.afterEdit();
-        }
+        this.row.afterEdit();
         if (this.afterEdit) {
           this.afterEdit(this, oldValue, newValue, this.table.contextMenu.getTargetPasteCell());
         }
@@ -1219,7 +1193,7 @@
 
 
   /*
-
+  
   Context Menu
   -----------------------------------------------------------------------------------------
    */
@@ -1527,7 +1501,7 @@
 
 
   /*
-
+  
     Cell Type Behavior
     -----------------------------------------------------------------------------------------
     generic behavior will be in GenericCell class
@@ -1739,7 +1713,6 @@
       this.cell = cell;
       node = document.createTextNode(this.cell.originalValue || '');
       this.initControl();
-      this.cell.element.appendChild(node);
     }
 
     SelectCell.prototype.initControl = function() {
@@ -1791,13 +1764,14 @@
       var node;
       this.cell = cell;
       node = document.createTextNode(this.cell.originalValue || '');
+      this.cell.element.appendChild(node);
       this.cell.control = document.createElement('textarea');
       this.cell.control.classList.add('form-control');
     }
 
 
     /*
-
+    
     	Grid Change
     	-----------------------------------------------------------------------------------------
      */
@@ -1963,11 +1937,11 @@
 
 
   /*
-
+  
   	ActionStack
   	-----------------------------------------------------------------------------------------
     used for undo/redo functionality
-
+  
     todo - splice actions array at X elements to conserve memory
    */
 
@@ -2042,7 +2016,7 @@
 
 
   /*
-
+  
   Row Type Behavior
   -----------------------------------------------------------------------------------------
   generic behavior will be in GenericRow class
@@ -2053,7 +2027,13 @@
     function HandleCell(row) {
       var node;
       this.row = row;
+      row = this.row;
       this.element = document.createElement('td');
+      this.element.onclick = function(e) {
+        var index;
+        index = row.index;
+        return row.table.selectRow(e, index);
+      };
       this.element.className = 'handle';
       node = document.createElement('div');
       node.innerHTML = '<span></span><span></span><span></span>';
@@ -2065,59 +2045,110 @@
 
   })();
 
-  GenericRow = (function() {
-    function GenericRow(row) {
-      var cell, col, i, includeRowHandles, _i, _len, _ref;
-      this.row = row;
-      this.row.editable = true;
-      includeRowHandles = this.row.table.config.includeRowHandles;
-      if (includeRowHandles) {
-        console.log('add handle');
-        cell = new HandleCell(this.row);
-        this.row.element.appendChild(cell.element);
-      }
-      _ref = this.row.table.cols;
-      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
-        col = _ref[i];
-        if (includeRowHandles && i === 0) {
-          continue;
-        }
-        cell = new Cell(this.row.attributes[col.valueKey], this.row);
-        this.row.cells.push(cell);
-        this.row.table.cols[i].cells.push(cell);
-        this.row.element.appendChild(cell.element);
-      }
+  Row = (function() {
+    function Row(attributes, table) {
+      this.attributes = attributes;
+      this.table = table;
+      this.id = this.table.rows.length;
+      this.cells = [];
+      this.index = this.table.rows.length;
+      this.element = document.createElement('tr');
+      this.includeRowHandles = this.table.config.includeRowHandles;
+      Utilities.prototype.setAttributes(this.element, {
+        id: "row-" + this.id
+      });
     }
 
-    GenericRow.prototype.afterEdit = function() {
-      return this.row.table.calculateSubtotals();
+    Row.prototype.below = function() {
+      return this.table.rows[this.index + 1];
     };
 
-    return GenericRow;
+    Row.prototype.above = function() {
+      return this.table.rows[this.index - 1];
+    };
+
+    Row.prototype.select = function() {
+      var cell, _i, _len, _ref, _results;
+      _ref = this.cells;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        cell = _ref[_i];
+        _results.push(cell.addToSelection());
+      }
+      return _results;
+    };
+
+    Row.prototype.afterEdit = function() {
+      return this.table.calculateSubtotals();
+    };
+
+    Row.prototype.addHandle = function() {
+      var cell;
+      if (this.includeRowHandles) {
+        cell = new HandleCell(this);
+        return this.element.appendChild(cell.element);
+      }
+    };
+
+    return Row;
 
   })();
 
-  StaticRow = (function() {
-    function StaticRow(row) {
-      this.row = row;
-      this.row.editable = this.row.attributes.editable !== false;
-      this.row.element.innerHTML = this.row.attributes.html;
+  GenericRow = (function(_super) {
+    __extends(GenericRow, _super);
+
+    function GenericRow(attributes, table) {
+      var cell, col, i, _i, _len, _ref;
+      this.attributes = attributes;
+      this.table = table;
+      GenericRow.__super__.constructor.apply(this, arguments);
+      this.editable = true;
+      this.addHandle();
+      _ref = this.table.cols;
+      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+        col = _ref[i];
+        cell = new Cell(this.attributes[col.valueKey], this);
+        this.cells.push(cell);
+        this.table.cols[i].cells.push(cell);
+        this.element.appendChild(cell.element);
+      }
+      delete this.attributes;
+    }
+
+    return GenericRow;
+
+  })(Row);
+
+  StaticRow = (function(_super) {
+    __extends(StaticRow, _super);
+
+    function StaticRow(attributes, table) {
+      this.attributes = attributes;
+      this.table = table;
+      this.editable = this.attributes.editable !== false;
+      this.element.innerHTML = this.attributes.html;
+      delete this.attributes;
     }
 
     return StaticRow;
 
-  })();
+  })(Row);
 
-  SubTotalRow = (function() {
-    function SubTotalRow(row) {
+  SubTotalRow = (function(_super) {
+    __extends(SubTotalRow, _super);
+
+    function SubTotalRow(attributes, table) {
       var cell, col, i, value, _i, _len, _ref;
-      this.row = row;
-      this.cols = {};
-      this.labels = this.row.attributes.labels;
-      _ref = this.row.table.cols;
+      this.attributes = attributes;
+      this.table = table;
+      SubTotalRow.__super__.constructor.apply(this, arguments);
+      this.subtotalColumns = {};
+      this.labels = this.attributes.labels;
+      this.addHandle();
+      _ref = this.table.cols;
       for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
         col = _ref[i];
-        cell = new Cell('', this.row);
+        cell = new Cell('', this);
         cell.editable = false;
         if (this.labels) {
           value = this.labels[col.valueKey];
@@ -2125,40 +2156,39 @@
             cell.value(value, false);
           }
         }
-        this.row.cells.push(cell);
-        this.row.table.cols[i].cells.push(cell);
-        this.row.element.appendChild(cell.element);
-        if (this.row.attributes.subtotal[col.valueKey]) {
-          this.cols[col.valueKey] = i;
+        this.cells.push(cell);
+        this.table.cols[i].cells.push(cell);
+        this.element.appendChild(cell.element);
+        if (this.attributes.subtotal[col.valueKey]) {
+          this.subtotalColumns[col.valueKey] = i;
         }
       }
-      this.row.table.subtotalRows.push(this);
+      this.table.subtotalRows.push(this);
       this.calculate();
     }
 
     SubTotalRow.prototype.calculate = function() {
-      var cell, col, index, row, rowIndex, start, sub, total, _i, _j, _len, _len1, _ref, _ref1, _ref2, _results;
+      var cell, col, index, row, rowIndex, start, sub, total, _i, _j, _len, _len1, _ref, _ref1, _ref2;
       start = -1;
-      _ref = this.row.table.subtotalRows;
+      _ref = this.table.subtotalRows;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         sub = _ref[_i];
-        rowIndex = sub.row.index;
-        if (rowIndex < this.row.index && rowIndex > start) {
+        rowIndex = sub.index;
+        if (rowIndex < this.index && rowIndex > start) {
           start = rowIndex;
         }
       }
-      _ref1 = this.cols;
-      _results = [];
+      _ref1 = this.subtotalColumns;
       for (col in _ref1) {
         index = _ref1[col];
         total = 0;
-        _ref2 = this.row.table.rows;
+        _ref2 = this.table.rows;
         for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
           row = _ref2[_j];
           if (!(row.index > start)) {
             continue;
           }
-          if (row.index === this.row.index) {
+          if (row.index === this.index) {
             break;
           }
           cell = row.cells[index];
@@ -2166,16 +2196,16 @@
             total += Number(cell.value());
           }
         }
-        _results.push(this.row.cells[index].value(total, false));
+        this.cells[index].value(total, false);
       }
-      return _results;
+      return delete this.attributes;
     };
 
     SubTotalRow.prototype.afterEdit = function() {};
 
     return SubTotalRow;
 
-  })();
+  })(Row);
 
   root = typeof exports !== "undefined" && exports !== null ? exports : window;
 
