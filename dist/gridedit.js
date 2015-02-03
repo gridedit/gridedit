@@ -721,7 +721,9 @@
       var styleName;
       this.originalValue = originalValue;
       this.row = row;
-      this.originalValue = this.originalValue ? this.originalValue : '';
+      if (this.originalValue === void 0) {
+        this.originalValue = '';
+      }
       this.id = "" + this.row.id + "-" + this.row.cells.length;
       this.address = [this.row.id, this.row.cells.length];
       this.index = this.row.cells.length;
@@ -736,6 +738,7 @@
       }
       this.valueKey = this.col.valueKey;
       this.source = this.table.config.rows[this.address[0]];
+      this.source[this.valueKey] = this.originalValue;
       this.initCallbacks();
       if (this.col.style) {
         for (styleName in this.col.style) {
@@ -1691,7 +1694,6 @@
       this.cell = cell;
       node = document.createTextNode(this.cell.originalValue || '');
       this.initControl();
-      this.cell.element.appendChild(node);
     }
 
     SelectCell.prototype.initControl = function() {
@@ -1743,6 +1745,7 @@
       var node;
       this.cell = cell;
       node = document.createTextNode(this.cell.originalValue || '');
+      this.cell.element.appendChild(node);
       this.cell.control = document.createElement('textarea');
       this.cell.control.classList.add('form-control');
     }

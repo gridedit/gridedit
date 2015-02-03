@@ -341,7 +341,7 @@ class Row
 # Creates a cell object in memory to store in a row
 class Cell
   constructor: (@originalValue, @row) ->
-    @originalValue = if @originalValue then @originalValue else ''
+    @originalValue = '' if @originalValue == undefined
     @id = "#{@row.id}-#{@row.cells.length}"
     @address = [@row.id, @row.cells.length]
     @index = @row.cells.length
@@ -354,6 +354,7 @@ class Cell
     @element.classList.add @col.cellClass if @col.cellClass
     @valueKey = @col.valueKey
     @source = @table.config.rows[@address[0]]
+    @source[@valueKey] = @originalValue
     @initCallbacks()
     if @col.style
       for styleName of @col.style
@@ -926,7 +927,6 @@ class SelectCell extends GenericCell
   constructor: (@cell) ->
     node = document.createTextNode @cell.originalValue || ''
     @initControl()
-    @cell.element.appendChild node
 
   initControl: ->
     cell = @cell
@@ -954,6 +954,8 @@ class SelectCell extends GenericCell
 class TextAreaCell extends GenericCell
   constructor: (@cell) ->
     node = document.createTextNode @cell.originalValue || ''
+    @cell.element.appendChild node
+
     @cell.control = document.createElement 'textarea'
     @cell.control.classList.add 'form-control'
 
