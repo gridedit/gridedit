@@ -27,6 +27,13 @@ class Utilities
 class GridEdit
   constructor: (@config, @actionStack) ->
     @element = document.querySelectorAll(@config.element || '#gridedit')[0]
+
+    # attributes for dragging rows
+    @dragBorderStyle = @config.dragBorderStyle || '3px solid rgb(160, 195, 240)';
+    @draggingRow = null # the row being dragged
+    @lastDragOver = null # the last row that was the row being dragged was over
+    @lastDragOverIsBeforeFirstRow = false # special flag for dragging a row to index 0
+
     @headers = []
     @rows = []
     @subtotalRows = []
@@ -76,6 +83,18 @@ class GridEdit
       @cols.push col
       tr.appendChild col.element
     thead = document.createElement 'thead'
+
+    ge = @
+    thead.ondragenter = () ->
+      ge.lastDragOverIsBeforeFirstRow = true
+      prevRow = ge.lastDragOver
+      prevRow.element.style.borderBottom = prevRow.oldBorderBottom
+      prevRow.element.style.borderTop = ge.dragBorderStyle
+
+    thead.ondragleave = () ->
+      firstRow = ge.rows[0]
+      firstRow.element.style.borderTop = firstRow.oldBorderTop
+
     thead.appendChild tr
 
     # Build Table Body
@@ -109,6 +128,7 @@ class GridEdit
     table = @
     moveTo = table.moveTo
     edit = table.edit
+
     document.onkeydown = (e) ->
       if table.activeCell()
         key = e.keyCode
@@ -258,6 +278,13 @@ class GridEdit
   redo: ->
     @actionStack.redo()
 
+  moveRow: (rowToMoveIndex, newIndex, addToStack=true) ->
+    row = @source[rowToMoveIndex];
+    @source.splice(rowToMoveIndex, 1)
+    @source.splice(newIndex, 0, row)
+    @addToStack({ type: 'move-row', oldIndex: rowToMoveIndex, newIndex: newIndex }) if addToStack
+    @rebuild({ rows: @source, initialize: true, selectedCell: [newIndex, 0] })
+
   addRow: (index, addToStack=true, rowObject=false) ->
     if rowObject
       row = rowObject
@@ -275,15 +302,13 @@ class GridEdit
     @addToStack({ type: 'add-row', index: index }) if addToStack
     @rebuild({ rows: @source, initialize: true, selectedCell: [index, 0] })
 
-
   insertBelow: ->
-    cell = @.contextMenu.getTargetPasteCell()
+    cell = @contextMenu.getTargetPasteCell()
     @addRow(cell.address[0] + 1)
 
   insertAbove: ->
-    cell = @.contextMenu.getTargetPasteCell()
+    cell = @contextMenu.getTargetPasteCell()
     @addRow(cell.address[0])
-
 
   removeRow: (index, addToStack=true) ->
     rows = @source.splice(index, 1)
@@ -417,10 +442,10 @@ class Cell
     else
       @source[@valueKey]
   makeActive: (clearActiveCells = true) ->
+    Utilities::clearActiveCells @table if clearActiveCells
     unless @isActive()
       beforeActivateReturnVal = @beforeActivate @ if @beforeActivate
       if @beforeActivate and beforeActivateReturnVal isnt false or not @beforeActivate
-        Utilities::clearActiveCells @table if clearActiveCells
         @showActive()
         @table.activeCells.push @
         @table.selectionStart = @
@@ -511,8 +536,6 @@ class Cell
       @makeActive(false)
   events: (cell) ->
     table = cell.table
-    redCells = table.redCells
-    activeCells = table.activeCells
     @element.onclick = (e) ->
       onClickReturnVal = true
       onClickReturnVal = cell.col.onClick(cell, e) if cell.col.onClick
@@ -662,6 +685,11 @@ class ContextMenu
         name: 'Insert Row Above',
         shortCut: '',
         callback: @insertAbove
+      },
+      removeRow: {
+        name: 'Remove Row',
+        shortCut: '',
+        callback: @removeRow
       }
     }
     # create the contextMenu div
@@ -798,6 +826,10 @@ class ContextMenu
 
   insertAbove: (e, table) ->
     table.insertAbove()
+
+  removeRow: (e, table) ->
+    cell = table.contextMenu.getTargetPasteCell()
+    table.removeRow(cell.row.index)
 
   undo: (e, table) ->
     table.undo()
@@ -992,8 +1024,6 @@ class GridChange
     @changes = []
     @table = @cells[0].col.table
     @borderStyle = @table.config.selectionBorderStyle || "2px dashed blue"
-
-
     @highRow = 0
     @highCol = 0
 
@@ -1145,6 +1175,9 @@ class ActionStack
         when 'remove-row'
           @table.addRow(action.index, false)
 
+        when 'move-row'
+          @table.moveRow(action.newIndex, action.oldIndex, false)
+
   redo: ->
     if(@index < @actions.length - 1)
       @index++
@@ -1170,7 +1203,8 @@ class ActionStack
         when 'remove-row'
           @table.removeRow(action.index, false)
 
-
+        when 'move-row'
+          @table.moveRow(action.oldIndex, action.newIndex, false)
 ###
 
 Row Type Behavior
@@ -1184,15 +1218,36 @@ type specific behavior will be in the associated <type>Row class
 class HandleCell
   constructor: (@row) ->
     row = @row
+    table = row.table
     @element = document.createElement 'td'
-    @element.onclick = (e) ->
-      index = row.index
-      row.table.selectRow(e, index)
-
+    @element.setAttribute "draggable", true
     @element.className = 'handle'
     node = document.createElement 'div'
     node.innerHTML = '<span></span><span></span><span></span>'
     @element.appendChild(node)
+
+    @element.onclick = (e) ->
+      index = row.index
+      row.table.selectRow(e, index)
+
+    @element.ondragstart = () ->
+      Utilities::clearActiveCells(table)
+      row.select()
+      table.draggingRow = row
+
+    @element.ondragend = () ->
+      rowToMoveInex = table.draggingRow.index
+      lastDragOverIndex = table.lastDragOver.index
+      modifier = if lastDragOverIndex == 0 and !table.lastDragOverIsBeforeFirstRow then 1 else 0
+      insertAtIndex = lastDragOverIndex + modifier
+
+      table.lastDragOver.element.style.borderBottom = table.lastDragOver.oldBorderBottom
+      table.lastDragOver.element.style.borderTop = table.lastDragOver.oldBorderTop
+      table.lastDragOver.element.style.borderTop = table.lastDragOver.oldBorderTop
+      table.lastDragOver = null
+
+      table.moveRow(rowToMoveInex, insertAtIndex)
+
     @
 
 class Row
@@ -1201,7 +1256,25 @@ class Row
     @cells = []
     @index = @table.rows.length
     @element = document.createElement 'tr'
-    @includeRowHandles = @.table.config.includeRowHandles
+    @oldBorderBottom = @element.style.borderBottom
+    @oldBorderTop = @element.style.borderTop
+
+    table = @table
+    row = @
+    @element.ondragenter = (e) ->
+      table.lastDragOverIsBeforeFirstRow = false
+      prevRow = table.lastDragOver
+      if prevRow
+        if row.index != 0 and prevRow.index == row.index
+          # do nothing
+        else
+          prevRow.element.style.borderBottom = row.oldBorderBottom
+          row.element.style.borderBottom = table.dragBorderStyle
+      else
+        row.element.style.borderBottom = table.dragBorderStyle
+      table.lastDragOver = row
+
+    @includeRowHandles = @table.config.includeRowHandles
 
     Utilities::setAttributes @element,
       id: "row-#{@id}"
@@ -1213,7 +1286,7 @@ class Row
       cell.addToSelection()
 
   afterEdit: () ->
-    @.table.calculateSubtotals()
+    @table.calculateSubtotals()
 
   addHandle: () ->
     if @includeRowHandles
@@ -1229,9 +1302,9 @@ class GenericRow extends Row
 
     for col, i in @table.cols
       cell = new Cell @attributes[col.valueKey], @
-      @.cells.push cell
-      @.table.cols[i].cells.push cell
-      @.element.appendChild cell.element
+      @cells.push cell
+      @table.cols[i].cells.push cell
+      @element.appendChild cell.element
 
     delete @attributes
 

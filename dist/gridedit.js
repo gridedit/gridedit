@@ -80,6 +80,10 @@
       this.config = config;
       this.actionStack = actionStack;
       this.element = document.querySelectorAll(this.config.element || '#gridedit')[0];
+      this.dragBorderStyle = this.config.dragBorderStyle || '3px solid rgb(160, 195, 240)';
+      this.draggingRow = null;
+      this.lastDragOver = null;
+      this.lastDragOverIsBeforeFirstRow = false;
       this.headers = [];
       this.rows = [];
       this.subtotalRows = [];
@@ -139,7 +143,7 @@
     };
 
     GridEdit.prototype.build = function() {
-      var col, colAttributes, handleHeader, i, row, rowAttributes, table, tbody, thead, tr, _i, _j, _len, _len1, _ref, _ref1;
+      var col, colAttributes, ge, handleHeader, i, row, rowAttributes, table, tbody, thead, tr, _i, _j, _len, _len1, _ref, _ref1;
       tr = document.createElement('tr');
       if (this.config.includeRowHandles) {
         handleHeader = document.createElement('th');
@@ -153,6 +157,19 @@
         tr.appendChild(col.element);
       }
       thead = document.createElement('thead');
+      ge = this;
+      thead.ondragenter = function() {
+        var prevRow;
+        ge.lastDragOverIsBeforeFirstRow = true;
+        prevRow = ge.lastDragOver;
+        prevRow.element.style.borderBottom = prevRow.oldBorderBottom;
+        return prevRow.element.style.borderTop = ge.dragBorderStyle;
+      };
+      thead.ondragleave = function() {
+        var firstRow;
+        firstRow = ge.rows[0];
+        return firstRow.element.style.borderTop = firstRow.oldBorderTop;
+      };
       thead.appendChild(tr);
       tbody = document.createElement('tbody');
       _ref1 = this.source;
@@ -536,6 +553,28 @@
       return this.actionStack.redo();
     };
 
+    GridEdit.prototype.moveRow = function(rowToMoveIndex, newIndex, addToStack) {
+      var row;
+      if (addToStack == null) {
+        addToStack = true;
+      }
+      row = this.source[rowToMoveIndex];
+      this.source.splice(rowToMoveIndex, 1);
+      this.source.splice(newIndex, 0, row);
+      if (addToStack) {
+        this.addToStack({
+          type: 'move-row',
+          oldIndex: rowToMoveIndex,
+          newIndex: newIndex
+        });
+      }
+      return this.rebuild({
+        rows: this.source,
+        initialize: true,
+        selectedCell: [newIndex, 0]
+      });
+    };
+
     GridEdit.prototype.addRow = function(index, addToStack, rowObject) {
       var c, row, _i, _len, _ref;
       if (addToStack == null) {
@@ -860,14 +899,14 @@
       if (clearActiveCells == null) {
         clearActiveCells = true;
       }
+      if (clearActiveCells) {
+        Utilities.prototype.clearActiveCells(this.table);
+      }
       if (!this.isActive()) {
         if (this.beforeActivate) {
           beforeActivateReturnVal = this.beforeActivate(this);
         }
         if (this.beforeActivate && beforeActivateReturnVal !== false || !this.beforeActivate) {
-          if (clearActiveCells) {
-            Utilities.prototype.clearActiveCells(this.table);
-          }
           this.showActive();
           this.table.activeCells.push(this);
           this.table.selectionStart = this;
@@ -1070,10 +1109,8 @@
     };
 
     Cell.prototype.events = function(cell) {
-      var activeCells, redCells, startY, table;
+      var startY, table;
       table = cell.table;
-      redCells = table.redCells;
-      activeCells = table.activeCells;
       this.element.onclick = function(e) {
         var activateRow, cellFrom, cellFromCol, cellFromRow, cellToCol, cellToRow, cmd, ctrl, onClickReturnVal, row, shift, _i, _j, _results, _results1;
         onClickReturnVal = true;
@@ -1257,6 +1294,11 @@
           name: 'Insert Row Above',
           shortCut: '',
           callback: this.insertAbove
+        },
+        removeRow: {
+          name: 'Remove Row',
+          shortCut: '',
+          callback: this.removeRow
         }
       };
       this.element = document.createElement('div');
@@ -1470,6 +1512,12 @@
 
     ContextMenu.prototype.insertAbove = function(e, table) {
       return table.insertAbove();
+    };
+
+    ContextMenu.prototype.removeRow = function(e, table) {
+      var cell;
+      cell = table.contextMenu.getTargetPasteCell();
+      return table.removeRow(cell.row.index);
     };
 
     ContextMenu.prototype.undo = function(e, table) {
@@ -1983,6 +2031,8 @@
             return this.table.removeRow(action.index, false);
           case 'remove-row':
             return this.table.addRow(action.index, false);
+          case 'move-row':
+            return this.table.moveRow(action.newIndex, action.oldIndex, false);
         }
       }
     };
@@ -2006,6 +2056,8 @@
             return this.table.addRow(action.index, false);
           case 'remove-row':
             return this.table.removeRow(action.index, false);
+          case 'move-row':
+            return this.table.moveRow(action.oldIndex, action.newIndex, false);
         }
       }
     };
@@ -2025,19 +2077,38 @@
 
   HandleCell = (function() {
     function HandleCell(row) {
-      var node;
+      var node, table;
       this.row = row;
       row = this.row;
+      table = row.table;
       this.element = document.createElement('td');
+      this.element.setAttribute("draggable", true);
+      this.element.className = 'handle';
+      node = document.createElement('div');
+      node.innerHTML = '<span></span><span></span><span></span>';
+      this.element.appendChild(node);
       this.element.onclick = function(e) {
         var index;
         index = row.index;
         return row.table.selectRow(e, index);
       };
-      this.element.className = 'handle';
-      node = document.createElement('div');
-      node.innerHTML = '<span></span><span></span><span></span>';
-      this.element.appendChild(node);
+      this.element.ondragstart = function() {
+        Utilities.prototype.clearActiveCells(table);
+        row.select();
+        return table.draggingRow = row;
+      };
+      this.element.ondragend = function() {
+        var insertAtIndex, lastDragOverIndex, modifier, rowToMoveInex;
+        rowToMoveInex = table.draggingRow.index;
+        lastDragOverIndex = table.lastDragOver.index;
+        modifier = lastDragOverIndex === 0 && !table.lastDragOverIsBeforeFirstRow ? 1 : 0;
+        insertAtIndex = lastDragOverIndex + modifier;
+        table.lastDragOver.element.style.borderBottom = table.lastDragOver.oldBorderBottom;
+        table.lastDragOver.element.style.borderTop = table.lastDragOver.oldBorderTop;
+        table.lastDragOver.element.style.borderTop = table.lastDragOver.oldBorderTop;
+        table.lastDragOver = null;
+        return table.moveRow(rowToMoveInex, insertAtIndex);
+      };
       this;
     }
 
@@ -2047,12 +2118,33 @@
 
   Row = (function() {
     function Row(attributes, table) {
+      var row;
       this.attributes = attributes;
       this.table = table;
       this.id = this.table.rows.length;
       this.cells = [];
       this.index = this.table.rows.length;
       this.element = document.createElement('tr');
+      this.oldBorderBottom = this.element.style.borderBottom;
+      this.oldBorderTop = this.element.style.borderTop;
+      table = this.table;
+      row = this;
+      this.element.ondragenter = function(e) {
+        var prevRow;
+        table.lastDragOverIsBeforeFirstRow = false;
+        prevRow = table.lastDragOver;
+        if (prevRow) {
+          if (row.index !== 0 && prevRow.index === row.index) {
+
+          } else {
+            prevRow.element.style.borderBottom = row.oldBorderBottom;
+            row.element.style.borderBottom = table.dragBorderStyle;
+          }
+        } else {
+          row.element.style.borderBottom = table.dragBorderStyle;
+        }
+        return table.lastDragOver = row;
+      };
       this.includeRowHandles = this.table.config.includeRowHandles;
       Utilities.prototype.setAttributes(this.element, {
         id: "row-" + this.id
