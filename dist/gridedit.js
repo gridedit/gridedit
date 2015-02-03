@@ -1,5 +1,5 @@
 (function() {
-  var ActionStack, Cell, Column, ContextMenu, DateCell, GenericCell, GridChange, GridEdit, HTMLCell, NumberCell, Row, SelectCell, StringCell, Utilities, root,
+  var ActionStack, Cell, Column, ContextMenu, DateCell, GenericCell, GridChange, GridEdit, HTMLCell, NumberCell, Row, SelectCell, StringCell, TextAreaCell, Utilities, root,
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -424,7 +424,7 @@
 
     GridEdit.prototype.setSelection = function() {
       var cell, col, colRange, row, rowRange, _i, _j, _k, _l, _len, _len1, _len2, _m, _ref, _ref1, _ref2, _ref3, _ref4, _results, _results1;
-      if (this.selectionStart !== this.selectionEnd) {
+      if (this.selectionStart && this.selectionEnd && this.selectionStart !== this.selectionEnd) {
         _ref = this.activeCells;
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           cell = _ref[_i];
@@ -721,6 +721,7 @@
       var styleName;
       this.originalValue = originalValue;
       this.row = row;
+      this.originalValue = this.originalValue ? this.originalValue : '';
       this.id = "" + this.row.id + "-" + this.row.cells.length;
       this.address = [this.row.id, this.row.cells.length];
       this.index = this.row.cells.length;
@@ -756,6 +757,9 @@
           break;
         case 'select':
           this.cellTypeObject = new SelectCell(this);
+          break;
+        case 'textarea':
+          this.cellTypeObject = new TextAreaCell(this);
       }
       this.events(this);
     }
@@ -1486,7 +1490,7 @@
     function GenericCell(cell) {
       var node;
       this.cell = cell;
-      node = document.createTextNode(this.cell.originalValue);
+      node = document.createTextNode(this.cell.col.format(this.cell.originalValue));
       this.cell.control = document.createElement('input');
       this.cell.element.appendChild(node);
     }
@@ -1648,7 +1652,7 @@
     function HTMLCell(cell) {
       var node;
       this.cell = cell;
-      this.cell.htmlContent = this.cell.col.defaultValue || this.cell.originalValue;
+      this.cell.htmlContent = this.cell.col.defaultValue || this.cell.originalValue || '';
       node = this.toFragment();
       this.cell.control = document.createElement('input');
       this.cell.element.appendChild(node);
@@ -1728,6 +1732,21 @@
 
     SelectCell.prototype.select = function() {};
 
+    return SelectCell;
+
+  })(GenericCell);
+
+  TextAreaCell = (function(_super) {
+    __extends(TextAreaCell, _super);
+
+    function TextAreaCell(cell) {
+      var node;
+      this.cell = cell;
+      node = document.createTextNode(this.cell.originalValue || '');
+      this.cell.control = document.createElement('textarea');
+      this.cell.control.classList.add('form-control');
+    }
+
 
     /*
     
@@ -1735,7 +1754,7 @@
     	-----------------------------------------------------------------------------------------
      */
 
-    return SelectCell;
+    return TextAreaCell;
 
   })(GenericCell);
 
