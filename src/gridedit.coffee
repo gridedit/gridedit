@@ -66,6 +66,11 @@ class GridEdit
   build: ->
     # Build Table Header
     tr = document.createElement 'tr'
+
+    if @config.includeRowHandles
+      handleHeader = document.createElement 'th'
+      tr.appendChild handleHeader
+
     for colAttributes, i in @config.cols
       col = new Column(colAttributes, @)
       @cols.push col
@@ -402,7 +407,7 @@ class Cell
       @table.addToStack { type: 'cell-edit', oldValue: oldValue, newValue: newValue, address: @address } if addToStack
       @element.textContent = @col.format(newValue)
       @cellTypeObject.setValue(newValue)
-      Utilities::setStyle @control, @position if @control
+      Utilities::setStyles @control, @position() if @control
       @row.rowTypeObject.afterEdit() if @row.rowTypeObject
       @afterEdit(@, oldValue, newValue, @table.contextMenu.getTargetPasteCell()) if @afterEdit
       return newValue
@@ -817,7 +822,6 @@ class ContextMenu
 
 ###
 
-
 # Generic Cell
 class GenericCell
   constructor: (@cell) ->
@@ -1166,12 +1170,28 @@ type specific behavior will be in the associated <type>Row class
 
 ###
 
+# Handle Cell
+class HandleCell
+  constructor: (@row) ->
+    @element = document.createElement 'td'
+    @element.className = 'handle'
+    node = document.createElement 'div'
+    node.innerHTML = '<span></span><span></span><span></span>'
+    @element.appendChild(node)
+    @
 
 class GenericRow
   constructor: (@row) ->
     @row.editable = true
+    includeRowHandles = @row.table.config.includeRowHandles
+
+    if includeRowHandles
+      console.log('add handle');
+      cell = new HandleCell @row
+      @row.element.appendChild cell.element
 
     for col, i in @row.table.cols
+      continue if includeRowHandles and i == 0
       cell = new Cell @row.attributes[col.valueKey], @row
       @row.cells.push cell
       @row.table.cols[i].cells.push cell
@@ -1190,10 +1210,14 @@ class StaticRow
 class SubTotalRow
   constructor: (@row) ->
     @cols = {}
+    @labels = @row.attributes.labels
 
     for col, i in @row.table.cols
       cell = new Cell '', @row
       cell.editable = false
+      if @labels
+        value = @labels[col.valueKey]
+        cell.value(value, false) if value
       @row.cells.push cell
       @row.table.cols[i].cells.push cell
       @row.element.appendChild cell.element

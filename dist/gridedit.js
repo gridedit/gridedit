@@ -1,8 +1,20 @@
 (function() {
-  var ActionStack, Cell, Column, ContextMenu, DateCell, GenericCell, GenericRow, GridChange, GridEdit, HTMLCell, NumberCell, Row, SelectCell, StaticRow, StringCell, SubTotalRow, Utilities, root,
+  var ActionStack, Cell, Column, ContextMenu, DateCell, GenericCell, GenericRow, GridChange, GridEdit, HTMLCell, HandleCell, NumberCell, Row, SelectCell, StaticRow, StringCell, SubTotalRow, Utilities, root,
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __hasProp = {}.hasOwnProperty,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+    __extends = function (child, parent) {
+      for (var key in parent) {
+        if (__hasProp.call(parent, key)) child[key] = parent[key];
+      }
+      function ctor() {
+        this.constructor = child;
+      }
+
+      ctor.prototype = parent.prototype;
+      child.prototype = new ctor();
+      child.__super__ = parent.prototype;
+      return child;
+    };
 
   Utilities = (function() {
     function Utilities() {}
@@ -139,8 +151,12 @@
     };
 
     GridEdit.prototype.build = function() {
-      var col, colAttributes, i, row, rowAttributes, table, tbody, thead, tr, _i, _j, _len, _len1, _ref, _ref1;
+      var col, colAttributes, handleHeader, i, row, rowAttributes, table, tbody, thead, tr, _i, _j, _len, _len1, _ref, _ref1;
       tr = document.createElement('tr');
+      if (this.config.includeRowHandles) {
+        handleHeader = document.createElement('th');
+        tr.appendChild(handleHeader);
+      }
       _ref = this.config.cols;
       for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
         colAttributes = _ref[i];
@@ -840,7 +856,7 @@
         this.element.textContent = this.col.format(newValue);
         this.cellTypeObject.setValue(newValue);
         if (this.control) {
-          Utilities.prototype.setStyle(this.control, this.position);
+          Utilities.prototype.setStyles(this.control, this.position());
         }
         if (this.row.rowTypeObject) {
           this.row.rowTypeObject.afterEdit();
@@ -1192,7 +1208,7 @@
 
 
   /*
-  
+
   Context Menu
   -----------------------------------------------------------------------------------------
    */
@@ -1500,7 +1516,7 @@
 
 
   /*
-  
+
     Cell Type Behavior
     -----------------------------------------------------------------------------------------
     generic behavior will be in GenericCell class
@@ -1755,7 +1771,7 @@
 
 
     /*
-    
+
     	Grid Change
     	-----------------------------------------------------------------------------------------
      */
@@ -1921,11 +1937,11 @@
 
 
   /*
-  
+
   	ActionStack
   	-----------------------------------------------------------------------------------------
     used for undo/redo functionality
-  
+
     todo - splice actions array at X elements to conserve memory
    */
 
@@ -2000,21 +2016,46 @@
 
 
   /*
-  
+
   Row Type Behavior
   -----------------------------------------------------------------------------------------
   generic behavior will be in GenericRow class
   type specific behavior will be in the associated <type>Row class
    */
 
+  HandleCell = (function() {
+    function HandleCell(row) {
+      var node;
+      this.row = row;
+      this.element = document.createElement('td');
+      this.element.className = 'handle';
+      node = document.createElement('div');
+      node.innerHTML = '<span></span><span></span><span></span>';
+      this.element.appendChild(node);
+      this;
+    }
+
+    return HandleCell;
+
+  })();
+
   GenericRow = (function() {
     function GenericRow(row) {
-      var cell, col, i, _i, _len, _ref;
+      var cell, col, i, includeRowHandles, _i, _len, _ref;
       this.row = row;
       this.row.editable = true;
+      includeRowHandles = this.row.table.config.includeRowHandles;
+      if (includeRowHandles) {
+        console.log('add handle');
+        cell = new HandleCell(this.row);
+        this.row.element.appendChild(cell.element);
+      }
       _ref = this.row.table.cols;
       for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
         col = _ref[i];
+        if (includeRowHandles && i === 0) {
+          continue;
+        }
         cell = new Cell(this.row.attributes[col.valueKey], this.row);
         this.row.cells.push(cell);
         this.row.table.cols[i].cells.push(cell);
@@ -2043,14 +2084,21 @@
 
   SubTotalRow = (function() {
     function SubTotalRow(row) {
-      var cell, col, i, _i, _len, _ref;
+      var cell, col, i, value, _i, _len, _ref;
       this.row = row;
       this.cols = {};
+      this.labels = this.row.attributes.labels;
       _ref = this.row.table.cols;
       for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
         col = _ref[i];
         cell = new Cell('', this.row);
         cell.editable = false;
+        if (this.labels) {
+          value = this.labels[col.valueKey];
+          if (value) {
+            cell.value(value, false);
+          }
+        }
         this.row.cells.push(cell);
         this.row.table.cols[i].cells.push(cell);
         this.row.element.appendChild(cell.element);
