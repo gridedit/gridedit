@@ -1,5 +1,5 @@
 (function() {
-  var ActionStack, Cell, Column, ContextMenu, DateCell, GenericCell, GenericRow, GridChange, GridEdit, HTMLCell, HandleCell, NumberCell, Row, SelectCell, StaticRow, StringCell, SubTotalRow, TextAreaCell, Utilities, root,
+  var ActionStack, Cell, Column, ContextMenu, DateCell, GenericCell, GenericRow, GridChange, GridEdit, HTMLCell, HandleCell, HeaderRow, NumberCell, Row, SelectCell, StaticRow, StringCell, SubTotalRow, TextAreaCell, Utilities, root,
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -181,6 +181,9 @@
             break;
           case 'subtotal':
             row = new SubTotalRow(rowAttributes, this);
+            break;
+          case 'heading':
+            row = new HeaderRow(rowAttributes, this);
             break;
           default:
             row = new GenericRow(rowAttributes, this);
@@ -602,7 +605,8 @@
       if (addToStack) {
         this.addToStack({
           type: 'add-row',
-          index: index
+          index: index,
+          rowObject: rowObject
         });
       }
       return this.rebuild({
@@ -625,17 +629,18 @@
     };
 
     GridEdit.prototype.removeRow = function(index, addToStack) {
-      var row, rows;
+      var row, rowObject, rows;
       if (addToStack == null) {
         addToStack = true;
       }
-      row = this.source[index];
+      rowObject = this.source[index];
+      row = this.rows[index];
       rows = this.source.splice(index, 1);
       if (addToStack) {
         this.addToStack({
           type: 'remove-row',
           index: index,
-          rowObject: row
+          rowObject: rowObject
         });
       }
       return this.rebuild({
@@ -776,7 +781,7 @@
   })();
 
   Cell = (function() {
-    function Cell(originalValue, row) {
+    function Cell(originalValue, row, type) {
       var styleName;
       this.originalValue = originalValue;
       this.row = row;
@@ -788,7 +793,7 @@
       this.index = this.row.cells.length;
       this.table = this.row.table;
       this.col = this.table.cols[this.index];
-      this.type = this.col.type;
+      this.type = type || this.col.type;
       this.meta = this.col;
       this.editable = this.col.editable !== false;
       this.element = document.createElement('td');
@@ -2056,7 +2061,7 @@
           case 'fill':
             return action.grid.apply(false, false);
           case 'add-row':
-            return this.table.addRow(action.index, false);
+            return this.table.addRow(action.index, false, action.rowObject);
           case 'remove-row':
             return this.table.removeRow(action.index, false);
           case 'move-row':
@@ -2136,8 +2141,13 @@
       this.cells = [];
       this.index = this.table.rows.length;
       this.element = document.createElement('tr');
+      this.cssClass = this.attributes.cssClass;
+      if (this.cssClass) {
+        this.element.className = this.cssClass;
+      }
       this.oldBorderBottom = this.element.style.borderBottom;
       this.oldBorderTop = this.element.style.borderTop;
+      this.type = this.attributes.gridEditRowType;
       table = this.table;
       row = this;
       this.element.ondragenter = function(e) {
@@ -2228,8 +2238,11 @@
     function StaticRow(attributes, table) {
       this.attributes = attributes;
       this.table = table;
-      this.editable = this.attributes.editable !== false;
+      StaticRow.__super__.constructor.apply(this, arguments);
+      this.addHandle();
+      this.editable = this.attributes.editable = false;
       this.element.innerHTML = this.attributes.html;
+      this.type = 'static';
       delete this.attributes;
     }
 
@@ -2292,7 +2305,7 @@
           if (!(row.index > start)) {
             continue;
           }
-          if (row.index === this.index) {
+          if (row.index === this.index || row.type === 'header') {
             break;
           }
           cell = row.cells[index];
@@ -2309,6 +2322,31 @@
     SubTotalRow.prototype.afterEdit = function() {};
 
     return SubTotalRow;
+
+  })(Row);
+
+  HeaderRow = (function(_super) {
+    __extends(HeaderRow, _super);
+
+    function HeaderRow(attributes, table) {
+      var cell, col, i, _i, _len, _ref;
+      this.attributes = attributes;
+      this.table = table;
+      HeaderRow.__super__.constructor.apply(this, arguments);
+      this.editable = true;
+      this.addHandle();
+      _ref = this.table.cols;
+      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+        col = _ref[i];
+        cell = new Cell(this.attributes[col.valueKey], this, 'html');
+        this.cells.push(cell);
+        this.table.cols[i].cells.push(cell);
+        this.element.appendChild(cell.element);
+      }
+      delete this.attributes;
+    }
+
+    return HeaderRow;
 
   })(Row);
 

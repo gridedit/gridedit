@@ -105,6 +105,8 @@ class GridEdit
           row = new StaticRow(rowAttributes, @)
         when 'subtotal'
           row = new SubTotalRow(rowAttributes, @)
+        when 'heading'
+          row = new HeaderRow(rowAttributes, @)
         else
           row = new GenericRow(rowAttributes, @)
       @rows.push row
@@ -299,7 +301,7 @@ class GridEdit
       index = @source.length - 1
       @source.push(row)
 
-    @addToStack({ type: 'add-row', index: index }) if addToStack
+    @addToStack({ type: 'add-row', index: index, rowObject: rowObject }) if addToStack
     @rebuild({ rows: @source, initialize: true, selectedCell: [index, 0] })
 
   insertBelow: ->
@@ -311,9 +313,10 @@ class GridEdit
     @addRow(cell.address[0])
 
   removeRow: (index, addToStack=true) ->
-    row = @source[index]
+    rowObject = @source[index]
+    row = @rows[index]
     rows = @source.splice(index, 1)
-    @addToStack({ type: 'remove-row', index: index, rowObject: row }) if addToStack
+    @addToStack({ type: 'remove-row', index: index, rowObject: rowObject }) if addToStack
     @rebuild({ rows: @source, initialize: true, selectedCell: [ index, 0 ] })
 
   selectRow: (e, index) ->
@@ -384,14 +387,14 @@ class Column
 
 # Creates a cell object in memory to store in a row
 class Cell
-  constructor: (@originalValue, @row) ->
+  constructor: (@originalValue, @row, type) ->
     @originalValue = '' if @originalValue == undefined
     @id = "#{@row.id}-#{@row.cells.length}"
     @address = [@row.id, @row.cells.length]
     @index = @row.cells.length
     @table = @row.table
     @col = @table.cols[@index]
-    @type = @col.type
+    @type = type || @col.type
     @meta = @col
     @editable = @col.editable != false
     @element = document.createElement 'td'
@@ -1201,7 +1204,7 @@ class ActionStack
           action.grid.apply(false, false)
 
         when 'add-row'
-          @table.addRow(action.index, false)
+          @table.addRow(action.index, false, action.rowObject)
 
         when 'remove-row'
           @table.removeRow(action.index, false)
@@ -1272,8 +1275,11 @@ class Row
     @cells = []
     @index = @table.rows.length
     @element = document.createElement 'tr'
+    @cssClass = @attributes.cssClass
+    @element.className = @cssClass if @cssClass
     @oldBorderBottom = @element.style.borderBottom
     @oldBorderTop = @element.style.borderTop
+    @type = @attributes.gridEditRowType
 
     table = @table
     row = @
@@ -1326,8 +1332,13 @@ class GenericRow extends Row
 
 class StaticRow extends Row
   constructor: (@attributes, @table) ->
-    @editable = @attributes.editable != false
+    super
+
+    @addHandle()
+
+    @editable = @attributes.editable = false
     @element.innerHTML = @attributes.html
+    @type = 'static'
     delete @attributes
 
 
@@ -1368,7 +1379,7 @@ class SubTotalRow extends Row
     for col, index of @subtotalColumns
       total = 0
       for row in @table.rows when row.index > start
-        break if row.index == @index
+        break if row.index == @index or row.type == 'header'
         cell = row.cells[index]
         total += Number(cell.value()) if cell
       @cells[index].value(total, false)
@@ -1378,6 +1389,20 @@ class SubTotalRow extends Row
 
   afterEdit: () ->
     # do not calculate
+
+class HeaderRow extends Row
+  constructor: (@attributes, @table) ->
+    super
+    @editable = true
+    @addHandle()
+
+    for col, i in @table.cols
+      cell = new Cell @attributes[col.valueKey], @, 'html'
+      @cells.push cell
+      @table.cols[i].cells.push cell
+      @element.appendChild cell.element
+
+    delete @attributes
 
 root = exports ? window
 root.GridEdit = GridEdit
