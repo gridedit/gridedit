@@ -1205,14 +1205,16 @@ class ActionStack
 
         when 'move-row'
           @table.moveRow(action.oldIndex, action.newIndex, false)
+
+
 ###
 
-Row Type Behavior
+Handle Cell
 -----------------------------------------------------------------------------------------
-generic behavior will be in GenericRow class
-type specific behavior will be in the associated <type>Row class
+provides row selectivity and row dragging functionality
 
 ###
+
 
 # Handle Cell
 class HandleCell
@@ -1249,6 +1251,17 @@ class HandleCell
       table.moveRow(rowToMoveInex, insertAtIndex)
 
     @
+
+
+###
+
+Row Type Behavior
+-----------------------------------------------------------------------------------------
+generic behavior will be in Row class
+type specific behavior will be in the associated <type>Row class
+
+###
+
 
 class Row
   constructor: (@attributes, @table) ->

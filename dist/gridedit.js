@@ -2069,10 +2069,9 @@
 
   /*
   
-  Row Type Behavior
+  Handle Cell
   -----------------------------------------------------------------------------------------
-  generic behavior will be in GenericRow class
-  type specific behavior will be in the associated <type>Row class
+  provides row selectivity and row dragging functionality
    */
 
   HandleCell = (function() {
@@ -2115,6 +2114,15 @@
     return HandleCell;
 
   })();
+
+
+  /*
+  
+  Row Type Behavior
+  -----------------------------------------------------------------------------------------
+  generic behavior will be in Row class
+  type specific behavior will be in the associated <type>Row class
+   */
 
   Row = (function() {
     function Row(attributes, table) {
