@@ -9,6 +9,11 @@
       }
       .myTable td, .myTable th {
         border: 1px solid #dedede;
+        line-height: 1.5em;
+      }
+
+      .myTable th {
+        line-height: 2em;
       }
 
       #contextMenu {
@@ -22,6 +27,40 @@
 
       #contextMenu li a {
         cursor: pointer;
+      }
+
+      td.handle {
+        background: #efefef;
+      }
+
+      div.subtotal-label {
+        width: 99%;
+        text-align: right;
+      }
+
+      td.handle {
+        padding: 0 !important;
+        vertical-align: middle !important;
+        margin: 0;
+        background: rgb(231, 231, 231);
+        width: 26px;
+        cursor: hand;
+        cursor: pointer;
+        min-width: 26px;
+      }
+
+      td.handle div {
+        width: 0;
+      }
+
+      td.handle div span {
+        display: block;
+        width: 14px;
+        height: 1px;
+        background-color: rgb(182, 182, 182);;
+        margin: 3px;
+        margin-left: 5px;
+
       }
 
     </style>
@@ -44,9 +83,11 @@
           { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.'},
           { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.'},
           { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.'},
-          { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.'}
+          { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.'},
+          { gridEditRowType: 'subtotal', subtotal: { numProjects: true }, labels: { jobTitle: '<div class="subtotal-label"><b>Total Projects</b></div>' } }
         ],
-        tableClass: 'myTable'
+        tableClass: 'myTable',
+        includeRowHandles: true
         // beforeInit: function() {
         //   console.log('beforeInit');
         // },

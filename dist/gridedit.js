@@ -1,5 +1,5 @@
 (function() {
-  var ActionStack, Cell, Column, ContextMenu, DateCell, GenericCell, GridChange, GridEdit, HTMLCell, NumberCell, Row, SelectCell, StringCell, TextAreaCell, Utilities, root,
+  var ActionStack, Cell, Column, ContextMenu, DateCell, GenericCell, GenericRow, GridChange, GridEdit, HTMLCell, HandleCell, HeaderRow, NumberCell, Row, SelectCell, StaticRow, StringCell, SubTotalRow, TextAreaCell, Utilities, root,
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -80,8 +80,13 @@
       this.config = config;
       this.actionStack = actionStack;
       this.element = document.querySelectorAll(this.config.element || '#gridedit')[0];
+      this.dragBorderStyle = this.config.dragBorderStyle || '3px solid rgb(160, 195, 240)';
+      this.draggingRow = null;
+      this.lastDragOver = null;
+      this.lastDragOverIsBeforeFirstRow = false;
       this.headers = [];
       this.rows = [];
+      this.subtotalRows = [];
       this.cols = [];
       this.source = this.config.rows;
       this.redCells = [];
@@ -138,8 +143,12 @@
     };
 
     GridEdit.prototype.build = function() {
-      var col, colAttributes, i, row, rowAttributes, table, tbody, thead, tr, _i, _j, _len, _len1, _ref, _ref1;
+      var col, colAttributes, ge, handleHeader, i, row, rowAttributes, table, tbody, thead, tr, _i, _j, _len, _len1, _ref, _ref1;
       tr = document.createElement('tr');
+      if (this.config.includeRowHandles) {
+        handleHeader = document.createElement('th');
+        tr.appendChild(handleHeader);
+      }
       _ref = this.config.cols;
       for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
         colAttributes = _ref[i];
@@ -148,12 +157,37 @@
         tr.appendChild(col.element);
       }
       thead = document.createElement('thead');
+      ge = this;
+      thead.ondragenter = function() {
+        var prevRow;
+        ge.lastDragOverIsBeforeFirstRow = true;
+        prevRow = ge.lastDragOver;
+        prevRow.element.style.borderBottom = prevRow.oldBorderBottom;
+        return prevRow.element.style.borderTop = ge.dragBorderStyle;
+      };
+      thead.ondragleave = function() {
+        var firstRow;
+        firstRow = ge.rows[0];
+        return firstRow.element.style.borderTop = firstRow.oldBorderTop;
+      };
       thead.appendChild(tr);
       tbody = document.createElement('tbody');
       _ref1 = this.source;
       for (i = _j = 0, _len1 = _ref1.length; _j < _len1; i = ++_j) {
         rowAttributes = _ref1[i];
-        row = new Row(rowAttributes, this);
+        switch (rowAttributes.gridEditRowType) {
+          case 'static':
+            row = new StaticRow(rowAttributes, this);
+            break;
+          case 'subtotal':
+            row = new SubTotalRow(rowAttributes, this);
+            break;
+          case 'heading':
+            row = new HeaderRow(rowAttributes, this);
+            break;
+          default:
+            row = new GenericRow(rowAttributes, this);
+        }
         this.rows.push(row);
         tbody.appendChild(row.element);
       }
@@ -286,7 +320,7 @@
       };
       return document.onclick = function(e) {
         var _ref;
-        if (!((table.isDescendant(e.target)) || (e.target === ((_ref = table.activeCell()) != null ? _ref.control : void 0) || table.contextMenu))) {
+        if (!((table.isDescendant(e.target)) || (e.target === ((_ref = table.activeCell()) != null ? _ref.control : void 0) || table.contextMenu.isVisible()))) {
           Utilities.prototype.clearActiveCells(table);
         }
         return table.contextMenu.hide();
@@ -522,16 +556,45 @@
       return this.actionStack.redo();
     };
 
-    GridEdit.prototype.addRow = function(index, addToStack) {
+    GridEdit.prototype.moveRow = function(rowToMoveIndex, newIndex, addToStack) {
+      var row;
+      if (addToStack == null) {
+        addToStack = true;
+      }
+      row = this.source[rowToMoveIndex];
+      this.source.splice(rowToMoveIndex, 1);
+      this.source.splice(newIndex, 0, row);
+      if (addToStack) {
+        this.addToStack({
+          type: 'move-row',
+          oldIndex: rowToMoveIndex,
+          newIndex: newIndex
+        });
+      }
+      return this.rebuild({
+        rows: this.source,
+        initialize: true,
+        selectedCell: [newIndex, 0]
+      });
+    };
+
+    GridEdit.prototype.addRow = function(index, addToStack, rowObject) {
       var c, row, _i, _len, _ref;
       if (addToStack == null) {
         addToStack = true;
       }
-      row = {};
-      _ref = this.cols;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        c = _ref[_i];
-        row[c.valueKey] = c.defaultValue || '';
+      if (rowObject == null) {
+        rowObject = false;
+      }
+      if (rowObject) {
+        row = rowObject;
+      } else {
+        row = {};
+        _ref = this.cols;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          c = _ref[_i];
+          row[c.valueKey] = c.defaultValue || '';
+        }
       }
       if (index || index === 0) {
         this.source.splice(index, 0, row);
@@ -542,7 +605,8 @@
       if (addToStack) {
         this.addToStack({
           type: 'add-row',
-          index: index
+          index: index,
+          rowObject: rowObject
         });
       }
       return this.rebuild({
@@ -565,15 +629,18 @@
     };
 
     GridEdit.prototype.removeRow = function(index, addToStack) {
-      var rows;
+      var row, rowObject, rows;
       if (addToStack == null) {
         addToStack = true;
       }
+      rowObject = this.source[index];
+      row = this.rows[index];
       rows = this.source.splice(index, 1);
       if (addToStack) {
         this.addToStack({
           type: 'remove-row',
-          index: index
+          index: index,
+          rowObject: rowObject
         });
       }
       return this.rebuild({
@@ -583,10 +650,54 @@
       });
     };
 
-    GridEdit.prototype.selectRow = function(index) {
-      var row;
-      row = this.rows[index];
-      return row.select();
+    GridEdit.prototype.selectRow = function(e, index) {
+      var cmd, ctrl, currentRowIndex, diff, row, shift, _i, _j, _len, _len1, _ref, _ref1, _results, _results1;
+      if (this.activeCell() && e) {
+        currentRowIndex = this.activeCells[0].address[0];
+        shift = e.shiftKey;
+        ctrl = e.ctrlKey;
+        cmd = e.metaKey;
+        if (!(ctrl || cmd)) {
+          Utilities.prototype.clearActiveCells(this);
+        }
+        if (shift) {
+          diff = currentRowIndex - index;
+          if (diff < 0) {
+            _ref = this.rows.slice(currentRowIndex, +index + 1 || 9e9);
+            _results = [];
+            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+              row = _ref[_i];
+              _results.push(row.select());
+            }
+            return _results;
+          } else {
+            _ref1 = this.rows.slice(index, +currentRowIndex + 1 || 9e9);
+            _results1 = [];
+            for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+              row = _ref1[_j];
+              _results1.push(row.select());
+            }
+            return _results1;
+          }
+        } else {
+          row = this.rows[index];
+          return row.select();
+        }
+      } else {
+        row = this.rows[index];
+        return row.select();
+      }
+    };
+
+    GridEdit.prototype.calculateSubtotals = function() {
+      var row, _i, _len, _ref, _results;
+      _ref = this.subtotalRows;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        row = _ref[_i];
+        _results.push(row.calculate());
+      }
+      return _results;
     };
 
     return GridEdit;
@@ -669,55 +780,8 @@
 
   })();
 
-  Row = (function() {
-    function Row(attributes, table) {
-      var cell, col, i, _i, _len, _ref;
-      this.attributes = attributes;
-      this.table = table;
-      this.id = this.table.rows.length;
-      this.cells = [];
-      this.index = this.table.rows.length;
-      this.element = document.createElement('tr');
-      this.editable = true;
-      Utilities.prototype.setAttributes(this.element, {
-        id: "row-" + this.id
-      });
-      _ref = this.table.cols;
-      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
-        col = _ref[i];
-        cell = new Cell(this.attributes[col.valueKey], this);
-        this.cells.push(cell);
-        this.table.cols[i].cells.push(cell);
-        this.element.appendChild(cell.element);
-      }
-      delete this.attributes;
-    }
-
-    Row.prototype.below = function() {
-      return this.table.rows[this.index + 1];
-    };
-
-    Row.prototype.above = function() {
-      return this.table.rows[this.index - 1];
-    };
-
-    Row.prototype.select = function() {
-      var cell, _i, _len, _ref, _results;
-      _ref = this.cells;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        cell = _ref[_i];
-        _results.push(cell.addToSelection());
-      }
-      return _results;
-    };
-
-    return Row;
-
-  })();
-
   Cell = (function() {
-    function Cell(originalValue, row) {
+    function Cell(originalValue, row, type) {
       var styleName;
       this.originalValue = originalValue;
       this.row = row;
@@ -729,7 +793,7 @@
       this.index = this.row.cells.length;
       this.table = this.row.table;
       this.col = this.table.cols[this.index];
-      this.type = this.col.type;
+      this.type = type || this.col.type;
       this.meta = this.col;
       this.editable = this.col.editable !== false;
       this.element = document.createElement('td');
@@ -827,6 +891,7 @@
         if (this.control) {
           Utilities.prototype.setStyles(this.control, this.position());
         }
+        this.row.afterEdit();
         if (this.afterEdit) {
           this.afterEdit(this, oldValue, newValue, this.table.contextMenu.getTargetPasteCell());
         }
@@ -841,14 +906,14 @@
       if (clearActiveCells == null) {
         clearActiveCells = true;
       }
+      if (clearActiveCells) {
+        Utilities.prototype.clearActiveCells(this.table);
+      }
       if (!this.isActive()) {
         if (this.beforeActivate) {
           beforeActivateReturnVal = this.beforeActivate(this);
         }
         if (this.beforeActivate && beforeActivateReturnVal !== false || !this.beforeActivate) {
-          if (clearActiveCells) {
-            Utilities.prototype.clearActiveCells(this.table);
-          }
           this.showActive();
           this.table.activeCells.push(this);
           this.table.selectionStart = this;
@@ -905,7 +970,6 @@
       if (value == null) {
         value = null;
       }
-      Utilities.prototype.clearActiveCells(this.table);
       if (this.table.copiedCellMatrix) {
         this.table.contextMenu.hideBorders();
       }
@@ -1051,10 +1115,8 @@
     };
 
     Cell.prototype.events = function(cell) {
-      var activeCells, redCells, startY, table;
+      var startY, table;
       table = cell.table;
-      redCells = table.redCells;
-      activeCells = table.activeCells;
       this.element.onclick = function(e) {
         var activateRow, cellFrom, cellFromCol, cellFromRow, cellToCol, cellToRow, cmd, ctrl, onClickReturnVal, row, shift, _i, _j, _results, _results1;
         onClickReturnVal = true;
@@ -1238,6 +1300,11 @@
           name: 'Insert Row Above',
           shortCut: '',
           callback: this.insertAbove
+        },
+        removeRow: {
+          name: 'Remove Row',
+          shortCut: '',
+          callback: this.removeRow
         }
       };
       this.element = document.createElement('div');
@@ -1293,10 +1360,10 @@
     ContextMenu.prototype.addAction = function(action) {
       var a, code, div, key, li, shortCut, span;
       li = document.createElement('li');
+      li.setAttribute('name', action.name);
       div = document.createElement('div');
       span = document.createElement('span');
       span.textContent = action.shortCut;
-      span.setAttribute('name', action.name);
       Utilities.prototype.setAttributes(span, {
         style: "float: right !important;"
       });
@@ -1451,6 +1518,12 @@
 
     ContextMenu.prototype.insertAbove = function(e, table) {
       return table.insertAbove();
+    };
+
+    ContextMenu.prototype.removeRow = function(e, table) {
+      var cell;
+      cell = table.contextMenu.getTargetPasteCell();
+      return table.removeRow(cell.row.index);
     };
 
     ContextMenu.prototype.undo = function(e, table) {
@@ -1693,6 +1766,7 @@
       var node;
       this.cell = cell;
       node = document.createTextNode(this.cell.originalValue || '');
+      this.cell.element.appendChild(node);
       this.initControl();
     }
 
@@ -1963,7 +2037,9 @@
           case 'add-row':
             return this.table.removeRow(action.index, false);
           case 'remove-row':
-            return this.table.addRow(action.index, false);
+            return this.table.addRow(action.index, false, action.rowObject);
+          case 'move-row':
+            return this.table.moveRow(action.newIndex, action.oldIndex, false);
         }
       }
     };
@@ -1984,9 +2060,11 @@
           case 'fill':
             return action.grid.apply(false, false);
           case 'add-row':
-            return this.table.addRow(action.index, false);
+            return this.table.addRow(action.index, false, action.rowObject);
           case 'remove-row':
             return this.table.removeRow(action.index, false);
+          case 'move-row':
+            return this.table.moveRow(action.oldIndex, action.newIndex, false);
         }
       }
     };
@@ -1994,6 +2072,285 @@
     return ActionStack;
 
   })();
+
+
+  /*
+  
+  Handle Cell
+  -----------------------------------------------------------------------------------------
+  provides row selectivity and row dragging functionality
+   */
+
+  HandleCell = (function() {
+    function HandleCell(row) {
+      var node, table;
+      this.row = row;
+      row = this.row;
+      table = row.table;
+      this.element = document.createElement('td');
+      this.element.setAttribute("draggable", true);
+      this.element.className = 'handle';
+      node = document.createElement('div');
+      node.innerHTML = '<span></span><span></span><span></span>';
+      this.element.appendChild(node);
+      this.element.onclick = function(e) {
+        var index;
+        index = row.index;
+        return row.table.selectRow(e, index);
+      };
+      this.element.ondragstart = function() {
+        Utilities.prototype.clearActiveCells(table);
+        row.select();
+        return table.draggingRow = row;
+      };
+      this.element.ondragend = function() {
+        var insertAtIndex, lastDragOverIndex, modifier, rowToMoveInex;
+        rowToMoveInex = table.draggingRow.index;
+        lastDragOverIndex = table.lastDragOver.index;
+        modifier = lastDragOverIndex === 0 && !table.lastDragOverIsBeforeFirstRow ? 1 : 0;
+        insertAtIndex = lastDragOverIndex + modifier;
+        table.lastDragOver.element.style.borderBottom = table.lastDragOver.oldBorderBottom;
+        table.lastDragOver.element.style.borderTop = table.lastDragOver.oldBorderTop;
+        table.lastDragOver.element.style.borderTop = table.lastDragOver.oldBorderTop;
+        table.lastDragOver = null;
+        return table.moveRow(rowToMoveInex, insertAtIndex);
+      };
+      this;
+    }
+
+    return HandleCell;
+
+  })();
+
+
+  /*
+  
+  Row Type Behavior
+  -----------------------------------------------------------------------------------------
+  generic behavior will be in Row class
+  type specific behavior will be in the associated <type>Row class
+   */
+
+  Row = (function() {
+    function Row(attributes, table) {
+      var row;
+      this.attributes = attributes;
+      this.table = table;
+      this.id = this.table.rows.length;
+      this.cells = [];
+      this.index = this.table.rows.length;
+      this.element = document.createElement('tr');
+      this.cssClass = this.attributes.cssClass;
+      if (this.cssClass) {
+        this.element.className = this.cssClass;
+      }
+      this.oldBorderBottom = this.element.style.borderBottom;
+      this.oldBorderTop = this.element.style.borderTop;
+      this.type = this.attributes.gridEditRowType;
+      table = this.table;
+      row = this;
+      this.element.ondragenter = function(e) {
+        var prevRow;
+        table.lastDragOverIsBeforeFirstRow = false;
+        prevRow = table.lastDragOver;
+        if (prevRow) {
+          if (row.index !== 0 && prevRow.index === row.index) {
+
+          } else {
+            prevRow.element.style.borderBottom = row.oldBorderBottom;
+            row.element.style.borderBottom = table.dragBorderStyle;
+          }
+        } else {
+          row.element.style.borderBottom = table.dragBorderStyle;
+        }
+        return table.lastDragOver = row;
+      };
+      this.includeRowHandles = this.table.config.includeRowHandles;
+      Utilities.prototype.setAttributes(this.element, {
+        id: "row-" + this.id
+      });
+    }
+
+    Row.prototype.below = function() {
+      return this.table.rows[this.index + 1];
+    };
+
+    Row.prototype.above = function() {
+      return this.table.rows[this.index - 1];
+    };
+
+    Row.prototype.select = function() {
+      var cell, _i, _len, _ref, _results;
+      _ref = this.cells;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        cell = _ref[_i];
+        _results.push(cell.addToSelection());
+      }
+      return _results;
+    };
+
+    Row.prototype.afterEdit = function() {
+      return this.table.calculateSubtotals();
+    };
+
+    Row.prototype.addHandle = function() {
+      var cell;
+      if (this.includeRowHandles) {
+        cell = new HandleCell(this);
+        return this.element.appendChild(cell.element);
+      }
+    };
+
+    return Row;
+
+  })();
+
+  GenericRow = (function(_super) {
+    __extends(GenericRow, _super);
+
+    function GenericRow(attributes, table) {
+      var cell, col, i, _i, _len, _ref;
+      this.attributes = attributes;
+      this.table = table;
+      GenericRow.__super__.constructor.apply(this, arguments);
+      this.editable = true;
+      this.addHandle();
+      _ref = this.table.cols;
+      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+        col = _ref[i];
+        cell = new Cell(this.attributes[col.valueKey], this);
+        this.cells.push(cell);
+        this.table.cols[i].cells.push(cell);
+        this.element.appendChild(cell.element);
+      }
+      delete this.attributes;
+    }
+
+    return GenericRow;
+
+  })(Row);
+
+  StaticRow = (function(_super) {
+    __extends(StaticRow, _super);
+
+    function StaticRow(attributes, table) {
+      this.attributes = attributes;
+      this.table = table;
+      StaticRow.__super__.constructor.apply(this, arguments);
+      this.addHandle();
+      this.editable = this.attributes.editable = false;
+      this.element.innerHTML = this.attributes.html;
+      this.type = 'static';
+      delete this.attributes;
+    }
+
+    return StaticRow;
+
+  })(Row);
+
+  SubTotalRow = (function(_super) {
+    __extends(SubTotalRow, _super);
+
+    function SubTotalRow(attributes, table) {
+      var cell, col, i, value, _i, _len, _ref;
+      this.attributes = attributes;
+      this.table = table;
+      SubTotalRow.__super__.constructor.apply(this, arguments);
+      this.subtotalColumns = {};
+      this.labels = this.attributes.labels;
+      this.running = this.attributes.running;
+      this.addHandle();
+      _ref = this.table.cols;
+      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+        col = _ref[i];
+        cell = new Cell('', this);
+        cell.editable = false;
+        if (this.labels) {
+          value = this.labels[col.valueKey];
+          cell.element.innerHTML = value || '';
+        }
+        this.cells.push(cell);
+        this.table.cols[i].cells.push(cell);
+        this.element.appendChild(cell.element);
+        if (this.attributes.subtotal[col.valueKey]) {
+          this.subtotalColumns[col.valueKey] = i;
+        }
+      }
+      this.table.subtotalRows.push(this);
+      this.calculate();
+    }
+
+    SubTotalRow.prototype.calculate = function() {
+      var cell, col, index, row, rowIndex, start, sub, total, _i, _j, _len, _len1, _ref, _ref1, _ref2;
+      start = -1;
+      if (!this.running) {
+        _ref = this.table.subtotalRows;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          sub = _ref[_i];
+          rowIndex = sub.index;
+          if (rowIndex < this.index && rowIndex > start) {
+            start = rowIndex;
+          }
+        }
+      }
+      _ref1 = this.subtotalColumns;
+      for (col in _ref1) {
+        index = _ref1[col];
+        total = 0;
+        _ref2 = this.table.rows;
+        for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
+          row = _ref2[_j];
+          if (!(row.index > start)) {
+            continue;
+          }
+          if (row.index === this.index) {
+            break;
+          }
+          if (row.type === 'subtotal' || row.type === 'header') {
+            continue;
+          }
+          cell = row.cells[index];
+          if (cell) {
+            total += Number(cell.value());
+          }
+        }
+        this.cells[index].value(total, false);
+      }
+      delete this.attributes;
+      return this;
+    };
+
+    SubTotalRow.prototype.afterEdit = function() {};
+
+    return SubTotalRow;
+
+  })(Row);
+
+  HeaderRow = (function(_super) {
+    __extends(HeaderRow, _super);
+
+    function HeaderRow(attributes, table) {
+      var cell, col, i, _i, _len, _ref;
+      this.attributes = attributes;
+      this.table = table;
+      HeaderRow.__super__.constructor.apply(this, arguments);
+      this.editable = true;
+      this.addHandle();
+      _ref = this.table.cols;
+      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+        col = _ref[i];
+        cell = new Cell(this.attributes[col.valueKey], this, 'html');
+        this.cells.push(cell);
+        this.table.cols[i].cells.push(cell);
+        this.element.appendChild(cell.element);
+      }
+      delete this.attributes;
+    }
+
+    return HeaderRow;
+
+  })(Row);
 
   root = typeof exports !== "undefined" && exports !== null ? exports : window;
 

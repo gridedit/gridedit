@@ -27,8 +27,16 @@ class Utilities
 class GridEdit
   constructor: (@config, @actionStack) ->
     @element = document.querySelectorAll(@config.element || '#gridedit')[0]
+
+    # attributes for dragging rows
+    @dragBorderStyle = @config.dragBorderStyle || '3px solid rgb(160, 195, 240)';
+    @draggingRow = null # the row being dragged
+    @lastDragOver = null # the last row that was the row being dragged was over
+    @lastDragOverIsBeforeFirstRow = false # special flag for dragging a row to index 0
+
     @headers = []
     @rows = []
+    @subtotalRows = []
     @cols = []
     @source = @config.rows
     @redCells = []
@@ -65,17 +73,42 @@ class GridEdit
   build: ->
     # Build Table Header
     tr = document.createElement 'tr'
+
+    if @config.includeRowHandles
+      handleHeader = document.createElement 'th'
+      tr.appendChild handleHeader
+
     for colAttributes, i in @config.cols
       col = new Column(colAttributes, @)
       @cols.push col
       tr.appendChild col.element
     thead = document.createElement 'thead'
+
+    ge = @
+    thead.ondragenter = () ->
+      ge.lastDragOverIsBeforeFirstRow = true
+      prevRow = ge.lastDragOver
+      prevRow.element.style.borderBottom = prevRow.oldBorderBottom
+      prevRow.element.style.borderTop = ge.dragBorderStyle
+
+    thead.ondragleave = () ->
+      firstRow = ge.rows[0]
+      firstRow.element.style.borderTop = firstRow.oldBorderTop
+
     thead.appendChild tr
 
     # Build Table Body
     tbody = document.createElement 'tbody'
     for rowAttributes, i in @source
-      row = new Row rowAttributes, @
+      switch rowAttributes.gridEditRowType
+        when 'static'
+          row = new StaticRow(rowAttributes, @)
+        when 'subtotal'
+          row = new SubTotalRow(rowAttributes, @)
+        when 'heading'
+          row = new HeaderRow(rowAttributes, @)
+        else
+          row = new GenericRow(rowAttributes, @)
       @rows.push row
       tbody.appendChild row.element
 
@@ -97,6 +130,7 @@ class GridEdit
     table = @
     moveTo = table.moveTo
     edit = table.edit
+
     document.onkeydown = (e) ->
       if table.activeCell()
         key = e.keyCode
@@ -148,7 +182,7 @@ class GridEdit
     window.onscroll = -> table.openCell.reposition() if table.openCell
     @tableEl.oncontextmenu = (e) -> false
     document.onclick = (e) ->
-      Utilities::clearActiveCells table unless (table.isDescendant e.target) or (e.target is table.activeCell()?.control or table.contextMenu)
+      Utilities::clearActiveCells table unless (table.isDescendant e.target) or (e.target is table.activeCell()?.control or table.contextMenu.isVisible())
       table.contextMenu.hide()
   render: ->
     @element = document.querySelectorAll(@config.element || '#gridedit')[0] if @element.hasChildNodes()
@@ -246,10 +280,20 @@ class GridEdit
   redo: ->
     @actionStack.redo()
 
-  addRow: (index, addToStack=true) ->
-    row = {}
-    for c in @cols
-      row[c.valueKey] = c.defaultValue || ''
+  moveRow: (rowToMoveIndex, newIndex, addToStack=true) ->
+    row = @source[rowToMoveIndex];
+    @source.splice(rowToMoveIndex, 1)
+    @source.splice(newIndex, 0, row)
+    @addToStack({ type: 'move-row', oldIndex: rowToMoveIndex, newIndex: newIndex }) if addToStack
+    @rebuild({ rows: @source, initialize: true, selectedCell: [newIndex, 0] })
+
+  addRow: (index, addToStack=true, rowObject=false) ->
+    if rowObject
+      row = rowObject
+    else
+      row = {}
+      for c in @cols
+        row[c.valueKey] = c.defaultValue || ''
 
     if index or index == 0
       @source.splice(index, 0, row)
@@ -257,27 +301,52 @@ class GridEdit
       index = @source.length - 1
       @source.push(row)
 
-    @addToStack({ type: 'add-row', index: index }) if addToStack
+    @addToStack({ type: 'add-row', index: index, rowObject: rowObject }) if addToStack
     @rebuild({ rows: @source, initialize: true, selectedCell: [index, 0] })
 
-
   insertBelow: ->
-    cell = @.contextMenu.getTargetPasteCell()
+    cell = @contextMenu.getTargetPasteCell()
     @addRow(cell.address[0] + 1)
 
   insertAbove: ->
-    cell = @.contextMenu.getTargetPasteCell()
+    cell = @contextMenu.getTargetPasteCell()
     @addRow(cell.address[0])
 
-
   removeRow: (index, addToStack=true) ->
+    rowObject = @source[index]
+    row = @rows[index]
     rows = @source.splice(index, 1)
-    @addToStack({ type: 'remove-row', index: index }) if addToStack
+    @addToStack({ type: 'remove-row', index: index, rowObject: rowObject }) if addToStack
     @rebuild({ rows: @source, initialize: true, selectedCell: [ index, 0 ] })
 
-  selectRow: (index) ->
-    row = @rows[index]
-    row.select()
+  selectRow: (e, index) ->
+    if @activeCell() and e
+      currentRowIndex = @activeCells[0].address[0]
+      shift = e.shiftKey
+      ctrl = e.ctrlKey
+      cmd = e.metaKey
+
+      if !(ctrl or cmd)
+        Utilities::clearActiveCells(@)
+
+      if shift
+        diff = currentRowIndex - index
+        if diff < 0
+          for row in @rows[currentRowIndex..index]
+            row.select()
+        else
+          for row in @rows[index..currentRowIndex]
+            row.select()
+      else
+        row = @rows[index]
+        row.select()
+    else
+      row = @rows[index]
+      row.select()
+
+  calculateSubtotals: () ->
+    for row in @subtotalRows
+      row.calculate()
 
 class Column
   constructor: (@attributes, @table) ->
@@ -316,38 +385,16 @@ class Column
         return
       false
 
-# Receives an array or object of Cells and is passed to a GridEdit
-class Row
-  constructor: (@attributes, @table) ->
-    @id = @table.rows.length
-    @cells = []
-    @index = @table.rows.length
-    @element = document.createElement 'tr'
-    @editable = true
-    Utilities::setAttributes @element,
-      id: "row-#{@id}"
-    for col, i in @table.cols
-      cell = new Cell @attributes[col.valueKey], @
-      @cells.push cell
-      @table.cols[i].cells.push cell
-      @element.appendChild cell.element
-    delete @attributes
-  below: -> @table.rows[@index + 1]
-  above: -> @table.rows[@index - 1]
-  select: ->
-    for cell in @cells
-      cell.addToSelection()
-
 # Creates a cell object in memory to store in a row
 class Cell
-  constructor: (@originalValue, @row) ->
+  constructor: (@originalValue, @row, type) ->
     @originalValue = '' if @originalValue == undefined
     @id = "#{@row.id}-#{@row.cells.length}"
     @address = [@row.id, @row.cells.length]
     @index = @row.cells.length
     @table = @row.table
     @col = @table.cols[@index]
-    @type = @col.type
+    @type = type || @col.type
     @meta = @col
     @editable = @col.editable != false
     @element = document.createElement 'td'
@@ -393,15 +440,16 @@ class Cell
       @element.textContent = @col.format(newValue)
       @cellTypeObject.setValue(newValue)
       Utilities::setStyles @control, @position() if @control
+      @row.afterEdit()
       @afterEdit(@, oldValue, newValue, @table.contextMenu.getTargetPasteCell()) if @afterEdit
       return newValue
     else
       @source[@valueKey]
   makeActive: (clearActiveCells = true) ->
+    Utilities::clearActiveCells @table if clearActiveCells
     unless @isActive()
       beforeActivateReturnVal = @beforeActivate @ if @beforeActivate
       if @beforeActivate and beforeActivateReturnVal isnt false or not @beforeActivate
-        Utilities::clearActiveCells @table if clearActiveCells
         @showActive()
         @table.activeCells.push @
         @table.selectionStart = @
@@ -428,7 +476,7 @@ class Cell
     @element.style.cssText = "background-color: #{@table.cellStyles.uneditableColor};"
     @table.redCells.push @
   showControl: (value = null) ->
-    Utilities::clearActiveCells(@table)
+    # Utilities::clearActiveCells(@table)
     @table.contextMenu.hideBorders() if @table.copiedCellMatrix
     if not @editable
       @showRed()
@@ -492,8 +540,6 @@ class Cell
       @makeActive(false)
   events: (cell) ->
     table = cell.table
-    redCells = table.redCells
-    activeCells = table.activeCells
     @element.onclick = (e) ->
       onClickReturnVal = true
       onClickReturnVal = cell.col.onClick(cell, e) if cell.col.onClick
@@ -643,6 +689,11 @@ class ContextMenu
         name: 'Insert Row Above',
         shortCut: '',
         callback: @insertAbove
+      },
+      removeRow: {
+        name: 'Remove Row',
+        shortCut: '',
+        callback: @removeRow
       }
     }
     # create the contextMenu div
@@ -685,10 +736,11 @@ class ContextMenu
   # add an action to the context menu
   addAction: (action) ->
     li = document.createElement 'li'
+    li.setAttribute('name', action.name)
     div = document.createElement 'div'
     span = document.createElement 'span'
     span.textContent = action.shortCut
-    span.setAttribute('name', action.name)
+
     Utilities::setAttributes span, {style: "float: right !important;"}
     a = document.createElement 'a'
     a.textContent = action.name
@@ -780,6 +832,10 @@ class ContextMenu
   insertAbove: (e, table) ->
     table.insertAbove()
 
+  removeRow: (e, table) ->
+    cell = table.contextMenu.getTargetPasteCell()
+    table.removeRow(cell.row.index)
+
   undo: (e, table) ->
     table.undo()
 
@@ -805,7 +861,6 @@ class ContextMenu
   type specific behavior will be in the associated <type>Cell class
 
 ###
-
 
 # Generic Cell
 class GenericCell
@@ -926,6 +981,7 @@ class HTMLCell extends GenericCell
 class SelectCell extends GenericCell
   constructor: (@cell) ->
     node = document.createTextNode @cell.originalValue || ''
+    @cell.element.appendChild node
     @initControl()
 
   initControl: ->
@@ -955,7 +1011,6 @@ class TextAreaCell extends GenericCell
   constructor: (@cell) ->
     node = document.createTextNode @cell.originalValue || ''
     @cell.element.appendChild node
-
     @cell.control = document.createElement 'textarea'
     @cell.control.classList.add 'form-control'
 
@@ -975,8 +1030,6 @@ class GridChange
     @changes = []
     @table = @cells[0].col.table
     @borderStyle = @table.config.selectionBorderStyle || "2px dashed blue"
-
-
     @highRow = 0
     @highCol = 0
 
@@ -1126,7 +1179,10 @@ class ActionStack
           @table.removeRow(action.index, false)
 
         when 'remove-row'
-          @table.addRow(action.index, false)
+          @table.addRow(action.index, false, action.rowObject)
+
+        when 'move-row'
+          @table.moveRow(action.newIndex, action.oldIndex, false)
 
   redo: ->
     if(@index < @actions.length - 1)
@@ -1148,10 +1204,206 @@ class ActionStack
           action.grid.apply(false, false)
 
         when 'add-row'
-          @table.addRow(action.index, false)
+          @table.addRow(action.index, false, action.rowObject)
 
         when 'remove-row'
           @table.removeRow(action.index, false)
+
+        when 'move-row'
+          @table.moveRow(action.oldIndex, action.newIndex, false)
+
+
+###
+
+Handle Cell
+-----------------------------------------------------------------------------------------
+provides row selectivity and row dragging functionality
+
+###
+
+
+# Handle Cell
+class HandleCell
+  constructor: (@row) ->
+    row = @row
+    table = row.table
+    @element = document.createElement 'td'
+    @element.setAttribute "draggable", true
+    @element.className = 'handle'
+    node = document.createElement 'div'
+    node.innerHTML = '<span></span><span></span><span></span>'
+    @element.appendChild(node)
+
+    @element.onclick = (e) ->
+      index = row.index
+      row.table.selectRow(e, index)
+
+    @element.ondragstart = () ->
+      Utilities::clearActiveCells(table)
+      row.select()
+      table.draggingRow = row
+
+    @element.ondragend = () ->
+      rowToMoveInex = table.draggingRow.index
+      lastDragOverIndex = table.lastDragOver.index
+      modifier = if lastDragOverIndex == 0 and !table.lastDragOverIsBeforeFirstRow then 1 else 0
+      insertAtIndex = lastDragOverIndex + modifier
+
+      table.lastDragOver.element.style.borderBottom = table.lastDragOver.oldBorderBottom
+      table.lastDragOver.element.style.borderTop = table.lastDragOver.oldBorderTop
+      table.lastDragOver.element.style.borderTop = table.lastDragOver.oldBorderTop
+      table.lastDragOver = null
+
+      table.moveRow(rowToMoveInex, insertAtIndex)
+
+    @
+
+
+###
+
+Row Type Behavior
+-----------------------------------------------------------------------------------------
+generic behavior will be in Row class
+type specific behavior will be in the associated <type>Row class
+
+###
+
+
+class Row
+  constructor: (@attributes, @table) ->
+    @id = @table.rows.length
+    @cells = []
+    @index = @table.rows.length
+    @element = document.createElement 'tr'
+    @cssClass = @attributes.cssClass
+    @element.className = @cssClass if @cssClass
+    @oldBorderBottom = @element.style.borderBottom
+    @oldBorderTop = @element.style.borderTop
+    @type = @attributes.gridEditRowType
+
+    table = @table
+    row = @
+    @element.ondragenter = (e) ->
+      table.lastDragOverIsBeforeFirstRow = false
+      prevRow = table.lastDragOver
+      if prevRow
+        if row.index != 0 and prevRow.index == row.index
+          # do nothing
+        else
+          prevRow.element.style.borderBottom = row.oldBorderBottom
+          row.element.style.borderBottom = table.dragBorderStyle
+      else
+        row.element.style.borderBottom = table.dragBorderStyle
+      table.lastDragOver = row
+
+    @includeRowHandles = @table.config.includeRowHandles
+
+    Utilities::setAttributes @element,
+      id: "row-#{@id}"
+
+  below: -> @table.rows[@index + 1]
+  above: -> @table.rows[@index - 1]
+  select: ->
+    for cell in @cells
+      cell.addToSelection()
+
+  afterEdit: () ->
+    @table.calculateSubtotals()
+
+  addHandle: () ->
+    if @includeRowHandles
+      cell = new HandleCell @
+      @element.appendChild cell.element
+
+class GenericRow extends Row
+  constructor: (@attributes, @table) ->
+    super
+    @editable = true
+
+    @addHandle()
+
+    for col, i in @table.cols
+      cell = new Cell @attributes[col.valueKey], @
+      @cells.push cell
+      @table.cols[i].cells.push cell
+      @element.appendChild cell.element
+
+    delete @attributes
+
+class StaticRow extends Row
+  constructor: (@attributes, @table) ->
+    super
+
+    @addHandle()
+
+    @editable = @attributes.editable = false
+    @element.innerHTML = @attributes.html
+    @type = 'static'
+    delete @attributes
+
+
+class SubTotalRow extends Row
+  constructor: (@attributes, @table) ->
+    super
+    @subtotalColumns = {}
+    @labels = @attributes.labels
+    @running = @attributes.running
+
+    @addHandle()
+
+    for col, i in @table.cols
+      cell = new Cell '', @
+      cell.editable = false
+      if @labels
+        value = @labels[col.valueKey]
+        # cell.value(value, false) if value
+        cell.element.innerHTML = value || ''
+      @cells.push cell
+      @table.cols[i].cells.push cell
+      @element.appendChild cell.element
+
+      if(@attributes.subtotal[col.valueKey])
+        @subtotalColumns[col.valueKey] = i
+
+    @table.subtotalRows.push(@)
+    @calculate()
+
+  calculate: () ->
+    start = -1
+    unless @running
+      for sub in @table.subtotalRows
+        rowIndex = sub.index
+        if rowIndex < @index and rowIndex > start
+          start = rowIndex
+
+    for col, index of @subtotalColumns
+      total = 0
+      for row in @table.rows when row.index > start
+        break if row.index == @index
+        continue if row.type == 'subtotal' or row.type == 'header' # todo - add calculable property to row classes
+        cell = row.cells[index]
+        total += Number(cell.value()) if cell
+      @cells[index].value(total, false)
+
+    delete @attributes
+    @
+
+  afterEdit: () ->
+    # do not calculate
+
+class HeaderRow extends Row
+  constructor: (@attributes, @table) ->
+    super
+    @editable = true
+    @addHandle()
+
+    for col, i in @table.cols
+      cell = new Cell @attributes[col.valueKey], @, 'html'
+      @cells.push cell
+      @table.cols[i].cells.push cell
+      @element.appendChild cell.element
+
+    delete @attributes
 
 root = exports ? window
 root.GridEdit = GridEdit
