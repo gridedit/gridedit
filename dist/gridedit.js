@@ -625,15 +625,17 @@
     };
 
     GridEdit.prototype.removeRow = function(index, addToStack) {
-      var rows;
+      var row, rows;
       if (addToStack == null) {
         addToStack = true;
       }
+      row = this.source[index];
       rows = this.source.splice(index, 1);
       if (addToStack) {
         this.addToStack({
           type: 'remove-row',
-          index: index
+          index: index,
+          rowObject: row
         });
       }
       return this.rebuild({
@@ -1354,10 +1356,10 @@
     ContextMenu.prototype.addAction = function(action) {
       var a, code, div, key, li, shortCut, span;
       li = document.createElement('li');
+      li.setAttribute('name', action.name);
       div = document.createElement('div');
       span = document.createElement('span');
       span.textContent = action.shortCut;
-      span.setAttribute('name', action.name);
       Utilities.prototype.setAttributes(span, {
         style: "float: right !important;"
       });
@@ -2031,7 +2033,7 @@
           case 'add-row':
             return this.table.removeRow(action.index, false);
           case 'remove-row':
-            return this.table.addRow(action.index, false);
+            return this.table.addRow(action.index, false, action.rowObject);
           case 'move-row':
             return this.table.moveRow(action.newIndex, action.oldIndex, false);
         }

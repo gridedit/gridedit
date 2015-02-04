@@ -311,8 +311,9 @@ class GridEdit
     @addRow(cell.address[0])
 
   removeRow: (index, addToStack=true) ->
+    row = @source[index]
     rows = @source.splice(index, 1)
-    @addToStack({ type: 'remove-row', index: index }) if addToStack
+    @addToStack({ type: 'remove-row', index: index, rowObject: row }) if addToStack
     @rebuild({ rows: @source, initialize: true, selectedCell: [ index, 0 ] })
 
   selectRow: (e, index) ->
@@ -732,10 +733,11 @@ class ContextMenu
   # add an action to the context menu
   addAction: (action) ->
     li = document.createElement 'li'
+    li.setAttribute('name', action.name)
     div = document.createElement 'div'
     span = document.createElement 'span'
     span.textContent = action.shortCut
-    span.setAttribute('name', action.name)
+
     Utilities::setAttributes span, {style: "float: right !important;"}
     a = document.createElement 'a'
     a.textContent = action.name
@@ -1174,7 +1176,7 @@ class ActionStack
           @table.removeRow(action.index, false)
 
         when 'remove-row'
-          @table.addRow(action.index, false)
+          @table.addRow(action.index, false, action.rowObject)
 
         when 'move-row'
           @table.moveRow(action.newIndex, action.oldIndex, false)
