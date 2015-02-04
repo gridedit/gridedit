@@ -320,7 +320,7 @@
       };
       return document.onclick = function(e) {
         var _ref;
-        if (!((table.isDescendant(e.target)) || (e.target === ((_ref = table.activeCell()) != null ? _ref.control : void 0) || table.contextMenu))) {
+        if (!((table.isDescendant(e.target)) || (e.target === ((_ref = table.activeCell()) != null ? _ref.control : void 0) || table.contextMenu.isVisible()))) {
           Utilities.prototype.clearActiveCells(table);
         }
         return table.contextMenu.hide();
@@ -970,7 +970,6 @@
       if (value == null) {
         value = null;
       }
-      Utilities.prototype.clearActiveCells(this.table);
       if (this.table.copiedCellMatrix) {
         this.table.contextMenu.hideBorders();
       }

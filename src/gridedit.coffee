@@ -182,7 +182,7 @@ class GridEdit
     window.onscroll = -> table.openCell.reposition() if table.openCell
     @tableEl.oncontextmenu = (e) -> false
     document.onclick = (e) ->
-      Utilities::clearActiveCells table unless (table.isDescendant e.target) or (e.target is table.activeCell()?.control or table.contextMenu)
+      Utilities::clearActiveCells table unless (table.isDescendant e.target) or (e.target is table.activeCell()?.control or table.contextMenu.isVisible())
       table.contextMenu.hide()
   render: ->
     @element = document.querySelectorAll(@config.element || '#gridedit')[0] if @element.hasChildNodes()
@@ -476,7 +476,7 @@ class Cell
     @element.style.cssText = "background-color: #{@table.cellStyles.uneditableColor};"
     @table.redCells.push @
   showControl: (value = null) ->
-    Utilities::clearActiveCells(@table)
+    # Utilities::clearActiveCells(@table)
     @table.contextMenu.hideBorders() if @table.copiedCellMatrix
     if not @editable
       @showRed()
