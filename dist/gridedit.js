@@ -2305,7 +2305,7 @@
           if (!(row.index > start)) {
             continue;
           }
-          if (row.index === this.index || row.type === 'header') {
+          if (row.type === 'subtotal' || row.type === 'header') {
             break;
           }
           cell = row.cells[index];
