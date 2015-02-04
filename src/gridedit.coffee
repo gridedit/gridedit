@@ -1379,7 +1379,8 @@ class SubTotalRow extends Row
     for col, index of @subtotalColumns
       total = 0
       for row in @table.rows when row.index > start
-        break if row.type == 'subtotal' or row.type == 'header' # todo - add calculable property to row classes
+        break if row.index == @index
+        continue if row.type == 'subtotal' or row.type == 'header' # todo - add calculable property to row classes
         cell = row.cells[index]
         total += Number(cell.value()) if cell
       @cells[index].value(total, false)

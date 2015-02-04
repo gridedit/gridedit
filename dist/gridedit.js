@@ -2305,8 +2305,11 @@
           if (!(row.index > start)) {
             continue;
           }
-          if (row.type === 'subtotal' || row.type === 'header') {
+          if (row.index === this.index) {
             break;
+          }
+          if (row.type === 'subtotal' || row.type === 'header') {
+            continue;
           }
           cell = row.cells[index];
           if (cell) {
