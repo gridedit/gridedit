@@ -976,6 +976,7 @@ class HTMLCell extends GenericCell
 class SelectCell extends GenericCell
   constructor: (@cell) ->
     node = document.createTextNode @cell.originalValue || ''
+    @cell.element.appendChild node
     @initControl()
 
   initControl: ->
@@ -1341,7 +1342,8 @@ class SubTotalRow extends Row
       cell.editable = false
       if @labels
         value = @labels[col.valueKey]
-        cell.value(value, false) if value
+        # cell.value(value, false) if value
+        cell.element.innerHTML = value || ''
       @cells.push cell
       @table.cols[i].cells.push cell
       @element.appendChild cell.element

@@ -1760,6 +1760,7 @@
       var node;
       this.cell = cell;
       node = document.createTextNode(this.cell.originalValue || '');
+      this.cell.element.appendChild(node);
       this.initControl();
     }
 
@@ -2252,9 +2253,7 @@
         cell.editable = false;
         if (this.labels) {
           value = this.labels[col.valueKey];
-          if (value) {
-            cell.value(value, false);
-          }
+          cell.element.innerHTML = value || '';
         }
         this.cells.push(cell);
         this.table.cols[i].cells.push(cell);
