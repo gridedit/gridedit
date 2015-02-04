@@ -2247,6 +2247,7 @@
       SubTotalRow.__super__.constructor.apply(this, arguments);
       this.subtotalColumns = {};
       this.labels = this.attributes.labels;
+      this.running = this.attributes.running;
       this.addHandle();
       _ref = this.table.cols;
       for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
@@ -2271,12 +2272,14 @@
     SubTotalRow.prototype.calculate = function() {
       var cell, col, index, row, rowIndex, start, sub, total, _i, _j, _len, _len1, _ref, _ref1, _ref2;
       start = -1;
-      _ref = this.table.subtotalRows;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        sub = _ref[_i];
-        rowIndex = sub.index;
-        if (rowIndex < this.index && rowIndex > start) {
-          start = rowIndex;
+      if (!this.running) {
+        _ref = this.table.subtotalRows;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          sub = _ref[_i];
+          rowIndex = sub.index;
+          if (rowIndex < this.index && rowIndex > start) {
+            start = rowIndex;
+          }
         }
       }
       _ref1 = this.subtotalColumns;
@@ -2299,7 +2302,8 @@
         }
         this.cells[index].value(total, false);
       }
-      return delete this.attributes;
+      delete this.attributes;
+      return this;
     };
 
     SubTotalRow.prototype.afterEdit = function() {};

@@ -1336,6 +1336,7 @@ class SubTotalRow extends Row
     super
     @subtotalColumns = {}
     @labels = @attributes.labels
+    @running = @attributes.running
 
     @addHandle()
 
@@ -1358,10 +1359,11 @@ class SubTotalRow extends Row
 
   calculate: () ->
     start = -1
-    for sub in @table.subtotalRows
-      rowIndex = sub.index
-      if rowIndex < @index and rowIndex > start
-        start = rowIndex
+    unless @running
+      for sub in @table.subtotalRows
+        rowIndex = sub.index
+        if rowIndex < @index and rowIndex > start
+          start = rowIndex
 
     for col, index of @subtotalColumns
       total = 0
@@ -1372,6 +1374,7 @@ class SubTotalRow extends Row
       @cells[index].value(total, false)
 
     delete @attributes
+    @
 
   afterEdit: () ->
     # do not calculate
