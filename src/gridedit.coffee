@@ -2,14 +2,13 @@ class GridEdit
   constructor: (@config, @actionStack) ->
     @element = document.querySelectorAll(@config.element || '#gridedit')[0]
     @contextMenu = new GridEdit.ContextMenu @
-
-    # attributes for dragging rows
-    @dragBorderStyle = @config.dragBorderStyle || '3px solid rgb(160, 195, 240)';
+    @themeName = @config.themeName
+    @customTheme = @config.themeTemplate
+    @theme = new GridEdit.Theme @themeName, @customTheme
     @draggingRow = null # the row being dragged
     @lastDragOver = null # the last row that was the row being dragged was over
     @lastDragOverIsBeforeFirstRow = false # special flag for dragging a row to index 0
-
-    @lastClickCell = null
+    @lastClickCell = null # used for double click events
     @headers = []
     @rows = []
     @subtotalRows = []
@@ -25,9 +24,6 @@ class GridEdit
     @state = "ready"
     @mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     @topOffset = if not @config.topOffset then 0 else @config.topOffset
-    @cellStyles =
-      activeColor: @config.activeColor or "#FFE16F"
-      uneditableColor: @config.uneditableColor or "#FFBBB3"
     if @config.custom
       @set key, value for key, value of @config.custom when key of @config.custom
       delete @config.custom
@@ -38,6 +34,7 @@ class GridEdit
       cell = @getCell(@config.selectedCell[0], @config.selectedCell[1])
       cell.makeActive() if cell
       @config.selectedCell = undefined # don't let this propagate to next rebuild
+
   init: ->
     do @config.beforeInit if @config.beforeInit
     do @build
@@ -45,6 +42,7 @@ class GridEdit
     do @render
     do @config.afterInit if @config.afterInit
     return
+
   build: ->
     # Build Table Header
     tr = document.createElement 'tr'
@@ -61,7 +59,7 @@ class GridEdit
       ge.lastDragOverIsBeforeFirstRow = true
       prevRow = ge.lastDragOver
       prevRow.element.style.borderBottom = prevRow.oldBorderBottom
-      prevRow.element.style.borderTop = ge.dragBorderStyle
+      prevRow.element.style.borderTop = ge.ge.theme.borders.dragBorderStyle
     thead.ondragleave = () ->
       firstRow = ge.rows[0]
       firstRow.element.style.borderTop = firstRow.oldBorderTop
@@ -84,6 +82,7 @@ class GridEdit
     table.appendChild thead
     table.appendChild tbody
     @tableEl = table
+
   rebuild: (newConfig = null) ->
     config = Object.create @config
     if newConfig isnt null
@@ -150,25 +149,34 @@ class GridEdit
     window.onscroll = -> table.openCell.reposition() if table.openCell
     @tableEl.oncontextmenu = (e) -> false
     document.onclick = (e) ->
-      GridEdit.Utilities::clearActiveCells table unless (table.isDescendant e.target) or (e.target is table.activeCell()?.control or table.contextMenu.isVisible())
+      activeCell = table.firstActiveCell()
+      unless table.isDescendant e.target or table.contextMenu.isVisible() or e.target is activeCell?.control
+        activeCell?.edit(activeCell?.control.value) if activeCell?.isBeingEdited()
+        GridEdit.Utilities::clearActiveCells table
       table.contextMenu.hide()
+
   render: ->
     @element = document.querySelectorAll(@config.element || '#gridedit')[0] if @element.hasChildNodes()
     @element.appendChild @tableEl
-  set: (key, value) -> @config[key] = value if key isnt undefined
+
+
   getCell: (x, y) ->
     try
       @rows[x].cells[y]
     catch e
       # out of range
+
+  set: (key, value) -> @config[key] = value if key isnt undefined
   activeCell: -> if @activeCells.length > 1 then @activeCells else @activeCells[0]
-  nextCell: -> @activeCell()?.next()
-  previousCell: -> @activeCell()?.previous()
-  aboveCell: -> @activeCell()?.above()
-  belowCell: -> @activeCell()?.below()
+  firstActiveCell: -> @activeCells[0]
+  nextCell: -> @firstActiveCell()?.next()
+  previousCell: -> @firstActiveCell()?.previous()
+  aboveCell: -> @firstActiveCell()?.above()
+  belowCell: -> @firstActiveCell()?.below()
+
   moveTo: (toCell, fromCell) ->
     if toCell
-      fromCell = toCell.table.activeCell() if fromCell is undefined
+      fromCell = toCell.table.firstActiveCell() if fromCell is undefined
       direction = toCell.table.getDirection(fromCell, toCell)
       beforeCellNavigateReturnVal = toCell.beforeNavigateTo(toCell, fromCell, direction) if toCell.beforeNavigateTo
       if beforeCellNavigateReturnVal isnt false
@@ -181,6 +189,7 @@ class GridEdit
           window.scrollBy(0, toCell?.position().height * directionModifier)
         do toCell.makeActive
     false
+
   getDirection: (fromCell, toCell) ->
     fromAddressY = fromCell.address[0]
     toAddressY = toCell.address[0]
@@ -200,16 +209,20 @@ class GridEdit
     else
       console.log("Cannot calculate direction going from cell #{fromCell.address} to cell #{toCell.address}")
     direction
+
   edit: (cell, newValue = null) ->
     if newValue isnt null
       cell?.cellTypeObject.edit newValue
     else
       cell.cellTypeObject.edit()
       false
+
   delete: ->
     for cell in @activeCells
       cell.value('')
+
   clearActiveCells: -> GridEdit.Utilities::clearActiveCells @
+
   setSelection: ->
     if @selectionStart and @selectionEnd and @selectionStart isnt @selectionEnd
       do cell.showInactive for cell in @activeCells
@@ -219,6 +232,7 @@ class GridEdit
       for row in rowRange
         @rows[row].cells[col].addToSelection() for col in colRange
       return
+
   data: ->
     data = []
     for row in @rows
@@ -227,24 +241,30 @@ class GridEdit
         rowData.push cell.cellTypeObject.value()
       data.push rowData
     data
+
   repopulate: ->
     for row in @rows
       for cell in row.cells
         cell.value(cell.source[cell.valueKey])
+
   destroy: ->
     @element.removeChild @tableEl
     for key of @
       delete @[key]
+
   isDescendant: (child) ->
     node = child.parentNode
     while node?
       return true if node is @tableEl
       node = node.parentNode
     false
+
   addToStack: (action) ->
     @actionStack.addAction(action)
+
   undo: ->
     @actionStack.undo()
+
   redo: ->
     @actionStack.redo()
 
@@ -262,7 +282,6 @@ class GridEdit
       row = {}
       for c in @cols
         row[c.valueKey] = c.defaultValue || ''
-
     if index or index == 0
       @source.splice(index, 0, row)
     else
@@ -316,7 +335,7 @@ class GridEdit
     for row in @subtotalRows
       row.calculate()
 
-  openCellAndPopulateInitialValue: (key, shift) ->
+  openCellAndPopulateInitialValue: (shift, key) ->
     @activeCell().onKeyPress(GridEdit.Utilities::valueFromKey key, shift) unless @openCell
 
 root = exports ? window

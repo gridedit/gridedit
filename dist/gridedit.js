@@ -9,7 +9,9 @@
       this.actionStack = actionStack;
       this.element = document.querySelectorAll(this.config.element || '#gridedit')[0];
       this.contextMenu = new GridEdit.ContextMenu(this);
-      this.dragBorderStyle = this.config.dragBorderStyle || '3px solid rgb(160, 195, 240)';
+      this.themeName = this.config.themeName;
+      this.customTheme = this.config.themeTemplate;
+      this.theme = new GridEdit.Theme(this.themeName, this.customTheme);
       this.draggingRow = null;
       this.lastDragOver = null;
       this.lastDragOverIsBeforeFirstRow = false;
@@ -29,10 +31,6 @@
       this.state = "ready";
       this.mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       this.topOffset = !this.config.topOffset ? 0 : this.config.topOffset;
-      this.cellStyles = {
-        activeColor: this.config.activeColor || "#FFE16F",
-        uneditableColor: this.config.uneditableColor || "#FFBBB3"
-      };
       if (this.config.custom) {
         _ref = this.config.custom;
         for (key in _ref) {
@@ -92,7 +90,7 @@
         ge.lastDragOverIsBeforeFirstRow = true;
         prevRow = ge.lastDragOver;
         prevRow.element.style.borderBottom = prevRow.oldBorderBottom;
-        return prevRow.element.style.borderTop = ge.dragBorderStyle;
+        return prevRow.element.style.borderTop = ge.ge.theme.borders.dragBorderStyle;
       };
       thead.ondragleave = function() {
         var firstRow;
@@ -238,8 +236,14 @@
         return false;
       };
       return document.onclick = function(e) {
-        var _ref;
-        if (!((table.isDescendant(e.target)) || (e.target === ((_ref = table.activeCell()) != null ? _ref.control : void 0) || table.contextMenu.isVisible()))) {
+        var activeCell;
+        activeCell = table.firstActiveCell();
+        if (!table.isDescendant(e.target || table.contextMenu.isVisible() || e.target === (activeCell != null ? activeCell.control : void 0))) {
+          if (activeCell != null ? activeCell.isBeingEdited() : void 0) {
+            if (activeCell != null) {
+              activeCell.edit(activeCell != null ? activeCell.control.value : void 0);
+            }
+          }
           GridEdit.Utilities.prototype.clearActiveCells(table);
         }
         return table.contextMenu.hide();
@@ -253,18 +257,18 @@
       return this.element.appendChild(this.tableEl);
     };
 
-    GridEdit.prototype.set = function(key, value) {
-      if (key !== void 0) {
-        return this.config[key] = value;
-      }
-    };
-
     GridEdit.prototype.getCell = function(x, y) {
       var e;
       try {
         return this.rows[x].cells[y];
       } catch (_error) {
         e = _error;
+      }
+    };
+
+    GridEdit.prototype.set = function(key, value) {
+      if (key !== void 0) {
+        return this.config[key] = value;
       }
     };
 
@@ -276,31 +280,35 @@
       }
     };
 
+    GridEdit.prototype.firstActiveCell = function() {
+      return this.activeCells[0];
+    };
+
     GridEdit.prototype.nextCell = function() {
       var _ref;
-      return (_ref = this.activeCell()) != null ? _ref.next() : void 0;
+      return (_ref = this.firstActiveCell()) != null ? _ref.next() : void 0;
     };
 
     GridEdit.prototype.previousCell = function() {
       var _ref;
-      return (_ref = this.activeCell()) != null ? _ref.previous() : void 0;
+      return (_ref = this.firstActiveCell()) != null ? _ref.previous() : void 0;
     };
 
     GridEdit.prototype.aboveCell = function() {
       var _ref;
-      return (_ref = this.activeCell()) != null ? _ref.above() : void 0;
+      return (_ref = this.firstActiveCell()) != null ? _ref.above() : void 0;
     };
 
     GridEdit.prototype.belowCell = function() {
       var _ref;
-      return (_ref = this.activeCell()) != null ? _ref.below() : void 0;
+      return (_ref = this.firstActiveCell()) != null ? _ref.below() : void 0;
     };
 
     GridEdit.prototype.moveTo = function(toCell, fromCell) {
       var beforeCellNavigateReturnVal, direction, directionModifier, newY, oldY;
       if (toCell) {
         if (fromCell === void 0) {
-          fromCell = toCell.table.activeCell();
+          fromCell = toCell.table.firstActiveCell();
         }
         direction = toCell.table.getDirection(fromCell, toCell);
         if (toCell.beforeNavigateTo) {
@@ -617,7 +625,7 @@
       return _results;
     };
 
-    GridEdit.prototype.openCellAndPopulateInitialValue = function(key, shift) {
+    GridEdit.prototype.openCellAndPopulateInitialValue = function(shift, key) {
       if (!this.openCell) {
         return this.activeCell().onKeyPress(GridEdit.Utilities.prototype.valueFromKey(key, shift));
       }
@@ -645,7 +653,6 @@
     };
 
     ActionStack.prototype.addAction = function(actionObject) {
-      console.log(actionObject);
       if (this.actions.length > 0 && this.index < this.actions.length - 1) {
         this.actions = this.actions.splice(0, this.index + 1);
       }
@@ -912,7 +919,6 @@
     };
 
     ContextMenu.prototype.hideBorders = function() {
-      console.log('hide');
       if (this.table.copiedGridChange) {
         return this.table.copiedGridChange.removeBorders();
       }
@@ -1228,10 +1234,10 @@
 
           } else {
             prevRow.element.style.borderBottom = row.oldBorderBottom;
-            row.element.style.borderBottom = table.dragBorderStyle;
+            row.element.style.borderBottom = table.theme.borders.dragBorderStyle;
           }
         } else {
-          row.element.style.borderBottom = table.dragBorderStyle;
+          row.element.style.borderBottom = table.theme.borders.dragBorderStyle;
         }
         return table.lastDragOver = row;
       };
@@ -1311,6 +1317,12 @@
 
   })();
 
+
+  /*
+    Generic Row
+    -----------------------------------------------------------------------------------------
+   */
+
   GridEdit.GenericRow = (function(_super) {
     __extends(GenericRow, _super);
 
@@ -1336,6 +1348,12 @@
 
   })(GridEdit.Row);
 
+
+  /*
+    Static Row
+    -----------------------------------------------------------------------------------------
+   */
+
   GridEdit.StaticRow = (function(_super) {
     __extends(StaticRow, _super);
 
@@ -1353,6 +1371,12 @@
     return StaticRow;
 
   })(GridEdit.Row);
+
+
+  /*
+    Subtotal Row
+    -----------------------------------------------------------------------------------------
+   */
 
   GridEdit.SubTotalRow = (function(_super) {
     __extends(SubTotalRow, _super);
@@ -1431,6 +1455,12 @@
     return SubTotalRow;
 
   })(GridEdit.Row);
+
+
+  /*
+    Header Row
+    -----------------------------------------------------------------------------------------
+   */
 
   GridEdit.HeaderRow = (function(_super) {
     __extends(HeaderRow, _super);
@@ -1540,7 +1570,6 @@
       this.afterControlInit = this.table.config.afterControlInit;
       this.beforeControlHide = this.table.config.beforeControlHide;
       this.afterControlHide = this.table.config.afterControlHide;
-      this.onClick = this.table.config.onCellClick;
       return this.beforeNavigateTo = this.table.config.beforeCellNavigateTo;
     };
 
@@ -1602,6 +1631,7 @@
       if (clearActiveCells == null) {
         clearActiveCells = true;
       }
+      this.table.hideControl();
       if (clearActiveCells) {
         GridEdit.Utilities.prototype.clearActiveCells(this.table);
       }
@@ -1610,7 +1640,6 @@
           this.showActive();
           this.table.activeCells.push(this);
           this.table.selectionStart = this;
-          this.table.hideControl();
           openCell = this.table.openCell;
           if (openCell) {
             openCell.edit(openCell.control.value);
@@ -1627,7 +1656,7 @@
     Cell.prototype.showActive = function() {
       if (!this.isActive()) {
         this.oldBackgroundColor = this.element.style.backgroundColor;
-        return this.element.style.backgroundColor = this.table.cellStyles.activeColor;
+        return this.element.style.backgroundColor = this.table.theme.cells.activeColor;
       }
     };
 
@@ -1636,7 +1665,7 @@
     };
 
     Cell.prototype.showUneditable = function() {
-      this.element.style.backgroundColor = this.table.cellStyles.uneditableColor;
+      this.element.style.backgroundColor = this.table.theme.cells.uneditableColor;
       return this.table.redCells.push(this);
     };
 
@@ -1732,12 +1761,16 @@
       if (value == null) {
         value = null;
       }
-      if (this.userHook('beforeControlInit', this)) {
-        this.setControlValue(value);
-        this.table.contextMenu.hideBorders();
-        this.renderControl();
-        this.table.openCell = this;
-        return this.userHook('afterControlInit', this);
+      if (this.editable) {
+        if (this.userHook('beforeControlInit', this)) {
+          this.table.contextMenu.hideBorders();
+          this.renderControl();
+          this.setControlValue(value);
+          this.table.openCell = this;
+          return this.userHook('afterControlInit', this);
+        }
+      } else {
+        return this.showUneditable();
       }
     };
 
@@ -1805,7 +1838,6 @@
 
     Cell.prototype.previous = function() {
       var _ref;
-      console.log('p');
       return this.row.cells[this.index - 1] || ((_ref = this.row.above()) != null ? _ref.cells[this.row.cells.length - 1] : void 0);
     };
 
@@ -1880,17 +1912,22 @@
     };
 
     Cell.prototype.applyEventBehavior = function() {
-      var cell, startY, table;
+      var cell, doubleClickTimeout, startY, table;
       cell = this;
       table = this.table;
+      doubleClickTimeout = null;
       this.element.onclick = function(e) {
         var activateRow, c, cellFrom, cellFromCol, cellFromRow, cellToCol, cellToRow, cmd, col, ctrl, onClickReturnVal, row, shift, _i, _j, _k, _l, _results, _results1;
         table.contextMenu.hideBorders();
         if (table.lastClickCell === cell) {
           table.lastClickCell = null;
-          return cell.edit();
+          return cell.showControl(cell.value());
         } else {
           table.lastClickCell = cell;
+          clearInterval(doubleClickTimeout);
+          doubleClickTimeout = setTimeout(function() {
+            return table.lastClickCell = null;
+          }, 1000);
           onClickReturnVal = cell.col.onClick ? cell.col.onClick(cell, e) : true;
           if (onClickReturnVal) {
             ctrl = e.ctrlKey;
@@ -2051,6 +2088,7 @@
     }
 
     CheckBoxCell.prototype.initialize = function() {
+      this.initEditable();
       this.initValueKey();
       this.initSource();
       this.initOriginalValue();
@@ -2059,6 +2097,7 @@
       this.initUserHooks();
       this.applyStyle();
       this.initNode();
+      this.toggleable = this.editable;
       this.editable = false;
       return this.renderValue();
     };
@@ -2094,11 +2133,25 @@
     };
 
     CheckBoxCell.prototype.toggle = function() {
-      return this.value(!this.value());
+      if (this.toggleable) {
+        return this.value(!this.value());
+      }
     };
 
     CheckBoxCell.prototype.renderValue = function() {
-      return this.span.className = this.value() ? 'glyphicon glyphicon-check' : 'glyphicon glyphicon-unchecked';
+      if (this.value()) {
+        if (this.table.theme.inputs.checkbox.checkedClassName) {
+          return this.span.className = this.table.theme.inputs.checkbox.checkedClassName;
+        } else {
+          return this.span.innerHTML = '&#x2714;';
+        }
+      } else {
+        if (this.table.theme.inputs.checkbox.uncheckedClassName) {
+          return this.span.className = this.table.theme.inputs.checkbox.uncheckedClassName;
+        } else {
+          return this.span.innerHTML = '';
+        }
+      }
     };
 
     CheckBoxCell.prototype.applyEventBehavior = function() {
@@ -2312,7 +2365,7 @@
         }
         select.add(option);
       }
-      select.classList.add('form-control');
+      select.classList.add(this.table.theme.inputs.select.className);
       select.onchange = function(e) {
         return cell.edit(e.target.value);
       };
@@ -2354,7 +2407,7 @@
       node = document.createTextNode(this.originalValue || '');
       this.element.appendChild(node);
       this.control = document.createElement('textarea');
-      this.control.classList.add('form-control');
+      this.control.classList.add(this.table.theme.inputs.textarea.className);
     }
 
     return TextAreaCell;
@@ -2400,7 +2453,7 @@
       table = row.table;
       this.element = document.createElement('td');
       this.element.setAttribute("draggable", true);
-      this.element.className = 'handle';
+      this.element.className = table.theme.cells.handleClassName;
       node = document.createElement('div');
       node.innerHTML = '<span></span><span></span><span></span>';
       this.element.appendChild(node);
@@ -2588,6 +2641,110 @@
     };
 
     return GridChange;
+
+  })();
+
+}).call(this);
+;(function() {
+  GridEdit.Theme = (function() {
+    function Theme(themeName, customTheme) {
+      this.themeName = themeName;
+      switch (this.themeName) {
+        case 'bootstrap':
+          this.apply(this.bootstrap);
+          break;
+        default:
+          this.themeName = 'default';
+          this.apply(this["default"]);
+          break;
+      }
+      if (customTheme) {
+        this.themeName = "" + this.themeName + "-custom";
+        this.apply(customTheme);
+      }
+    }
+
+    Theme.prototype.apply = function(theme) {
+      var apply, k, self, v, _results;
+      self = this;
+      apply = function(target, obj) {
+        var k, v, _results;
+        _results = [];
+        for (k in obj) {
+          v = obj[k];
+          if (typeof v === 'object') {
+            if (!target[k]) {
+              target[k] = {};
+            }
+            _results.push(apply(target[k], v));
+          } else {
+            _results.push(target[k] = v);
+          }
+        }
+        return _results;
+      };
+      _results = [];
+      for (k in theme) {
+        v = theme[k];
+        if (typeof v === 'object') {
+          if (!self[k]) {
+            self[k] = {};
+          }
+          _results.push(apply(self[k], v));
+        } else {
+          _results.push(self[k] = v);
+        }
+      }
+      return _results;
+    };
+
+    Theme.prototype["default"] = {
+      bootstrap: false,
+      cells: {
+        activeColor: "#FFE16F",
+        uneditableColor: "#FFBBB3",
+        handleClassName: 'handle'
+      },
+      borders: {
+        dragBorderStyle: '3px solid rgb(160, 195, 240)'
+      },
+      inputs: {
+        textarea: {
+          className: 'grid-edit'
+        },
+        select: {
+          className: 'grid-edit'
+        },
+        checkbox: {
+          checkedClassName: false,
+          uncheckedClassName: false
+        }
+      }
+    };
+
+    Theme.prototype.bootstrap = {
+      bootstrap: true,
+      cells: {
+        activeColor: "#FFE16F",
+        uneditableColor: "#FFBBB3",
+        handleClassName: 'handle'
+      },
+      borders: {
+        dragBorderStyle: '3px solid rgb(160, 195, 240)'
+      },
+      inputs: {
+        textarea: 'form-control',
+        select: {
+          className: 'form-control'
+        },
+        checkbox: {
+          checkedClassName: 'glyphicon glyphicon-check',
+          uncheckedClassName: 'glyphicon glyphicon-unchecked'
+        }
+      }
+    };
+
+    return Theme;
 
   })();
 

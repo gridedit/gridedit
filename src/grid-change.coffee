@@ -1,5 +1,4 @@
 class GridEdit.GridChange
-
   constructor: (@cells, value) ->
     useBlank = value == 'ge-blank'
     @changes = []

@@ -148,7 +148,6 @@ class GridEdit.ContextMenu
     @table.copiedGridChange.displayBorders() if @table.copiedGridChange
 
   hideBorders: ->
-    console.log('hide')
     @table.copiedGridChange.removeBorders() if @table.copiedGridChange
 
   cut: (e, table) ->

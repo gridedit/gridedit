@@ -20,9 +20,9 @@ class GridEdit.Row
           # do nothing
         else
           prevRow.element.style.borderBottom = row.oldBorderBottom
-          row.element.style.borderBottom = table.dragBorderStyle
+          row.element.style.borderBottom = table.theme.borders.dragBorderStyle
       else
-        row.element.style.borderBottom = table.dragBorderStyle
+        row.element.style.borderBottom = table.theme.borders.dragBorderStyle
       table.lastDragOver = row
 
     @includeRowHandles = @table.config.includeRowHandles
@@ -78,6 +78,11 @@ class GridEdit.Row
       cell = new GridEdit.HandleCell @
       @element.appendChild cell.element
 
+###
+  Generic Row
+  -----------------------------------------------------------------------------------------
+###
+
 class GridEdit.GenericRow extends GridEdit.Row
   constructor: (@attributes, @table) ->
     super
@@ -93,6 +98,11 @@ class GridEdit.GenericRow extends GridEdit.Row
 
     delete @attributes
 
+###
+  Static Row
+  -----------------------------------------------------------------------------------------
+###
+
 class GridEdit.StaticRow extends GridEdit.Row
   constructor: (@attributes, @table) ->
     super
@@ -104,6 +114,10 @@ class GridEdit.StaticRow extends GridEdit.Row
     @type = 'static'
     delete @attributes
 
+###
+  Subtotal Row
+  -----------------------------------------------------------------------------------------
+###
 
 class GridEdit.SubTotalRow extends GridEdit.Row
   constructor: (@attributes, @table) ->
@@ -153,6 +167,11 @@ class GridEdit.SubTotalRow extends GridEdit.Row
 
   afterEdit: () ->
     # do not calculate
+
+###
+  Header Row
+  -----------------------------------------------------------------------------------------
+###
 
 class GridEdit.HeaderRow extends GridEdit.Row
   constructor: (@attributes, @table) ->

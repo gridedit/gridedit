@@ -50,7 +50,6 @@ class GridEdit.Cell
     @afterControlInit = @table.config.afterControlInit
     @beforeControlHide = @table.config.beforeControlHide
     @afterControlHide = @table.config.afterControlHide
-    @onClick = @table.config.onCellClick
     @beforeNavigateTo = @table.config.beforeCellNavigateTo
 
   userHook: (hookName) -> # all additional arguments are passed to user function
@@ -86,13 +85,13 @@ class GridEdit.Cell
   isActive: -> @table.activeCells.indexOf(@) isnt -1
 
   makeActive: (clearActiveCells = true) ->
+    @table.hideControl()
     GridEdit.Utilities::clearActiveCells @table if clearActiveCells
     unless @isActive()
       if @userHook 'beforeActivate', @
         @showActive()
         @table.activeCells.push @
         @table.selectionStart = @
-        @table.hideControl()
         openCell = @table.openCell
         openCell.edit openCell.control.value if openCell
         @userHook 'afterActivate', @
@@ -102,13 +101,13 @@ class GridEdit.Cell
   showActive: ->
     unless @isActive()
       @oldBackgroundColor = @element.style.backgroundColor
-      @element.style.backgroundColor = @table.cellStyles.activeColor
+      @element.style.backgroundColor = @table.theme.cells.activeColor
 
   showInactive: ->
     @element.style.backgroundColor = @oldBackgroundColor
 
   showUneditable: ->
-    @element.style.backgroundColor = @table.cellStyles.uneditableColor
+    @element.style.backgroundColor = @table.theme.cells.uneditableColor
     @table.redCells.push @
 
   ###
@@ -159,12 +158,15 @@ class GridEdit.Cell
   ###
 
   showControl: (value = null) ->
-    if @userHook 'beforeControlInit', @
-      @setControlValue(value)
-      @table.contextMenu.hideBorders()
-      @renderControl()
-      @table.openCell = @
-      @userHook 'afterControlInit', @
+    if @editable
+      if @userHook 'beforeControlInit', @
+        @table.contextMenu.hideBorders()
+        @renderControl()
+        @setControlValue(value)
+        @table.openCell = @
+        @userHook 'afterControlInit', @
+    else
+      @showUneditable()
 
   setControlValue: (value) ->
     @control.value = value
@@ -205,9 +207,7 @@ class GridEdit.Cell
   position: -> @element.getBoundingClientRect()
   reposition: -> GridEdit.Utilities::setStyles @control, @position()
   next: -> @row.cells[@index + 1] or @row.below()?.cells[0]
-  previous: ->
-    console.log('p')
-    @row.cells[@index - 1] or @row.above()?.cells[@row.cells.length - 1]
+  previous: -> @row.cells[@index - 1] or @row.above()?.cells[@row.cells.length - 1]
   above: -> @row.above()?.cells[@index]
   below: -> @row.below()?.cells[@index]
   isBefore: (cell) -> cell.address[0] is @address[0] and cell.address[1] > @address[1]
@@ -235,6 +235,7 @@ class GridEdit.Cell
   applyEventBehavior: ->
     cell = @
     table = @table
+    doubleClickTimeout = null
 
     @element.onclick = (e) ->
       table.contextMenu.hideBorders()
@@ -242,9 +243,15 @@ class GridEdit.Cell
       if table.lastClickCell == cell
         # double click event
         table.lastClickCell = null
-        cell.edit()
+        cell.showControl(cell.value())
       else
         table.lastClickCell = cell
+
+        clearInterval doubleClickTimeout
+        doubleClickTimeout = setTimeout(->
+          table.lastClickCell = null
+        , 1000)
+
         onClickReturnVal = if cell.col.onClick then cell.col.onClick(cell, e) else true
         if onClickReturnVal
           ctrl = e.ctrlKey
@@ -353,6 +360,7 @@ class GridEdit.CheckBoxCell extends GridEdit.Cell
     @
 
   initialize: ->
+    @initEditable()
     @initValueKey()
     @initSource()
     @initOriginalValue()
@@ -362,7 +370,8 @@ class GridEdit.CheckBoxCell extends GridEdit.Cell
     @applyStyle()
     @initNode()
 
-    @editable = false
+    @toggleable = @editable
+    @editable = false # prevents default cell edit behavior
     @renderValue()
 
   initNode: ->
@@ -380,10 +389,19 @@ class GridEdit.CheckBoxCell extends GridEdit.Cell
   isBeingEdited: -> false
 
   toggle: ->
-    @value(!@value())
+    @value(!@value()) if @toggleable
 
   renderValue: ->
-    @span.className = if @value() then 'glyphicon glyphicon-check' else 'glyphicon glyphicon-unchecked'
+    if @value()
+      if @table.theme.inputs.checkbox.checkedClassName
+        @span.className = @table.theme.inputs.checkbox.checkedClassName
+      else
+        @span.innerHTML = '&#x2714;'
+    else
+      if @table.theme.inputs.checkbox.uncheckedClassName
+        @span.className = @table.theme.inputs.checkbox.uncheckedClassName
+      else
+        @span.innerHTML = ''
 
   applyEventBehavior: ->
     super
@@ -512,7 +530,7 @@ class GridEdit.SelectCell extends GridEdit.Cell
         option.value = option.text = choice
       option.selected = true if cell.value() is choice
       select.add option
-    select.classList.add 'form-control'
+    select.classList.add @table.theme.inputs.select.className
     select.onchange = (e) ->
       cell.edit e.target.value
     @control = select
@@ -538,7 +556,7 @@ class GridEdit.TextAreaCell extends GridEdit.Cell
     node = document.createTextNode @originalValue || ''
     @element.appendChild node
     @control = document.createElement 'textarea'
-    @control.classList.add 'form-control'
+    @control.classList.add @table.theme.inputs.textarea.className
 
 ###
   Generic Cell
@@ -573,7 +591,7 @@ class GridEdit.HandleCell
     table = row.table
     @element = document.createElement 'td'
     @element.setAttribute "draggable", true
-    @element.className = 'handle'
+    @element.className = table.theme.cells.handleClassName
     node = document.createElement 'div'
     node.innerHTML = '<span></span><span></span><span></span>'
     @element.appendChild(node)

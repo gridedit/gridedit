@@ -71,6 +71,7 @@ module.exports = (grunt) ->
           'tmp/row.js',
           'tmp/cell.js',
           'tmp/grid-change.js',
+          'tmp/theme.js'
         ],
         dest: 'dist/gridedit.js',
 
