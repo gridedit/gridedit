@@ -2177,22 +2177,27 @@
 
     CheckBoxCell.prototype.toggle = function() {
       if (this.toggleable) {
-        return this.value(!this.value());
+        this.value(!this.value());
+        return this.setValue(this.value());
+      } else {
+        return this.showUneditable();
       }
     };
 
     CheckBoxCell.prototype.renderValue = function() {
+      var disabled;
+      disabled = this.toggleable ? '' : 'disabled';
       if (this.value()) {
         if (this.table.theme.inputs.checkbox.checkedClassName) {
           return this.span.className = this.table.theme.inputs.checkbox.checkedClassName;
         } else {
-          return this.span.innerHTML = '&#x2714;';
+          return this.span.innerHTML = "<input type='checkbox' " + disabled + " checked />";
         }
       } else {
         if (this.table.theme.inputs.checkbox.uncheckedClassName) {
           return this.span.className = this.table.theme.inputs.checkbox.uncheckedClassName;
         } else {
-          return this.span.innerHTML = '';
+          return this.span.innerHTML = "<input type='checkbox' " + disabled + " />";
         }
       }
     };

@@ -65,6 +65,8 @@ class GridEdit.Cell
 	  -----------------------------------------------------------------------------------------
   ###
 
+  showRed: -> @showUneditable() # legacy support
+
   applyStyle: ->
     @element.classList.add @col.cellClass if @col.cellClass
     if @col.style
@@ -387,19 +389,25 @@ class GridEdit.CheckBoxCell extends GridEdit.Cell
   isBeingEdited: -> false
 
   toggle: ->
-    @value(!@value()) if @toggleable
+    if @toggleable
+      @value(!@value())
+      @setValue(@value())
+    else
+      @showUneditable()
 
   renderValue: ->
+    # todo - use css checkbox
+    disabled = if @toggleable then '' else 'disabled'
     if @value()
       if @table.theme.inputs.checkbox.checkedClassName
         @span.className = @table.theme.inputs.checkbox.checkedClassName
       else
-        @span.innerHTML = '&#x2714;'
+        @span.innerHTML = "<input type='checkbox' #{disabled} checked />"
     else
       if @table.theme.inputs.checkbox.uncheckedClassName
         @span.className = @table.theme.inputs.checkbox.uncheckedClassName
       else
-        @span.innerHTML = ''
+        @span.innerHTML = "<input type='checkbox' #{disabled} />"
 
   applyEventBehavior: ->
     super

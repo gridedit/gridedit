@@ -68,7 +68,6 @@ class GridEdit.ContextMenu
     @element.style.position = 'fixed'
     # create the ul to hold context menu items
     @menu = document.createElement 'ul'
-    # todo - remove bootstrap style dependence
     GridEdit.Utilities::setAttributes @menu, {class: 'dropdown-menu', role: 'menu', 'aria-labelledby', style: 'display:block;position:static;margin-bottom:5px;'}
 
     # if the user specifed a contextMenuOrder
