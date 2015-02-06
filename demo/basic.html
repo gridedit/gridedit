@@ -71,22 +71,27 @@
   <body>
     <div id="gridedit"></div>
     <script type="text/javascript">
+      var years = 365 * 24 * 60 * 60000;
+      var chucksDOB = new Date(new Date().valueOf() - (200 * years));
+      var bensDOB = new Date(new Date().valueOf() - (20 * years));
+
       var cols = [
         { label: 'Prefix', valueKey: 'prefix', type: 'select', choices: ['Mr.', 'Jr.', 'Ms.']},
         { label: 'Name', valueKey: 'name', type: 'string', style: {textAlign: 'center'} },
         { label: 'Job Title', valueKey: 'jobTitle', type: 'string', style: { textAlign: 'left' } },
         { label: 'Number of Projects', valueKey: 'numProjects', type: 'number', editable: false },
         { label: 'Has Many Projects', valueKey: 'hasManyProjects', type: 'checkbox', editable: false},
-        { label: 'Editable CheckBox', valueKey: 'editableCheckBox', type: 'checkbox', editable: true}
+        { label: 'Editable CheckBox', valueKey: 'editableCheckBox', type: 'checkbox', editable: true},
+        { label: 'DOB', valueKey: 'dateOfBirth', type: 'date', editable: true }
       ];
 
       var rows = [
-        { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.', hasManyProjects: true, editableCheckBox: false },
+        { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.', hasManyProjects: true, editableCheckBox: false, 'dateOfBirth': bensDOB },
         { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.', hasManyProjects: false, editableCheckBox: false },
         { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.', hasManyProjects: true, editableCheckBox: true },
         { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.', hasManyProjects: false, editableCheckBox: true },
         { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.', hasManyProjects: true, editableCheckBox: false },
-        { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.', hasManyProjects: false, editableCheckBox: false },
+        { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.', hasManyProjects: false, editableCheckBox: false, 'dateOfBirth': chucksDOB },
         { gridEditRowType: 'subtotal', subtotal: { numProjects: true }, labels: { jobTitle: '<div class="subtotal-label"><b>Total Projects</b></div>' } }
       ];
 

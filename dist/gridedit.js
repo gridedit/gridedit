@@ -2186,15 +2186,23 @@
     __extends(DateCell, _super);
 
     function DateCell(value, row) {
-      var node;
       this.row = row;
-      node = document.createTextNode(this.toDateString(this.originalValue));
+      DateCell.__super__.constructor.apply(this, arguments);
+      this.type = 'date';
+      this.initialize();
+      this;
+    }
+
+    DateCell.prototype.initNode = function() {
+      return this.element.appendChild(document.createTextNode(this.toDateString(this.originalValue)));
+    };
+
+    DateCell.prototype.initControl = function() {
       this.control = this.toDate();
       if (this.originalValue) {
-        this.control.valueAsDate = new Date(this.originalValue);
+        return this.control.valueAsDate = new Date(this.originalValue);
       }
-      this.element.appendChild(node);
-    }
+    };
 
     DateCell.prototype.formatValue = function(newValue) {
       if (newValue.length > 0) {
@@ -2209,16 +2217,11 @@
 
     DateCell.prototype.setValue = function(newValue) {
       this.source[this.valueKey] = new Date(newValue);
-      return this.control.valueAsDate = new Date(newValue);
+      return this.control.valueAsDate = this.source[this.valueKey];
     };
 
-    DateCell.prototype.initControl = function() {
-      DateCell.__super__.initControl.call(this);
-      return this.control.value = this.toDateInputString(this.value());
-    };
-
-    DateCell.prototype.value = function() {
-      return this.control.valueAsDate;
+    DateCell.prototype.renderValue = function() {
+      return this.element.textContent = this.col.format(this.toDateString(this.value()));
     };
 
     DateCell.prototype.toDateString = function(passedDate) {
@@ -2229,11 +2232,7 @@
       if (passedDate && passedDate !== '') {
         date = new Date(passedDate);
       } else {
-        if (this.value()) {
-          date = new Date(this.value());
-        } else {
-          null;
-        }
+        date = this.value() ? new Date(this.value()) : null;
       }
       if (date instanceof Date) {
         return ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2) + '-' + date.getFullYear();

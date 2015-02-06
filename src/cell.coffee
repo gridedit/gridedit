@@ -421,10 +421,17 @@ class GridEdit.CheckBoxCell extends GridEdit.Cell
 
 class GridEdit.DateCell extends GridEdit.Cell
   constructor: (value, @row) ->
-    node = document.createTextNode @toDateString @originalValue
+    super
+    @type = 'date'
+    @initialize()
+    @
+
+  initNode: ->
+    @element.appendChild document.createTextNode @toDateString @originalValue
+
+  initControl: ->
     @control = @toDate()
     @control.valueAsDate = new Date(@originalValue) if @originalValue
-    @element.appendChild node
 
   formatValue: (newValue) ->
     if newValue.length > 0
@@ -437,26 +444,20 @@ class GridEdit.DateCell extends GridEdit.Cell
 
   setValue: (newValue) ->
     @source[@valueKey] = new Date(newValue)
-    @control.valueAsDate = new Date(newValue)
+    @control.valueAsDate = @source[@valueKey]
 
-  initControl: ->
-    super()
-    @control.value = @toDateInputString(@value())
-
-  value: ->
-    @control.valueAsDate
+  renderValue: ->
+    @element.textContent = @col.format(@toDateString @value())
 
   toDateString: (passedDate = null) ->
     if passedDate and passedDate isnt ''
       date = new Date(passedDate)
     else
-      if @value() then date = new Date(@value()) else null
+      date = if @value() then new Date(@value()) else null
     if date instanceof Date
       ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2) + '-' + date.getFullYear()
-      # date.getFullYear() + '-' + ('0' + (date.getMonth()+1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2)
     else
       ''
-
   toDate: ->
     input = document.createElement 'input'
     input.type = 'date'
@@ -572,12 +573,6 @@ class GridEdit.GenericCell extends GridEdit.Cell
     @type = 'generic'
     @initialize()
     @
-
-#  initControl: -> @control.value = @value()
-#  formatValue: (newValue) -> newValue
-#  setValue: (newValue) -> @source[@valueKey] = newValue
-#  render: -> @element.textContent
-#  select: -> @control.select()
 
 ###
   Handle Cell
