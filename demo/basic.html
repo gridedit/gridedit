@@ -1,6 +1,8 @@
 <!doctype html>
 <html>
   <head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+
     <style type="text/css">
 
       .myTable {
@@ -9,6 +11,12 @@
       }
       .myTable td, .myTable th {
         border: 1px solid #dedede;
+        line-height: 1.5em;
+      }
+
+      .myTable th, .myTable td {
+        line-height: 2em;
+        padding: 3px;
       }
 
       #contextMenu {
@@ -24,29 +32,79 @@
         cursor: pointer;
       }
 
+      div.subtotal-label {
+        width: 99%;
+        text-align: right;
+      }
+
+      td.handle {
+        background: #efefef;
+      }
+
+      td.handle {
+        padding: 0 !important;
+        vertical-align: middle !important;
+        margin: 0;
+        background: rgb(231, 231, 231);
+        width: 26px;
+        cursor: hand;
+        cursor: pointer;
+        min-width: 26px;
+      }
+
+      td.handle div {
+        width: 0;
+      }
+
+      td.handle div span {
+        display: block;
+        width: 14px;
+        height: 1px;
+        background-color: rgb(182, 182, 182);;
+        margin: 3px;
+        margin-left: 5px;
+      }
+
     </style>
     <script src="../dist/gridedit.js"></script>
   </head>
   <body>
     <div id="gridedit"></div>
     <script type="text/javascript">
+      var years = 365 * 24 * 60 * 60000;
+      var chucksDOB = new Date(new Date().valueOf() - (200 * years));
+      var bensDOB = new Date(new Date().valueOf() - (20 * years));
+
+      var cols = [
+        { label: 'Prefix', valueKey: 'prefix', type: 'select', choices: ['Mr.', 'Jr.', 'Ms.']},
+        { label: 'Name', valueKey: 'name', type: 'string', style: {textAlign: 'center'} },
+        { label: 'Job Title', valueKey: 'jobTitle', type: 'string', style: { textAlign: 'left' } },
+        { label: 'Number of Projects', valueKey: 'numProjects', type: 'number', editable: false },
+        { label: 'Has Many Projects', valueKey: 'hasManyProjects', type: 'checkbox', editable: false},
+        { label: 'Editable CheckBox', valueKey: 'editableCheckBox', type: 'checkbox', editable: true},
+        { label: 'DOB', valueKey: 'dateOfBirth', type: 'date', editable: true }
+      ];
+
+      var rows = [
+        { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.', hasManyProjects: true, editableCheckBox: false, 'dateOfBirth': bensDOB },
+        { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.', hasManyProjects: false, editableCheckBox: false },
+        { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.', hasManyProjects: true, editableCheckBox: true },
+        { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.', hasManyProjects: false, editableCheckBox: true },
+        { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.', hasManyProjects: true, editableCheckBox: false },
+        { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.', hasManyProjects: false, editableCheckBox: false, 'dateOfBirth': chucksDOB },
+        { gridEditRowType: 'subtotal', subtotal: { numProjects: true }, labels: { jobTitle: '<div class="subtotal-label"><b>Total Projects</b></div>' } }
+      ];
+
       ge = new GridEdit({
         initialize: true,
-        cols: [
-          { label: 'Prefix', valueKey: 'prefix', type: 'select', choices: ['Mr.', 'Mrs.', 'Ms.']},
-          { label: 'Name', valueKey: 'name', type: 'string', style: {textAlign: 'center'} },
-          { label: 'Job Title', valueKey: 'jobTitle', type: 'string', style: { textAlign: 'left' } },
-          { label: 'Number of Projects', valueKey: 'numProjects', type: 'number', editable: false }
-        ],
-        rows: [
-          { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.'},
-          { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.'},
-          { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.'},
-          { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.'},
-          { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.'},
-          { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.'}
-        ],
-        tableClass: 'myTable'
+        cols: cols,
+        rows: rows,
+        tableClass: 'myTable',
+        includeRowHandles: true
+//        beforeContextMenuAction: function(e, table){
+//        },
+//        afterContextMenuAction: function(e, table){
+//        }
         // beforeInit: function() {
         //   console.log('beforeInit');
         // },

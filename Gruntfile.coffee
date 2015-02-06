@@ -20,7 +20,7 @@ module.exports = (grunt) ->
           expand: true
           cwd: '<%= yeoman.src %>'
           src: '{,*/}*.coffee'
-          dest: '<%= yeoman.dist %>'
+          dest: 'tmp'
           ext: '.js'
         ]
     uglify:
@@ -58,7 +58,22 @@ module.exports = (grunt) ->
         options:
           livereload: true
 
-
+    concat:
+      options:
+        separator: ';',
+      dist:
+        src: [
+          'tmp/gridedit.js',
+          'tmp/action-stack.js',
+          'tmp/context-menu.js',
+          'tmp/utilities.js',
+          'tmp/column.js',
+          'tmp/row.js',
+          'tmp/cell.js',
+          'tmp/grid-change.js',
+          'tmp/theme.js'
+        ],
+        dest: 'dist/gridedit.js',
 
     grunt.registerTask 'serve', 'Compile then start a connect web server', (target) ->
       grunt.task.run [
@@ -71,5 +86,6 @@ module.exports = (grunt) ->
     grunt.registerTask 'default', [
       'mochaTest'
       'coffee'
+      'concat'
       'uglify'
     ]

@@ -6,6 +6,7 @@
     "chai": "*",
     "grunt": "*",
     "grunt-contrib-coffee": "*",
+    "grunt-contrib-concat": "^0.5.0",
     "grunt-contrib-connect": "^0.9.0",
     "grunt-contrib-uglify": "*",
     "grunt-contrib-watch": "^0.6.1",
