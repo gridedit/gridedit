@@ -32,9 +32,7 @@ class GridEdit.Cell
   initValueKey: -> @valueKey = @col.valueKey
   initSource: -> @source = @table.config.rows[@address[0]]
   initNode: -> @element.appendChild document.createTextNode @col.format(@originalValue)
-
-  initControl: ->
-    @control = document.createElement 'input'
+  initControl: -> @control = document.createElement 'input'
 
   ###
   	User Hooks
@@ -216,7 +214,7 @@ class GridEdit.Cell
   isBelow: (cell) -> cell.address[0] < @address[0] and cell.address[1] is @address[1]
   addClass: (newClass) -> @element.classList.add newClass
   removeClass: (classToRemove) -> @element.classList.remove classToRemove
-  isBeingEdited: -> @control.parentNode?
+  isBeingEdited: -> if @control then @control.parentNode? else false
   toggleActive: -> if @isActive() then @removeFromSelection() else @makeActive(false)
 
   isVisible: ->
@@ -481,10 +479,14 @@ class GridEdit.DateCell extends GridEdit.Cell
 
 class GridEdit.HTMLCell extends GridEdit.Cell
   constructor: (value, @row) ->
+    super
+    @type = 'html'
+    @initialize()
+    @
+
+  initNode: ->
     @htmlContent = @col.defaultValue || @originalValue || ''
-    node = @toFragment()
-    @control = document.createElement 'input'
-    @element.appendChild node
+    @element.appendChild @toFragment()
 
   setValue: (newValue) ->
     @htmlContent = newValue
@@ -499,7 +501,7 @@ class GridEdit.HTMLCell extends GridEdit.Cell
     fragment.appendChild(element.firstChild || document.createTextNode(''))
     fragment
 
-  render: ->
+  renderValue: ->
     @htmlContent
 
 ###

@@ -97,6 +97,7 @@ class GridEdit.GenericRow extends GridEdit.Row
       @element.appendChild cell.element
 
     delete @attributes
+    @
 
 ###
   Static Row
@@ -113,6 +114,7 @@ class GridEdit.StaticRow extends GridEdit.Row
     @element.innerHTML = @attributes.html
     @type = 'static'
     delete @attributes
+    @
 
 ###
   Subtotal Row
@@ -180,10 +182,11 @@ class GridEdit.HeaderRow extends GridEdit.Row
     @addHandle()
 
     for col, i in @table.cols
-      cell = new GridEdit.Cell @attributes[col.valueKey], @, 'html'
+      cell = new GridEdit.HTMLCell @attributes[col.valueKey], @
       @cells.push cell
       @table.cols[i].cells.push cell
       @element.appendChild cell.element
 
     delete @attributes
+    @
 

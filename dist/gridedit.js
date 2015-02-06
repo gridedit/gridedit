@@ -1346,6 +1346,7 @@
         this.element.appendChild(cell.element);
       }
       delete this.attributes;
+      this;
     }
 
     return GenericRow;
@@ -1370,6 +1371,7 @@
       this.element.innerHTML = this.attributes.html;
       this.type = 'static';
       delete this.attributes;
+      this;
     }
 
     return StaticRow;
@@ -1479,12 +1481,13 @@
       _ref = this.table.cols;
       for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
         col = _ref[i];
-        cell = new GridEdit.Cell(this.attributes[col.valueKey], this, 'html');
+        cell = new GridEdit.HTMLCell(this.attributes[col.valueKey], this);
         this.cells.push(cell);
         this.table.cols[i].cells.push(cell);
         this.element.appendChild(cell.element);
       }
       delete this.attributes;
+      this;
     }
 
     return HeaderRow;
@@ -1880,7 +1883,11 @@
     };
 
     Cell.prototype.isBeingEdited = function() {
-      return this.control.parentNode != null;
+      if (this.control) {
+        return this.control.parentNode != null;
+      } else {
+        return false;
+      }
     };
 
     Cell.prototype.toggleActive = function() {
@@ -2284,13 +2291,17 @@
     __extends(HTMLCell, _super);
 
     function HTMLCell(value, row) {
-      var node;
       this.row = row;
-      this.htmlContent = this.col.defaultValue || this.originalValue || '';
-      node = this.toFragment();
-      this.control = document.createElement('input');
-      this.element.appendChild(node);
+      HTMLCell.__super__.constructor.apply(this, arguments);
+      this.type = 'html';
+      this.initialize();
+      this;
     }
+
+    HTMLCell.prototype.initNode = function() {
+      this.htmlContent = this.col.defaultValue || this.originalValue || '';
+      return this.element.appendChild(this.toFragment());
+    };
 
     HTMLCell.prototype.setValue = function(newValue) {
       var node;
@@ -2309,7 +2320,7 @@
       return fragment;
     };
 
-    HTMLCell.prototype.render = function() {
+    HTMLCell.prototype.renderValue = function() {
       return this.htmlContent;
     };
 
