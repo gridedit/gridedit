@@ -341,11 +341,18 @@ class GridEdit.NumberCell extends GridEdit.Cell
     @initialize()
     @
 
+  normalizeValue: (value) ->
+    if value is null or value is undefined or value == ''
+      null
+    else
+      n = Number(value)
+      if isNaN n then null else n
+
   formatValue: (newValue) ->
-    Number(newValue)
+    @normalizeValue(newValue)
 
   setValue: (newValue) ->
-    @source[@valueKey] = Number(newValue)
+    @source[@valueKey] = @normalizeValue(newValue)
 
   ###
 		CheckBox Cell
@@ -450,6 +457,9 @@ class GridEdit.DateCell extends GridEdit.Cell
 
   setValue: (newValue) ->
     @source[@valueKey] = new Date(newValue)
+    @setControlValue()
+
+  setControlValue: ->
     @control.valueAsDate = @source[@valueKey]
 
   renderValue: ->
@@ -461,7 +471,11 @@ class GridEdit.DateCell extends GridEdit.Cell
     else
       date = if @value() then new Date(@value()) else null
     if date instanceof Date
-      ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2) + '-' + date.getFullYear()
+      if isNaN(date.getTime())
+        ''
+      else
+        ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2) + '-' + date.getFullYear()
+
     else
       ''
   toDate: ->

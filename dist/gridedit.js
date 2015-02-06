@@ -1053,7 +1053,7 @@
           }
           userArguments.push(arg);
         }
-        return this[hookName].apply(userArguments);
+        return this[hookName].apply(this, userArguments);
       } else {
         return true;
       }
@@ -1623,7 +1623,6 @@
           }
           userArguments.push(arg);
         }
-        console.log(userArguments);
         return this[hookName].apply(this, userArguments);
       } else {
         return true;
@@ -2106,12 +2105,26 @@
       this;
     }
 
+    NumberCell.prototype.normalizeValue = function(value) {
+      var n;
+      if (value === null || value === void 0 || value === '') {
+        return null;
+      } else {
+        n = Number(value);
+        if (isNaN(n)) {
+          return null;
+        } else {
+          return n;
+        }
+      }
+    };
+
     NumberCell.prototype.formatValue = function(newValue) {
-      return Number(newValue);
+      return this.normalizeValue(newValue);
     };
 
     NumberCell.prototype.setValue = function(newValue) {
-      return this.source[this.valueKey] = Number(newValue);
+      return this.source[this.valueKey] = this.normalizeValue(newValue);
     };
 
 
@@ -2266,6 +2279,10 @@
 
     DateCell.prototype.setValue = function(newValue) {
       this.source[this.valueKey] = new Date(newValue);
+      return this.setControlValue();
+    };
+
+    DateCell.prototype.setControlValue = function() {
       return this.control.valueAsDate = this.source[this.valueKey];
     };
 
@@ -2284,7 +2301,11 @@
         date = this.value() ? new Date(this.value()) : null;
       }
       if (date instanceof Date) {
-        return ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2) + '-' + date.getFullYear();
+        if (isNaN(date.getTime())) {
+          return '';
+        } else {
+          return ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2) + '-' + date.getFullYear();
+        }
       } else {
         return '';
       }
