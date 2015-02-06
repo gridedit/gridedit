@@ -90,7 +90,7 @@
         ge.lastDragOverIsBeforeFirstRow = true;
         prevRow = ge.lastDragOver;
         prevRow.element.style.borderBottom = prevRow.oldBorderBottom;
-        return prevRow.element.style.borderTop = ge.ge.theme.borders.dragBorderStyle;
+        return prevRow.element.style.borderTop = ge.theme.borders.dragBorderStyle;
       };
       thead.ondragleave = function() {
         var firstRow;

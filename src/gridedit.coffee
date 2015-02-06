@@ -59,7 +59,7 @@ class GridEdit
       ge.lastDragOverIsBeforeFirstRow = true
       prevRow = ge.lastDragOver
       prevRow.element.style.borderBottom = prevRow.oldBorderBottom
-      prevRow.element.style.borderTop = ge.ge.theme.borders.dragBorderStyle
+      prevRow.element.style.borderTop = ge.theme.borders.dragBorderStyle
     thead.ondragleave = () ->
       firstRow = ge.rows[0]
       firstRow.element.style.borderTop = firstRow.oldBorderTop
