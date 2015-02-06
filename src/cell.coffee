@@ -408,6 +408,7 @@ class GridEdit.CheckBoxCell extends GridEdit.Cell
 
     cell = @
     @element.onclick = (e) ->
+      cell.table.contextMenu.hideBorders()
       cell.toggle()
 
   onSpaceKeyPress: ->

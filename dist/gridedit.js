@@ -2161,6 +2161,7 @@
       CheckBoxCell.__super__.applyEventBehavior.apply(this, arguments);
       cell = this;
       return this.element.onclick = function(e) {
+        cell.table.contextMenu.hideBorders();
         return cell.toggle();
       };
     };
