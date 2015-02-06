@@ -240,13 +240,15 @@
       return document.onclick = function(e) {
         var activeCell;
         activeCell = table.firstActiveCell();
-        if (!table.isDescendant(e.target || table.contextMenu.isVisible() || e.target === (activeCell != null ? activeCell.control : void 0))) {
-          if (activeCell != null ? activeCell.isBeingEdited() : void 0) {
-            if (activeCell != null) {
-              activeCell.edit(activeCell != null ? activeCell.control.value : void 0);
+        if (!table.isDescendant(e.target || table.contextMenu.isVisible())) {
+          if (e.target !== (activeCell != null ? activeCell.control : void 0)) {
+            if (activeCell != null ? activeCell.isBeingEdited() : void 0) {
+              if (activeCell != null) {
+                activeCell.edit(activeCell != null ? activeCell.control.value : void 0);
+              }
             }
+            GridEdit.Utilities.prototype.clearActiveCells(table);
           }
-          GridEdit.Utilities.prototype.clearActiveCells(table);
         }
         return table.contextMenu.hide();
       };

@@ -152,15 +152,15 @@ class GridEdit
     @tableEl.oncontextmenu = (e) -> false
     document.onclick = (e) ->
       activeCell = table.firstActiveCell()
-      unless table.isDescendant e.target or table.contextMenu.isVisible() or e.target is activeCell?.control
-        activeCell?.edit(activeCell?.control.value) if activeCell?.isBeingEdited()
-        GridEdit.Utilities::clearActiveCells table
+      unless table.isDescendant e.target or table.contextMenu.isVisible()
+        unless e.target is activeCell?.control
+          activeCell?.edit(activeCell?.control.value) if activeCell?.isBeingEdited()
+          GridEdit.Utilities::clearActiveCells table
       table.contextMenu.hide()
 
   render: ->
     @element = document.querySelectorAll(@config.element || '#gridedit')[0] if @element.hasChildNodes()
     @element.appendChild @tableEl
-
 
   getCell: (x, y) ->
     try
