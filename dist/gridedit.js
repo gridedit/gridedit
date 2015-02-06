@@ -187,6 +187,8 @@
               case 13:
                 table.activeCell().onReturnKeyPress();
                 break;
+              case 16:
+                break;
               case 32:
                 if (!table.openCell) {
                   table.activeCell().onSpaceKeyPress();

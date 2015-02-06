@@ -121,6 +121,8 @@ class GridEdit
             when 13 # enter
               table.activeCell().onReturnKeyPress()
               break
+            when 16 # shift
+              break
             when 32 # space
               table.activeCell().onSpaceKeyPress() unless table.openCell
               break
