@@ -105,9 +105,10 @@ class GridEdit
 
         if cmd or ctrl
           if key && key != 91 && key != 92
-            if table.contextMenu.actionCallbacks.byControl[key]
+            action = table.contextMenu.actionCallbacks.byControl[key]
+            if action
               e.preventDefault();
-              table.contextMenu.actionCallbacks.byControl[key](e, table)
+              table.contextMenu.execute action, e
         else
           switch key
             when 8 # backspace

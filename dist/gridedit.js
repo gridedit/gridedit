@@ -155,7 +155,7 @@
       var table;
       table = this;
       document.onkeydown = function(e) {
-        var cmd, ctrl, key, shift;
+        var action, cmd, ctrl, key, shift;
         if (table.activeCell()) {
           key = e.keyCode;
           shift = e.shiftKey;
@@ -163,9 +163,10 @@
           cmd = e.metaKey;
           if (cmd || ctrl) {
             if (key && key !== 91 && key !== 92) {
-              if (table.contextMenu.actionCallbacks.byControl[key]) {
+              action = table.contextMenu.actionCallbacks.byControl[key];
+              if (action) {
                 e.preventDefault();
-                return table.contextMenu.actionCallbacks.byControl[key](e, table);
+                return table.contextMenu.execute(action, e);
               }
             }
           } else {
@@ -839,6 +840,8 @@
       }
       this.element.appendChild(this.menu);
       this.events(this);
+      this.initUserHooks();
+      this;
     }
 
     ContextMenu.prototype.addDivider = function() {
@@ -1034,11 +1037,40 @@
       return classes.toggle('disabled');
     };
 
+    ContextMenu.prototype.initUserHooks = function() {
+      this.beforeContextMenuAction = this.table.config.beforeContextMenuAction;
+      return this.afterContextMenuAction = this.table.config.afterContextMenuAction;
+    };
+
+    ContextMenu.prototype.userHook = function(hookName) {
+      var arg, i, userArguments, _i, _len;
+      if (this[hookName]) {
+        userArguments = [];
+        for (i = _i = 0, _len = arguments.length; _i < _len; i = ++_i) {
+          arg = arguments[i];
+          if (i === 0) {
+            continue;
+          }
+          userArguments.push(arg);
+        }
+        return this[hookName].apply(userArguments);
+      } else {
+        return true;
+      }
+    };
+
+    ContextMenu.prototype.execute = function(actionCallback, event) {
+      if (this.userHook('beforeContextMenuAction', event, this.table)) {
+        actionCallback(event, this.table);
+        return this.userHook('afterContextMenuAction', event, this.table);
+      }
+    };
+
     ContextMenu.prototype.events = function(menu) {
       return this.element.onclick = function(e) {
         var actionName;
         actionName = e.target.getAttribute('name');
-        return menu.actionCallbacks.byName[actionName](e, menu.table);
+        return menu.execute(menu.actionCallbacks.byName[actionName], e);
       };
     };
 
