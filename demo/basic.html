@@ -1,6 +1,9 @@
 <!doctype html>
 <html>
   <head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+
+
     <style type="text/css">
 
       .myTable {
@@ -12,7 +15,7 @@
         line-height: 1.5em;
       }
 
-      .myTable th {
+      .myTable th, .myTable td {
         line-height: 2em;
       }
 
@@ -72,7 +75,7 @@
       ge = new GridEdit({
         initialize: true,
         cols: [
-          { label: 'Prefix', valueKey: 'prefix', type: 'select', choices: ['Mr.', 'Mrs.', 'Ms.']},
+          { label: 'Prefix', valueKey: 'prefix', type: 'select', choices: ['Mr.', 'Jr.', 'Ms.']},
           { label: 'Name', valueKey: 'name', type: 'string', style: {textAlign: 'center'} },
           { label: 'Job Title', valueKey: 'jobTitle', type: 'string', style: { textAlign: 'left' } },
           { label: 'Number of Projects', valueKey: 'numProjects', type: 'number', editable: false }
