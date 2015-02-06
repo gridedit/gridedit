@@ -1623,7 +1623,8 @@
           }
           userArguments.push(arg);
         }
-        return this[hookName].apply(userArguments);
+        console.log(userArguments);
+        return this[hookName].apply(this, userArguments);
       } else {
         return true;
       }
@@ -1634,6 +1635,10 @@
     	Display
     	  -----------------------------------------------------------------------------------------
      */
+
+    Cell.prototype.showRed = function() {
+      return this.showUneditable();
+    };
 
     Cell.prototype.applyStyle = function() {
       var styleName, _results;

@@ -56,7 +56,7 @@ class GridEdit.Cell
       for arg, i in arguments
         continue if i == 0
         userArguments.push arg
-      @[hookName].apply(userArguments)
+      @[hookName].apply(@, userArguments)
     else
       true
 
