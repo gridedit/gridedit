@@ -543,10 +543,19 @@ class GridEdit.SelectCell extends GridEdit.Cell
     @renderControl()
     control = @control
     setTimeout(->
-      event = document.createEvent('MouseEvents');
-      event.initMouseEvent('mousedown', true, true, window);
-      control.dispatchEvent(event);
+      event = document.createEvent('MouseEvents')
+      event.initMouseEvent('mousedown', true, true, window)
+      control.dispatchEvent(event)
     , 0)
+
+  onKeyPress: (key) ->
+    @onSpaceKeyPress()
+    startsWith = new RegExp('^' + key, 'i')
+    control = @control
+    for option, i in control.options
+      if startsWith.test(option.value)
+        control.selectedIndex = i
+        break
 
 ###
   TextArea Cell

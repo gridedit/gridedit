@@ -2392,6 +2392,25 @@
       }, 0);
     };
 
+    SelectCell.prototype.onKeyPress = function(key) {
+      var control, i, option, startsWith, _i, _len, _ref, _results;
+      this.onSpaceKeyPress();
+      startsWith = new RegExp('^' + key, 'i');
+      control = this.control;
+      _ref = control.options;
+      _results = [];
+      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+        option = _ref[i];
+        if (startsWith.test(option.value)) {
+          control.selectedIndex = i;
+          break;
+        } else {
+          _results.push(void 0);
+        }
+      }
+      return _results;
+    };
+
     return SelectCell;
 
   })(GridEdit.Cell);
