@@ -2519,7 +2519,7 @@
       useBlank = value === 'ge-blank';
       this.changes = [];
       this.table = this.cells[0].col.table;
-      this.borderStyle = this.table.config.selectionBorderStyle || "2px dashed blue";
+      this.borderStyle = this.table.theme.cells.selectionBorderStyle;
       this.highRow = 0;
       this.highCol = 0;
       for (_i = 0, _len = cells.length; _i < _len; _i++) {
@@ -2726,7 +2726,8 @@
       cells: {
         activeColor: "#FFE16F",
         uneditableColor: "#FFBBB3",
-        handleClassName: 'handle'
+        handleClassName: 'handle',
+        selectionBorderStyle: '2px dashed blue'
       },
       borders: {
         dragBorderStyle: '3px solid rgb(160, 195, 240)'
@@ -2750,7 +2751,8 @@
       cells: {
         activeColor: "#FFE16F",
         uneditableColor: "#FFBBB3",
-        handleClassName: 'handle'
+        handleClassName: 'handle',
+        selectionBorderStyle: '2px dashed blue'
       },
       borders: {
         dragBorderStyle: '3px solid rgb(160, 195, 240)'

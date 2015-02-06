@@ -3,7 +3,7 @@ class GridEdit.GridChange
     useBlank = value == 'ge-blank'
     @changes = []
     @table = @cells[0].col.table
-    @borderStyle = @table.config.selectionBorderStyle || "2px dashed blue"
+    @borderStyle = @table.theme.cells.selectionBorderStyle
     @highRow = 0
     @highCol = 0
 

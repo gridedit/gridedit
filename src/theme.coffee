@@ -36,7 +36,8 @@ class GridEdit.Theme
     cells: {
       activeColor: "#FFE16F",
       uneditableColor: "#FFBBB3",
-      handleClassName: 'handle'
+      handleClassName: 'handle',
+      selectionBorderStyle: '2px dashed blue'
     },
     borders: {
       dragBorderStyle: '3px solid rgb(160, 195, 240)',
@@ -60,7 +61,8 @@ class GridEdit.Theme
     cells: {
       activeColor: "#FFE16F",
       uneditableColor: "#FFBBB3",
-      handleClassName: 'handle'
+      handleClassName: 'handle',
+      selectionBorderStyle: '2px dashed blue'
     },
     borders: {
       dragBorderStyle: '3px solid rgb(160, 195, 240)',
