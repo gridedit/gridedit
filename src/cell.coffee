@@ -444,7 +444,7 @@ class GridEdit.DateCell extends GridEdit.Cell
 
   initControl: ->
     @control = @toDate()
-    @control.valueAsDate = new Date(@originalValue) if @originalValue
+    @valueAsDate = new Date(@originalValue) if @originalValue
 
   formatValue: (newValue) ->
     if newValue.length > 0
@@ -452,7 +452,7 @@ class GridEdit.DateCell extends GridEdit.Cell
     else if newValue instanceof Date
       @toDateString newValue
     else if newValue.length is 0
-      @control.valueAsDate = null
+      @valueAsDate = null
       ''
 
   setValue: (newValue) ->
@@ -460,7 +460,7 @@ class GridEdit.DateCell extends GridEdit.Cell
     @setControlValue()
 
   setControlValue: ->
-    @control.valueAsDate = @source[@valueKey]
+    @valueAsDate = @source[@valueKey]
 
   renderValue: ->
     @element.textContent = @col.format(@toDateString @value())

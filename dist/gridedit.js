@@ -64,9 +64,21 @@
       this.build();
       this.events();
       this.render();
+      this.removeBrowserHighlighting();
       if (this.config.afterInit) {
         this.config.afterInit();
       }
+    };
+
+    GridEdit.prototype.removeBrowserHighlighting = function() {
+      var styleToSet, stylesToSet, _i, _len, _results;
+      stylesToSet = ['-webkit-touch-callout', '-webkit-user-select', '-khtml-user-select', '-moz-user-select', '-ms-user-select', 'user-select'];
+      _results = [];
+      for (_i = 0, _len = stylesToSet.length; _i < _len; _i++) {
+        styleToSet = stylesToSet[_i];
+        _results.push(this.tableEl.style[styleToSet] = 'none');
+      }
+      return _results;
     };
 
     GridEdit.prototype.build = function() {
@@ -2267,7 +2279,7 @@
     DateCell.prototype.initControl = function() {
       this.control = this.toDate();
       if (this.originalValue) {
-        return this.control.valueAsDate = new Date(this.originalValue);
+        return this.valueAsDate = new Date(this.originalValue);
       }
     };
 
@@ -2277,7 +2289,7 @@
       } else if (newValue instanceof Date) {
         return this.toDateString(newValue);
       } else if (newValue.length === 0) {
-        this.control.valueAsDate = null;
+        this.valueAsDate = null;
         return '';
       }
     };
@@ -2288,7 +2300,7 @@
     };
 
     DateCell.prototype.setControlValue = function() {
-      return this.control.valueAsDate = this.source[this.valueKey];
+      return this.valueAsDate = this.source[this.valueKey];
     };
 
     DateCell.prototype.renderValue = function() {

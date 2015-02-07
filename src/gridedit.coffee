@@ -41,21 +41,22 @@ class GridEdit
     do @build
     do @events
     do @render
+    do @removeBrowserHighlighting
     do @config.afterInit if @config.afterInit
     return
 
   removeBrowserHighlighting: ->
-     stylesToSet = [
-        '-webkit-touch-callout',
-        '-webkit-user-select',
-        '-khtml-user-select',
-        '-moz-user-select',
-        '-ms-user-select',
-        'user-select'
-      ]
+    stylesToSet = [
+      '-webkit-touch-callout',
+      '-webkit-user-select',
+      '-khtml-user-select',
+      '-moz-user-select',
+      '-ms-user-select',
+      'user-select'
+    ]
 
-     for styleToSet in stylesToSet
-       @element.style[styleToSet] = 'none'
+    for styleToSet in stylesToSet
+      @tableEl.style[styleToSet] = 'none'
 
   build: ->
     # Build Table Header
