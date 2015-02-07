@@ -1053,7 +1053,7 @@
           }
           userArguments.push(arg);
         }
-        return this[hookName].apply(this, userArguments);
+        return this[hookName].apply(this, userArguments) !== false;
       } else {
         return true;
       }
@@ -1623,7 +1623,7 @@
           }
           userArguments.push(arg);
         }
-        return this[hookName].apply(this, userArguments);
+        return this[hookName].apply(this, userArguments) !== false;
       } else {
         return true;
       }

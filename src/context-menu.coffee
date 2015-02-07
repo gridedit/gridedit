@@ -225,7 +225,7 @@ class GridEdit.ContextMenu
       for arg, i in arguments
         continue if i == 0
         userArguments.push arg
-      @[hookName].apply(@, userArguments)
+      @[hookName].apply(@, userArguments) != false
     else
       true
 
