@@ -739,6 +739,7 @@
     function ContextMenu(table) {
       var action, actionName, ctrlOrCmd, _i, _len, _ref, _ref1, _ref2;
       this.table = table;
+      this.active = this.table.config.includeContextMenu !== false;
       this.userDefinedActions = this.table.config.contextMenuItems;
       this.userDefinedOrder = this.table.config.contextMenuOrder;
       ctrlOrCmd = /Mac/.test(navigator.platform) ? 'Cmd' : 'Ctrl';
@@ -810,32 +811,34 @@
         'aria-labelledby': 'aria-labelledby',
         style: 'display:block;position:static;margin-bottom:5px;'
       });
-      if (this.userDefinedOrder) {
-        _ref = this.userDefinedOrder;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          actionName = _ref[_i];
-          if (this.userDefinedActions) {
-            action = this.userDefinedActions[actionName] || this.defaultActions[actionName];
-          } else {
-            action = this.defaultActions[actionName];
+      if (this.active) {
+        if (this.userDefinedOrder) {
+          _ref = this.userDefinedOrder;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            actionName = _ref[_i];
+            if (this.userDefinedActions) {
+              action = this.userDefinedActions[actionName] || this.defaultActions[actionName];
+            } else {
+              action = this.defaultActions[actionName];
+            }
+            if (action) {
+              this.addAction(action);
+            }
           }
-          if (action) {
+        } else {
+          _ref1 = this.defaultActions;
+          for (actionName in _ref1) {
+            action = _ref1[actionName];
+            if (this.userDefinedActions && (this.userDefinedActions[actionName] || this.userDefinedActions[actionName] === false)) {
+              continue;
+            }
             this.addAction(action);
           }
-        }
-      } else {
-        _ref1 = this.defaultActions;
-        for (actionName in _ref1) {
-          action = _ref1[actionName];
-          if (this.userDefinedActions && (this.userDefinedActions[actionName] || this.userDefinedActions[actionName] === false)) {
-            continue;
+          _ref2 = this.userDefinedActions;
+          for (actionName in _ref2) {
+            action = _ref2[actionName];
+            this.addAction(action);
           }
-          this.addAction(action);
-        }
-        _ref2 = this.userDefinedActions;
-        for (actionName in _ref2) {
-          action = _ref2[actionName];
-          this.addAction(action);
         }
       }
       this.element.appendChild(this.menu);
@@ -890,15 +893,17 @@
 
     ContextMenu.prototype.show = function(x, y, cell) {
       this.cell = cell;
-      if (!cell.isActive()) {
-        cell.makeActive();
+      if (this.active) {
+        if (!cell.isActive()) {
+          cell.makeActive();
+        }
+        this.cells = cell.table.activeCells;
+        GridEdit.Utilities.prototype.setStyles(this.element, {
+          left: x,
+          top: y
+        });
+        return this.table.tableEl.appendChild(this.element);
       }
-      this.cells = cell.table.activeCells;
-      GridEdit.Utilities.prototype.setStyles(this.element, {
-        left: x,
-        top: y
-      });
-      return this.table.tableEl.appendChild(this.element);
     };
 
     ContextMenu.prototype.hide = function() {

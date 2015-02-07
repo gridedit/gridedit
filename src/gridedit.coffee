@@ -4,6 +4,7 @@ class GridEdit
     @contextMenu = new GridEdit.ContextMenu @
     @themeName = @config.themeName
     @customTheme = @config.themeTemplate
+
     @theme = new GridEdit.Theme @themeName, @customTheme
     @draggingRow = null # the row being dragged
     @lastDragOver = null # the last row that was the row being dragged was over

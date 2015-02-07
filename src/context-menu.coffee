@@ -1,5 +1,6 @@
 class GridEdit.ContextMenu
   constructor: (@table) ->
+    @active = @table.config.includeContextMenu != false
     @userDefinedActions = @table.config.contextMenuItems
     @userDefinedOrder = @table.config.contextMenuOrder
 
@@ -70,25 +71,26 @@ class GridEdit.ContextMenu
     @menu = document.createElement 'ul'
     GridEdit.Utilities::setAttributes @menu, {class: 'dropdown-menu', role: 'menu', 'aria-labelledby', style: 'display:block;position:static;margin-bottom:5px;'}
 
-    # if the user specifed a contextMenuOrder
-    # only add the actions specified
-    # order them as in the array
-    if @userDefinedOrder
-      for actionName in @userDefinedOrder
-        if @userDefinedActions
-          action = @userDefinedActions[actionName] || @defaultActions[actionName]
-        else
-          action = @defaultActions[actionName]
-        if action
+    if @active
+      # if the user specifed a contextMenuOrder
+      # only add the actions specified
+      # order them as in the array
+      if @userDefinedOrder
+        for actionName in @userDefinedOrder
+          if @userDefinedActions
+            action = @userDefinedActions[actionName] || @defaultActions[actionName]
+          else
+            action = @defaultActions[actionName]
+          if action
+            @addAction action
+        # use the default ordering
+      else
+        for actionName, action of @defaultActions
+          # allow the user to override defaults, or remove them by setting them to false
+          continue if @userDefinedActions and (@userDefinedActions[actionName] || @userDefinedActions[actionName] == false)
           @addAction action
-      # use the default ordering
-    else
-      for actionName, action of @defaultActions
-        # allow the user to override defaults, or remove them by setting them to false
-        continue if @userDefinedActions and (@userDefinedActions[actionName] || @userDefinedActions[actionName] == false)
-        @addAction action
-      for actionName, action of @userDefinedActions
-        @addAction action
+        for actionName, action of @userDefinedActions
+          @addAction action
 
     @element.appendChild @menu
     @events @
@@ -132,10 +134,11 @@ class GridEdit.ContextMenu
     @menu.appendChild li
 
   show: (x, y, @cell) ->
-    cell.makeActive() if not cell.isActive()
-    @cells = cell.table.activeCells
-    GridEdit.Utilities::setStyles @element, {left: x, top: y}
-    @table.tableEl.appendChild @element
+    if @active
+      cell.makeActive() if not cell.isActive()
+      @cells = cell.table.activeCells
+      GridEdit.Utilities::setStyles @element, {left: x, top: y}
+      @table.tableEl.appendChild @element
 
   hide: -> @table.tableEl.removeChild @element if @isVisible()
 
