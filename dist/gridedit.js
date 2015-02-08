@@ -2277,19 +2277,29 @@
     };
 
     DateCell.prototype.initControl = function() {
+      var error;
       this.control = this.toDate();
-      if (this.originalValue) {
-        return this.valueAsDate = new Date(this.originalValue);
+      try {
+        if (this.originalValue) {
+          return this.control.valueAsDate = new Date(this.originalValue);
+        }
+      } catch (_error) {
+        error = _error;
       }
     };
 
     DateCell.prototype.formatValue = function(newValue) {
+      var error;
       if (newValue.length > 0) {
         return this.toDateString(Date.parse(newValue));
       } else if (newValue instanceof Date) {
         return this.toDateString(newValue);
       } else if (newValue.length === 0) {
-        this.valueAsDate = null;
+        try {
+          this.control.valueAsDate = null;
+        } catch (_error) {
+          error = _error;
+        }
         return '';
       }
     };
@@ -2300,7 +2310,12 @@
     };
 
     DateCell.prototype.setControlValue = function() {
-      return this.valueAsDate = this.source[this.valueKey];
+      var error;
+      try {
+        return this.control.valueAsDate = this.source[this.valueKey];
+      } catch (_error) {
+        error = _error;
+      }
     };
 
     DateCell.prototype.renderValue = function() {
@@ -2321,7 +2336,7 @@
         if (isNaN(date.getTime())) {
           return '';
         } else {
-          return ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2) + '-' + date.getFullYear();
+          return ('0' + (date.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + date.getUTCDate()).slice(-2) + '-' + date.getUTCFullYear();
         }
       } else {
         return '';
@@ -2351,7 +2366,7 @@
         }
       }
       if (date instanceof Date) {
-        return date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
+        return date.getUTCFullYear() + '-' + ('0' + (date.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + date.getUTCDate()).slice(-2);
       } else {
         return '';
       }
