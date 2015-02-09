@@ -88,6 +88,9 @@ class GridEdit
           row = new GridEdit.SubTotalRow(rowAttributes, @)
         when 'heading'
           row = new GridEdit.HeaderRow(rowAttributes, @)
+        when 'custom'
+          rowType = rowAttributes.customClassName || 'GenericRow'
+          row = new GridEdit[rowType](rowAttributes, @)
         else
           row = new GridEdit.GenericRow(rowAttributes, @)
       @rows.push row
