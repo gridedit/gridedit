@@ -64,9 +64,21 @@
       this.build();
       this.events();
       this.render();
+      this.removeBrowserHighlighting();
       if (this.config.afterInit) {
         this.config.afterInit();
       }
+    };
+
+    GridEdit.prototype.removeBrowserHighlighting = function() {
+      var styleToSet, stylesToSet, _i, _len, _results;
+      stylesToSet = ['-webkit-touch-callout', '-webkit-user-select', '-khtml-user-select', '-moz-user-select', '-ms-user-select', 'user-select'];
+      _results = [];
+      for (_i = 0, _len = stylesToSet.length; _i < _len; _i++) {
+        styleToSet = stylesToSet[_i];
+        _results.push(this.tableEl.style[styleToSet] = 'none');
+      }
+      return _results;
     };
 
     GridEdit.prototype.build = function() {
@@ -739,6 +751,7 @@
     function ContextMenu(table) {
       var action, actionName, ctrlOrCmd, _i, _len, _ref, _ref1, _ref2;
       this.table = table;
+      this.active = this.table.config.includeContextMenu !== false;
       this.userDefinedActions = this.table.config.contextMenuItems;
       this.userDefinedOrder = this.table.config.contextMenuOrder;
       ctrlOrCmd = /Mac/.test(navigator.platform) ? 'Cmd' : 'Ctrl';
@@ -810,32 +823,34 @@
         'aria-labelledby': 'aria-labelledby',
         style: 'display:block;position:static;margin-bottom:5px;'
       });
-      if (this.userDefinedOrder) {
-        _ref = this.userDefinedOrder;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          actionName = _ref[_i];
-          if (this.userDefinedActions) {
-            action = this.userDefinedActions[actionName] || this.defaultActions[actionName];
-          } else {
-            action = this.defaultActions[actionName];
+      if (this.active) {
+        if (this.userDefinedOrder) {
+          _ref = this.userDefinedOrder;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            actionName = _ref[_i];
+            if (this.userDefinedActions) {
+              action = this.userDefinedActions[actionName] || this.defaultActions[actionName];
+            } else {
+              action = this.defaultActions[actionName];
+            }
+            if (action) {
+              this.addAction(action);
+            }
           }
-          if (action) {
+        } else {
+          _ref1 = this.defaultActions;
+          for (actionName in _ref1) {
+            action = _ref1[actionName];
+            if (this.userDefinedActions && (this.userDefinedActions[actionName] || this.userDefinedActions[actionName] === false)) {
+              continue;
+            }
             this.addAction(action);
           }
-        }
-      } else {
-        _ref1 = this.defaultActions;
-        for (actionName in _ref1) {
-          action = _ref1[actionName];
-          if (this.userDefinedActions && (this.userDefinedActions[actionName] || this.userDefinedActions[actionName] === false)) {
-            continue;
+          _ref2 = this.userDefinedActions;
+          for (actionName in _ref2) {
+            action = _ref2[actionName];
+            this.addAction(action);
           }
-          this.addAction(action);
-        }
-        _ref2 = this.userDefinedActions;
-        for (actionName in _ref2) {
-          action = _ref2[actionName];
-          this.addAction(action);
         }
       }
       this.element.appendChild(this.menu);
@@ -890,15 +905,17 @@
 
     ContextMenu.prototype.show = function(x, y, cell) {
       this.cell = cell;
-      if (!cell.isActive()) {
-        cell.makeActive();
+      if (this.active) {
+        if (!cell.isActive()) {
+          cell.makeActive();
+        }
+        this.cells = cell.table.activeCells;
+        GridEdit.Utilities.prototype.setStyles(this.element, {
+          left: x,
+          top: y
+        });
+        return this.table.tableEl.appendChild(this.element);
       }
-      this.cells = cell.table.activeCells;
-      GridEdit.Utilities.prototype.setStyles(this.element, {
-        left: x,
-        top: y
-      });
-      return this.table.tableEl.appendChild(this.element);
     };
 
     ContextMenu.prototype.hide = function() {
@@ -1053,7 +1070,7 @@
           }
           userArguments.push(arg);
         }
-        return this[hookName].apply(this, userArguments);
+        return this[hookName].apply(this, userArguments) !== false;
       } else {
         return true;
       }
@@ -1623,7 +1640,7 @@
           }
           userArguments.push(arg);
         }
-        return this[hookName].apply(this, userArguments);
+        return this[hookName].apply(this, userArguments) !== false;
       } else {
         return true;
       }
@@ -2260,19 +2277,29 @@
     };
 
     DateCell.prototype.initControl = function() {
+      var error;
       this.control = this.toDate();
-      if (this.originalValue) {
-        return this.control.valueAsDate = new Date(this.originalValue);
+      try {
+        if (this.originalValue) {
+          return this.control.valueAsDate = new Date(this.originalValue);
+        }
+      } catch (_error) {
+        error = _error;
       }
     };
 
     DateCell.prototype.formatValue = function(newValue) {
+      var error;
       if (newValue.length > 0) {
         return this.toDateString(Date.parse(newValue));
       } else if (newValue instanceof Date) {
         return this.toDateString(newValue);
       } else if (newValue.length === 0) {
-        this.control.valueAsDate = null;
+        try {
+          this.control.valueAsDate = null;
+        } catch (_error) {
+          error = _error;
+        }
         return '';
       }
     };
@@ -2283,7 +2310,12 @@
     };
 
     DateCell.prototype.setControlValue = function() {
-      return this.control.valueAsDate = this.source[this.valueKey];
+      var error;
+      try {
+        return this.control.valueAsDate = this.source[this.valueKey];
+      } catch (_error) {
+        error = _error;
+      }
     };
 
     DateCell.prototype.renderValue = function() {
@@ -2304,7 +2336,7 @@
         if (isNaN(date.getTime())) {
           return '';
         } else {
-          return ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2) + '-' + date.getFullYear();
+          return ('0' + (date.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + date.getUTCDate()).slice(-2) + '-' + date.getUTCFullYear();
         }
       } else {
         return '';
@@ -2334,7 +2366,7 @@
         }
       }
       if (date instanceof Date) {
-        return date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
+        return date.getUTCFullYear() + '-' + ('0' + (date.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + date.getUTCDate()).slice(-2);
       } else {
         return '';
       }

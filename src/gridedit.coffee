@@ -4,6 +4,7 @@ class GridEdit
     @contextMenu = new GridEdit.ContextMenu @
     @themeName = @config.themeName
     @customTheme = @config.themeTemplate
+
     @theme = new GridEdit.Theme @themeName, @customTheme
     @draggingRow = null # the row being dragged
     @lastDragOver = null # the last row that was the row being dragged was over
@@ -40,8 +41,22 @@ class GridEdit
     do @build
     do @events
     do @render
+    do @removeBrowserHighlighting
     do @config.afterInit if @config.afterInit
     return
+
+  removeBrowserHighlighting: ->
+    stylesToSet = [
+      '-webkit-touch-callout',
+      '-webkit-user-select',
+      '-khtml-user-select',
+      '-moz-user-select',
+      '-ms-user-select',
+      'user-select'
+    ]
+
+    for styleToSet in stylesToSet
+      @tableEl.style[styleToSet] = 'none'
 
   build: ->
     # Build Table Header

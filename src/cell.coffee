@@ -56,7 +56,7 @@ class GridEdit.Cell
       for arg, i in arguments
         continue if i == 0
         userArguments.push arg
-      @[hookName].apply(@, userArguments)
+      @[hookName].apply(@, userArguments) != false
     else
       true
 
@@ -444,7 +444,10 @@ class GridEdit.DateCell extends GridEdit.Cell
 
   initControl: ->
     @control = @toDate()
-    @control.valueAsDate = new Date(@originalValue) if @originalValue
+    try
+      @control.valueAsDate = new Date(@originalValue) if @originalValue
+    catch error
+      # save Safari from error
 
   formatValue: (newValue) ->
     if newValue.length > 0
@@ -452,7 +455,10 @@ class GridEdit.DateCell extends GridEdit.Cell
     else if newValue instanceof Date
       @toDateString newValue
     else if newValue.length is 0
-      @control.valueAsDate = null
+      try
+        @control.valueAsDate = null
+      catch error
+        # save Safari from error
       ''
 
   setValue: (newValue) ->
@@ -460,7 +466,10 @@ class GridEdit.DateCell extends GridEdit.Cell
     @setControlValue()
 
   setControlValue: ->
-    @control.valueAsDate = @source[@valueKey]
+    try
+      @control.valueAsDate = @source[@valueKey]
+    catch error
+      # save Safari from error
 
   renderValue: ->
     @element.textContent = @col.format(@toDateString @value())
@@ -474,7 +483,7 @@ class GridEdit.DateCell extends GridEdit.Cell
       if isNaN(date.getTime())
         ''
       else
-        ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2) + '-' + date.getFullYear()
+        ('0' + (date.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + date.getUTCDate()).slice(-2) + '-' + date.getUTCFullYear()
 
     else
       ''
@@ -490,7 +499,7 @@ class GridEdit.DateCell extends GridEdit.Cell
     else
       if @value() then date = new Date(@value()) else null
     if date instanceof Date
-      date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2)
+      date.getUTCFullYear() + '-' + ('0' + (date.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + date.getUTCDate()).slice(-2)
     else
       ''
 
