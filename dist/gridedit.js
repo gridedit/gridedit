@@ -1744,8 +1744,6 @@
           this.value(value);
           if (this.isBeingEdited()) {
             return this.hideControl();
-          } else {
-            return this.edit();
           }
         } else {
           return this.showControl();
