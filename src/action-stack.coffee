@@ -46,6 +46,14 @@ class GridEdit.ActionStack
           @table.moveRow(action.newIndex, action.oldIndex, false)
           break
 
+        when 'add-rows'
+          @table.removeRows(action.index, false, action.rowObjects.length)
+          break
+
+        when 'remove-rows'
+          @table.addRows(action.index, false, action.rowObjects)
+          break
+
   redo: ->
     if(@index < @actions.length - 1)
       @index++
@@ -79,4 +87,12 @@ class GridEdit.ActionStack
 
         when 'move-row'
           @table.moveRow(action.oldIndex, action.newIndex, false)
+          break
+
+        when 'add-rows'
+          @table.addRows(action.index, false, action.rowObjects)
+          break
+
+        when 'remove-rows'
+          @table.removeRows(action.index, false, action.rowObjects)
           break
