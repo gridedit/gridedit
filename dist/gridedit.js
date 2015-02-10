@@ -1584,7 +1584,6 @@
         }
         this.cells[index].value(total, false);
       }
-      delete this.attributes;
       return this;
     };
 

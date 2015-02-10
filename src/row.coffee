@@ -164,7 +164,6 @@ class GridEdit.SubTotalRow extends GridEdit.Row
         total += Number(cell.value()) if cell
       @cells[index].value(total, false)
 
-    delete @attributes
     @
 
   afterEdit: () ->
