@@ -68,7 +68,9 @@ class GridEdit.Theme
       dragBorderStyle: '3px solid rgb(160, 195, 240)',
     },
     inputs: {
-      textarea: 'form-control'
+      textarea: {
+        className: 'form-control'
+      },
       select: {
         className: 'form-control'
       },
