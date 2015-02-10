@@ -312,6 +312,24 @@ class GridEdit
     @addToStack({ type: 'add-row', index: index, rowObject: rowObject }) if addToStack
     @rebuild({ rows: @source, initialize: true, selectedCell: [index, 0] })
 
+  addRows: (index, addToStack=true, rowObjects=[]) ->
+    for rowObject, i in rowObjects
+      myIndex = index + i
+      if rowObject
+        row = rowObject
+      else
+        row = {}
+        for c in @cols
+          row[c.valueKey] = c.defaultValue || ''
+      if myIndex or myIndex == 0
+        @source.splice(myIndex, 0, row)
+      else
+        myIndex = @source.length - 1
+        @source.push(row)
+
+    @addToStack({ type: 'add-rows', index: index, rowObjects: rowObjects }) if addToStack
+    @rebuild({ rows: @source, initialize: true, selectedCell: [index, 0] })
+
   insertBelow: ->
     cell = @contextMenu.getTargetPasteCell()
     @addRow(cell.address[0] + 1)
@@ -325,6 +343,15 @@ class GridEdit
     row = @rows[index]
     rows = @source.splice(index, 1)
     @addToStack({ type: 'remove-row', index: index, rowObject: rowObject }) if addToStack
+    @rebuild({ rows: @source, initialize: true, selectedCell: [ index, 0 ] })
+
+  removeRows: (index, addToStack=true, numRows) ->
+    rowObjects = []
+    for i in [0..numRows - 1]
+      rowObject = @source[index + i]
+      rowObjects.push(rowObject)
+    @source.splice(index, numRows)
+    @addToStack({ type: 'remove-rows', index: index, rowObjects: rowObjects }) if addToStack
     @rebuild({ rows: @source, initialize: true, selectedCell: [ index, 0 ] })
 
   selectRow: (e, index) ->
