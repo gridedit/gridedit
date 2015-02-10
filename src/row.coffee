@@ -182,6 +182,7 @@ class GridEdit.HeaderRow extends GridEdit.Row
 
     for col, i in @table.cols
       cell = new GridEdit.HTMLCell @attributes[col.valueKey], @
+      cell.editable = true
       @cells.push cell
       @table.cols[i].cells.push cell
       @element.appendChild cell.element

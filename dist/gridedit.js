@@ -1613,6 +1613,7 @@
       for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
         col = _ref[i];
         cell = new GridEdit.HTMLCell(this.attributes[col.valueKey], this);
+        cell.editable = true;
         this.cells.push(cell);
         this.table.cols[i].cells.push(cell);
         this.element.appendChild(cell.element);
