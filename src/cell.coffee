@@ -597,10 +597,20 @@ class GridEdit.SelectCell extends GridEdit.Cell
 
 class GridEdit.TextAreaCell extends GridEdit.Cell
   constructor: (value, @row) ->
+    super
+    @type = 'textarea'
+    @initialize()
+    @
+
+  initNode: ->
     node = document.createTextNode @originalValue || ''
     @element.appendChild node
-    @control = document.createElement 'textarea'
-    @control.classList.add @table.theme.inputs.textarea.className
+
+  initControl: ->
+    cell = @
+    textarea = document.createElement 'textarea'
+    textarea.classList.add @table.theme.inputs.textarea.className
+    @control = textarea
 
 ###
   Generic Cell
