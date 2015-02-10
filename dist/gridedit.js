@@ -82,7 +82,7 @@
     };
 
     GridEdit.prototype.build = function() {
-      var col, colAttributes, ge, handleHeader, i, row, rowAttributes, table, tbody, thead, tr, _i, _j, _len, _len1, _ref, _ref1;
+      var col, colAttributes, ge, handleHeader, i, row, rowAttributes, rowType, table, tbody, thead, tr, _i, _j, _len, _len1, _ref, _ref1;
       tr = document.createElement('tr');
       if (this.config.includeRowHandles) {
         handleHeader = document.createElement('th');
@@ -123,6 +123,10 @@
             break;
           case 'heading':
             row = new GridEdit.HeaderRow(rowAttributes, this);
+            break;
+          case 'custom':
+            rowType = rowAttributes.customClassName || 'GenericRow';
+            row = new GridEdit[rowType](rowAttributes, this);
             break;
           default:
             row = new GridEdit.GenericRow(rowAttributes, this);
@@ -1744,8 +1748,6 @@
           this.value(value);
           if (this.isBeingEdited()) {
             return this.hideControl();
-          } else {
-            return this.edit();
           }
         } else {
           return this.showControl();

@@ -119,7 +119,7 @@ class GridEdit.Cell
     if @editable
       if value isnt null
         @value value
-        if @isBeingEdited() then @hideControl() else @edit()
+        @hideControl() if @isBeingEdited()
       else
         @showControl()
     else
