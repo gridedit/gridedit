@@ -2531,13 +2531,26 @@
     __extends(TextAreaCell, _super);
 
     function TextAreaCell(value, row) {
-      var node;
       this.row = row;
-      node = document.createTextNode(this.originalValue || '');
-      this.element.appendChild(node);
-      this.control = document.createElement('textarea');
-      this.control.classList.add(this.table.theme.inputs.textarea.className);
+      TextAreaCell.__super__.constructor.apply(this, arguments);
+      this.type = 'textarea';
+      this.initialize();
+      this;
     }
+
+    TextAreaCell.prototype.initNode = function() {
+      var node;
+      node = document.createTextNode(this.originalValue || '');
+      return this.element.appendChild(node);
+    };
+
+    TextAreaCell.prototype.initControl = function() {
+      var cell, textarea;
+      cell = this;
+      textarea = document.createElement('textarea');
+      textarea.classList.add(this.table.theme.inputs.textarea.className);
+      return this.control = textarea;
+    };
 
     return TextAreaCell;
 
@@ -2864,7 +2877,9 @@
         dragBorderStyle: '3px solid rgb(160, 195, 240)'
       },
       inputs: {
-        textarea: 'form-control',
+        textarea: {
+          className: 'form-control'
+        },
         select: {
           className: 'form-control'
         },
