@@ -562,6 +562,48 @@
       });
     };
 
+    GridEdit.prototype.addRows = function(index, addToStack, rowObjects) {
+      var c, i, myIndex, row, rowObject, _i, _j, _len, _len1, _ref;
+      if (addToStack == null) {
+        addToStack = true;
+      }
+      if (rowObjects == null) {
+        rowObjects = [];
+      }
+      for (i = _i = 0, _len = rowObjects.length; _i < _len; i = ++_i) {
+        rowObject = rowObjects[i];
+        myIndex = index + i;
+        if (rowObject) {
+          row = rowObject;
+        } else {
+          row = {};
+          _ref = this.cols;
+          for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
+            c = _ref[_j];
+            row[c.valueKey] = c.defaultValue || '';
+          }
+        }
+        if (myIndex || myIndex === 0) {
+          this.source.splice(myIndex, 0, row);
+        } else {
+          myIndex = this.source.length - 1;
+          this.source.push(row);
+        }
+      }
+      if (addToStack) {
+        this.addToStack({
+          type: 'add-rows',
+          index: index,
+          rowObjects: rowObjects
+        });
+      }
+      return this.rebuild({
+        rows: this.source,
+        initialize: true,
+        selectedCell: [index, 0]
+      });
+    };
+
     GridEdit.prototype.insertBelow = function() {
       var cell;
       cell = this.contextMenu.getTargetPasteCell();
@@ -587,6 +629,31 @@
           type: 'remove-row',
           index: index,
           rowObject: rowObject
+        });
+      }
+      return this.rebuild({
+        rows: this.source,
+        initialize: true,
+        selectedCell: [index, 0]
+      });
+    };
+
+    GridEdit.prototype.removeRows = function(index, addToStack, numRows) {
+      var i, rowObject, rowObjects, _i, _ref;
+      if (addToStack == null) {
+        addToStack = true;
+      }
+      rowObjects = [];
+      for (i = _i = 0, _ref = numRows - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
+        rowObject = this.source[index + i];
+        rowObjects.push(rowObject);
+      }
+      this.source.splice(index, numRows);
+      if (addToStack) {
+        this.addToStack({
+          type: 'remove-rows',
+          index: index,
+          rowObjects: rowObjects
         });
       }
       return this.rebuild({
@@ -709,6 +776,12 @@
           case 'move-row':
             this.table.moveRow(action.newIndex, action.oldIndex, false);
             break;
+          case 'add-rows':
+            this.table.removeRows(action.index, false, action.rowObjects.length);
+            break;
+          case 'remove-rows':
+            this.table.addRows(action.index, false, action.rowObjects);
+            break;
         }
       }
     };
@@ -740,6 +813,12 @@
             break;
           case 'move-row':
             this.table.moveRow(action.oldIndex, action.newIndex, false);
+            break;
+          case 'add-rows':
+            this.table.addRows(action.index, false, action.rowObjects);
+            break;
+          case 'remove-rows':
+            this.table.removeRows(action.index, false, action.rowObjects);
             break;
         }
       }
@@ -2533,13 +2612,26 @@
     __extends(TextAreaCell, _super);
 
     function TextAreaCell(value, row) {
-      var node;
       this.row = row;
-      node = document.createTextNode(this.originalValue || '');
-      this.element.appendChild(node);
-      this.control = document.createElement('textarea');
-      this.control.classList.add(this.table.theme.inputs.textarea.className);
+      TextAreaCell.__super__.constructor.apply(this, arguments);
+      this.type = 'textarea';
+      this.initialize();
+      this;
     }
+
+    TextAreaCell.prototype.initNode = function() {
+      var node;
+      node = document.createTextNode(this.originalValue || '');
+      return this.element.appendChild(node);
+    };
+
+    TextAreaCell.prototype.initControl = function() {
+      var cell, textarea;
+      cell = this;
+      textarea = document.createElement('textarea');
+      textarea.classList.add(this.table.theme.inputs.textarea.className);
+      return this.control = textarea;
+    };
 
     return TextAreaCell;
 
@@ -2866,7 +2958,9 @@
         dragBorderStyle: '3px solid rgb(160, 195, 240)'
       },
       inputs: {
-        textarea: 'form-control',
+        textarea: {
+          className: 'form-control'
+        },
         select: {
           className: 'form-control'
         },
