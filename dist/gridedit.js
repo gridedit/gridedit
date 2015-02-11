@@ -231,8 +231,8 @@
               case 16:
                 break;
               case 32:
-                e.preventDefault();
                 if (!table.openCell) {
+                  e.preventDefault();
                   table.activeCell().onSpaceKeyPress();
                 }
                 break;
