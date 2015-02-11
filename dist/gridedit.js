@@ -7,6 +7,10 @@
       var cell, key, value, _ref;
       this.config = config;
       this.actionStack = actionStack;
+      this.dirtyCells = [];
+      this.dirtyRows = [];
+      this.uniqueValueKey = this.config.uniqueValueKey;
+      this.rowIndex = this.config.rowIndex;
       this.element = document.querySelectorAll(this.config.element || '#gridedit')[0];
       this.contextMenu = new GridEdit.ContextMenu(this);
       this.themeName = this.config.themeName;
@@ -61,13 +65,32 @@
       if (this.config.beforeInit) {
         this.config.beforeInit();
       }
+      GridEdit.Hook.prototype.initTableHooks(this);
       this.build();
       this.events();
       this.render();
       this.removeBrowserHighlighting();
+      if (!this.rowIndex) {
+        this.setRowIndexes();
+      }
       if (this.config.afterInit) {
         this.config.afterInit();
       }
+    };
+
+    GridEdit.prototype.setRowIndexes = function() {
+      var i, row, rowIndex, uniqueValueKey, _i, _len, _ref;
+      if (!this.config.uniqueValueKey) {
+        return false;
+      }
+      rowIndex = {};
+      uniqueValueKey = this.config.uniqueValueKey;
+      _ref = this.source;
+      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+        row = _ref[i];
+        rowIndex[i] = row[uniqueValueKey];
+      }
+      return this.rowIndex = rowIndex;
     };
 
     GridEdit.prototype.removeBrowserHighlighting = function() {
@@ -150,6 +173,7 @@
         newConfig = null;
       }
       config = Object.create(this.config);
+      config.rowIndex = this.rowIndex;
       if (newConfig !== null) {
         for (optionKey in newConfig) {
           optionValue = newConfig[optionKey];
@@ -207,6 +231,7 @@
               case 16:
                 break;
               case 32:
+                e.preventDefault();
                 if (!table.openCell) {
                   table.activeCell().onSpaceKeyPress();
                 }
@@ -508,20 +533,24 @@
         addToStack = true;
       }
       row = this.source[rowToMoveIndex];
-      this.source.splice(rowToMoveIndex, 1);
-      this.source.splice(newIndex, 0, row);
-      if (addToStack) {
-        this.addToStack({
-          type: 'move-row',
-          oldIndex: rowToMoveIndex,
-          newIndex: newIndex
+      if (GridEdit.Hook.prototype.run(this, 'beforeMoveRow', rowToMoveIndex, newIndex)) {
+        this.source.splice(rowToMoveIndex, 1);
+        this.source.splice(newIndex, 0, row);
+        if (addToStack) {
+          this.addToStack({
+            type: 'move-row',
+            oldIndex: rowToMoveIndex,
+            newIndex: newIndex
+          });
+        }
+        this.rebuild({
+          rows: this.source,
+          initialize: true,
+          selectedCell: [newIndex, 0]
         });
+        this.setDirtyRows();
+        return GridEdit.Hook.prototype.run(this, 'afterMoveRow', rowToMoveIndex, newIndex);
       }
-      return this.rebuild({
-        rows: this.source,
-        initialize: true,
-        selectedCell: [newIndex, 0]
-      });
     };
 
     GridEdit.prototype.addRow = function(index, addToStack, rowObject) {
@@ -532,34 +561,38 @@
       if (rowObject == null) {
         rowObject = false;
       }
-      if (rowObject) {
-        row = rowObject;
-      } else {
-        row = {};
-        _ref = this.cols;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          c = _ref[_i];
-          row[c.valueKey] = c.defaultValue || '';
+      if (GridEdit.Hook.prototype.run(this, 'beforeAddRow', index, rowObject)) {
+        if (rowObject) {
+          row = rowObject;
+        } else {
+          row = {};
+          _ref = this.cols;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            c = _ref[_i];
+            row[c.valueKey] = c.defaultValue || '';
+          }
         }
-      }
-      if (index || index === 0) {
-        this.source.splice(index, 0, row);
-      } else {
-        index = this.source.length - 1;
-        this.source.push(row);
-      }
-      if (addToStack) {
-        this.addToStack({
-          type: 'add-row',
-          index: index,
-          rowObject: rowObject
+        if (index || index === 0) {
+          this.source.splice(index, 0, row);
+        } else {
+          index = this.source.length - 1;
+          this.source.push(row);
+        }
+        if (addToStack) {
+          this.addToStack({
+            type: 'add-row',
+            index: index,
+            rowObject: rowObject
+          });
+        }
+        this.rebuild({
+          rows: this.source,
+          initialize: true,
+          selectedCell: [index, 0]
         });
+        this.setDirtyRows();
+        return GridEdit.Hook.prototype.run(this, 'afterAddRow', index, rowObject);
       }
-      return this.rebuild({
-        rows: this.source,
-        initialize: true,
-        selectedCell: [index, 0]
-      });
     };
 
     GridEdit.prototype.addRows = function(index, addToStack, rowObjects) {
@@ -570,50 +603,62 @@
       if (rowObjects == null) {
         rowObjects = [];
       }
-      for (i = _i = 0, _len = rowObjects.length; _i < _len; i = ++_i) {
-        rowObject = rowObjects[i];
-        myIndex = index + i;
-        if (rowObject) {
-          row = rowObject;
-        } else {
-          row = {};
-          _ref = this.cols;
-          for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
-            c = _ref[_j];
-            row[c.valueKey] = c.defaultValue || '';
+      if (GridEdit.Hook.prototype.run(this, 'beforeAddRows', index, rowObjects)) {
+        for (i = _i = 0, _len = rowObjects.length; _i < _len; i = ++_i) {
+          rowObject = rowObjects[i];
+          myIndex = index + i;
+          if (rowObject) {
+            row = rowObject;
+          } else {
+            row = {};
+            _ref = this.cols;
+            for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
+              c = _ref[_j];
+              row[c.valueKey] = c.defaultValue || '';
+            }
+          }
+          if (myIndex || myIndex === 0) {
+            this.source.splice(myIndex, 0, row);
+          } else {
+            myIndex = this.source.length - 1;
+            this.source.push(row);
           }
         }
-        if (myIndex || myIndex === 0) {
-          this.source.splice(myIndex, 0, row);
-        } else {
-          myIndex = this.source.length - 1;
-          this.source.push(row);
+        if (addToStack) {
+          this.addToStack({
+            type: 'add-rows',
+            index: index,
+            rowObjects: rowObjects
+          });
         }
-      }
-      if (addToStack) {
-        this.addToStack({
-          type: 'add-rows',
-          index: index,
-          rowObjects: rowObjects
+        this.rebuild({
+          rows: this.source,
+          initialize: true,
+          selectedCell: [index, 0]
         });
+        this.setDirtyRows();
+        return GridEdit.Hook.prototype.run(this, 'afterAddRows', index, rowObjects);
       }
-      return this.rebuild({
-        rows: this.source,
-        initialize: true,
-        selectedCell: [index, 0]
-      });
     };
 
     GridEdit.prototype.insertBelow = function() {
       var cell;
       cell = this.contextMenu.getTargetPasteCell();
-      return this.addRow(cell.address[0] + 1);
+      if (GridEdit.Hook.prototype.run(this, 'beforeInsertBelow', cell)) {
+        this.addRow(cell.address[0] + 1);
+        this.setDirtyRows();
+        return GridEdit.Hook.prototype.run(this, 'afterInsertBelow', cell);
+      }
     };
 
     GridEdit.prototype.insertAbove = function() {
       var cell;
       cell = this.contextMenu.getTargetPasteCell();
-      return this.addRow(cell.address[0]);
+      if (GridEdit.Hook.prototype.run(this, 'beforeInsertAbove', cell)) {
+        this.addRow(cell.address[0]);
+        this.setDirtyRows();
+        return GridEdit.Hook.prototype.run(this, 'afterInsertAbove', cell);
+      }
     };
 
     GridEdit.prototype.removeRow = function(index, addToStack) {
@@ -621,21 +666,25 @@
       if (addToStack == null) {
         addToStack = true;
       }
-      rowObject = this.source[index];
-      row = this.rows[index];
-      rows = this.source.splice(index, 1);
-      if (addToStack) {
-        this.addToStack({
-          type: 'remove-row',
-          index: index,
-          rowObject: rowObject
+      if (GridEdit.Hook.prototype.run(this, 'beforeRemoveRow', index)) {
+        rowObject = this.source[index];
+        row = this.rows[index];
+        rows = this.source.splice(index, 1);
+        if (addToStack) {
+          this.addToStack({
+            type: 'remove-row',
+            index: index,
+            rowObject: rowObject
+          });
+        }
+        this.rebuild({
+          rows: this.source,
+          initialize: true,
+          selectedCell: [index, 0]
         });
+        this.setDirtyRows();
+        return GridEdit.Hook.prototype.run(this, 'afterRemoveRow', index);
       }
-      return this.rebuild({
-        rows: this.source,
-        initialize: true,
-        selectedCell: [index, 0]
-      });
     };
 
     GridEdit.prototype.removeRows = function(index, addToStack, numRows) {
@@ -643,24 +692,28 @@
       if (addToStack == null) {
         addToStack = true;
       }
-      rowObjects = [];
-      for (i = _i = 0, _ref = numRows - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
-        rowObject = this.source[index + i];
-        rowObjects.push(rowObject);
-      }
-      this.source.splice(index, numRows);
-      if (addToStack) {
-        this.addToStack({
-          type: 'remove-rows',
-          index: index,
-          rowObjects: rowObjects
+      if (GridEdit.Hook.prototype.run(this, 'beforeRemoveRows', index, numRows)) {
+        rowObjects = [];
+        for (i = _i = 0, _ref = numRows - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
+          rowObject = this.source[index + i];
+          rowObjects.push(rowObject);
+        }
+        this.source.splice(index, numRows);
+        if (addToStack) {
+          this.addToStack({
+            type: 'remove-rows',
+            index: index,
+            rowObjects: rowObjects
+          });
+        }
+        this.rebuild({
+          rows: this.source,
+          initialize: true,
+          selectedCell: [index, 0]
         });
+        this.setDirtyRows();
+        return GridEdit.Hook.prototype.run(this, 'afterRemoveRows', index, numRows);
       }
-      return this.rebuild({
-        rows: this.source,
-        initialize: true,
-        selectedCell: [index, 0]
-      });
     };
 
     GridEdit.prototype.selectRow = function(e, index) {
@@ -717,6 +770,44 @@
       if (!this.openCell) {
         return this.activeCell().onKeyPress(GridEdit.Utilities.prototype.valueFromKey(key, shift));
       }
+    };
+
+    GridEdit.prototype.checkIfCellIsDirty = function(cell) {
+      var dirtyIndex;
+      dirtyIndex = this.dirtyCells.indexOf(cell);
+      if (dirtyIndex === -1) {
+        if (cell.isDirty()) {
+          return this.dirtyCells.push(cell);
+        }
+      } else {
+        if (!cell.isDirty()) {
+          return this.dirtyCells.splice(dirtyIndex, 1);
+        }
+      }
+    };
+
+    GridEdit.prototype.setDirtyRows = function() {
+      var rowIndex, uniqueIdentifier, uniqueValueKey, _ref, _results;
+      if (!this.config.uniqueValueKey) {
+        return false;
+      }
+      this.dirtyRows = [];
+      uniqueValueKey = this.uniqueValueKey;
+      _ref = this.rowIndex;
+      _results = [];
+      for (rowIndex in _ref) {
+        uniqueIdentifier = _ref[rowIndex];
+        if (uniqueIdentifier !== this.source[rowIndex][uniqueValueKey]) {
+          _results.push(this.dirtyRows.push(rowIndex));
+        } else {
+          _results.push(void 0);
+        }
+      }
+      return _results;
+    };
+
+    GridEdit.prototype.isDirty = function() {
+      return this.dirtyRows.length > 0 || this.dirtyCells.length > 0;
     };
 
     return GridEdit;
@@ -938,7 +1029,7 @@
       }
       this.element.appendChild(this.menu);
       this.events(this);
-      this.initUserHooks();
+      GridEdit.Hook.prototype.initContextMenuHooks(this);
       this;
     }
 
@@ -1137,32 +1228,10 @@
       return classes.toggle('disabled');
     };
 
-    ContextMenu.prototype.initUserHooks = function() {
-      this.beforeContextMenuAction = this.table.config.beforeContextMenuAction;
-      return this.afterContextMenuAction = this.table.config.afterContextMenuAction;
-    };
-
-    ContextMenu.prototype.userHook = function(hookName) {
-      var arg, i, userArguments, _i, _len;
-      if (this[hookName]) {
-        userArguments = [];
-        for (i = _i = 0, _len = arguments.length; _i < _len; i = ++_i) {
-          arg = arguments[i];
-          if (i === 0) {
-            continue;
-          }
-          userArguments.push(arg);
-        }
-        return this[hookName].apply(this, userArguments) !== false;
-      } else {
-        return true;
-      }
-    };
-
     ContextMenu.prototype.execute = function(actionCallback, event) {
-      if (this.userHook('beforeContextMenuAction', event, this.table)) {
+      if (GridEdit.Hook.prototype.run(this, 'beforeContextMenuAction', event, this.table)) {
         actionCallback(event, this.table);
-        return this.userHook('afterContextMenuAction', event, this.table);
+        return GridEdit.Hook.prototype.run(this, 'afterContextMenuAction', event, this.table);
       }
     };
 
@@ -1359,6 +1428,7 @@
       this.oldBorderBottom = this.element.style.borderBottom;
       this.oldBorderTop = this.element.style.borderTop;
       this.type = this.attributes.gridEditRowType;
+      this.alwaysPristine = false;
       table = this.table;
       row = this;
       this.element.ondragenter = function(e) {
@@ -1527,6 +1597,7 @@
       this.subtotalColumns = {};
       this.labels = this.attributes.labels;
       this.running = this.attributes.running;
+      this.alwaysPristine = true;
       this.addHandle();
       _ref = this.table.cols;
       for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
@@ -1549,7 +1620,7 @@
     }
 
     SubTotalRow.prototype.calculate = function() {
-      var cell, col, index, row, rowIndex, start, sub, total, _i, _j, _len, _len1, _ref, _ref1, _ref2;
+      var cell, col, index, row, rowIndex, start, sub, total, _i, _j, _len, _len1, _ref, _ref1, _ref2, _results;
       start = -1;
       if (!this.running) {
         _ref = this.table.subtotalRows;
@@ -1562,6 +1633,7 @@
         }
       }
       _ref1 = this.subtotalColumns;
+      _results = [];
       for (col in _ref1) {
         index = _ref1[col];
         total = 0;
@@ -1582,9 +1654,9 @@
             total += Number(cell.value());
           }
         }
-        this.cells[index].value(total, false);
+        _results.push(this.cells[index].value(total, false));
       }
-      return this;
+      return _results;
     };
 
     SubTotalRow.prototype.afterEdit = function() {};
@@ -1660,7 +1732,7 @@
       this.initControl();
       this.applyControlBehavior();
       this.applyEventBehavior();
-      this.initUserHooks();
+      GridEdit.Hook.prototype.initCellHooks(this);
       return this.applyStyle();
     };
 
@@ -1692,41 +1764,6 @@
 
     Cell.prototype.initControl = function() {
       return this.control = document.createElement('input');
-    };
-
-
-    /*
-    	User Hooks
-    	  -----------------------------------------------------------------------------------------
-     */
-
-    Cell.prototype.initUserHooks = function() {
-      this.beforeEdit = this.table.config.beforeEdit;
-      this.afterEdit = this.table.config.afterEdit;
-      this.beforeActivate = this.table.config.beforeCellActivate;
-      this.afterActivate = this.table.config.afterCellActivate;
-      this.beforeControlInit = this.table.config.beforeControlInit;
-      this.afterControlInit = this.table.config.afterControlInit;
-      this.beforeControlHide = this.table.config.beforeControlHide;
-      this.afterControlHide = this.table.config.afterControlHide;
-      return this.beforeNavigateTo = this.table.config.beforeCellNavigateTo;
-    };
-
-    Cell.prototype.userHook = function(hookName) {
-      var arg, i, userArguments, _i, _len;
-      if (this[hookName]) {
-        userArguments = [];
-        for (i = _i = 0, _len = arguments.length; _i < _len; i = ++_i) {
-          arg = arguments[i];
-          if (i === 0) {
-            continue;
-          }
-          userArguments.push(arg);
-        }
-        return this[hookName].apply(this, userArguments) !== false;
-      } else {
-        return true;
-      }
     };
 
 
@@ -1779,7 +1816,7 @@
         GridEdit.Utilities.prototype.clearActiveCells(this.table);
       }
       if (!this.isActive()) {
-        if (this.userHook('beforeActivate', this)) {
+        if (GridEdit.Hook.prototype.run(this, 'beforeActivate', this)) {
           this.showActive();
           this.table.activeCells.push(this);
           this.table.selectionStart = this;
@@ -1787,7 +1824,7 @@
           if (openCell) {
             openCell.edit(openCell.control.value);
           }
-          return this.userHook('afterActivate', this);
+          return GridEdit.Hook.prototype.run(this, 'afterActivate', this);
         }
       }
     };
@@ -1854,7 +1891,7 @@
       if (newValue !== null && newValue !== currentValue) {
         newValue = this.formatValue(newValue);
         oldValue = this.value();
-        if (this.userHook('beforeEdit', this, oldValue, newValue)) {
+        if (GridEdit.Hook.prototype.run(this, 'beforeEdit', this, oldValue, newValue)) {
           if (addToStack) {
             this.table.addToStack({
               type: 'cell-edit',
@@ -1866,7 +1903,8 @@
           this.setValue(newValue);
           this.renderValue(newValue);
           this.row.afterEdit();
-          this.userHook('afterEdit', this, oldValue, newValue, this.table.contextMenu.getTargetPasteCell());
+          GridEdit.Hook.prototype.run(this, 'afterEdit', this, oldValue, newValue, this.table.contextMenu.getTargetPasteCell());
+          this.table.checkIfCellIsDirty(this);
           return newValue;
         } else {
           return currentValue;
@@ -1894,6 +1932,20 @@
 
 
     /*
+      Dirty
+    	  -----------------------------------------------------------------------------------------
+     */
+
+    Cell.prototype.isDirty = function() {
+      if (this.row.alwaysPristine) {
+        return false;
+      }
+      return this.originalValue !== this.value();
+    };
+
+
+    /*
+    
     	Control
     	  -----------------------------------------------------------------------------------------
      */
@@ -1903,12 +1955,12 @@
         value = null;
       }
       if (this.editable) {
-        if (this.userHook('beforeControlInit', this)) {
+        if (GridEdit.Hook.prototype.run(this, 'beforeControlInit', this)) {
           this.table.contextMenu.hideBorders();
           this.renderControl();
           this.setControlValue(value);
           this.table.openCell = this;
-          return this.userHook('afterControlInit', this);
+          return GridEdit.Hook.prototype.run(this, 'afterControlInit', this);
         }
       } else {
         return this.showUneditable();
@@ -1931,12 +1983,12 @@
     };
 
     Cell.prototype.hideControl = function() {
-      if (this.userHook('beforeControlHide', this)) {
+      if (GridEdit.Hook.prototype.run(this, 'beforeControlHide', this)) {
         if (this.isBeingEdited()) {
           this.control.parentNode.removeChild(this.control);
         }
         this.table.openCell = null;
-        return this.userHook('afterControlHide', this);
+        return GridEdit.Hook.prototype.run(this, 'afterControlHide', this);
       }
     };
 
@@ -2253,7 +2305,7 @@
       this.initOriginalValue();
       this.initSourceValue();
       this.applyEventBehavior();
-      this.initUserHooks();
+      GridEdit.Hook.prototype.initCellHooks(this);
       this.applyStyle();
       this.initNode();
       this.toggleable = this.editable;
@@ -2972,6 +3024,72 @@
     };
 
     return Theme;
+
+  })();
+
+}).call(this);
+;(function() {
+  GridEdit.Hook = (function() {
+    function Hook() {}
+
+    Hook.prototype.run = function(obj, hookName) {
+      var arg, functionArguments, i, _i, _len;
+      if (obj[hookName]) {
+        functionArguments = [];
+        for (i = _i = 0, _len = arguments.length; _i < _len; i = ++_i) {
+          arg = arguments[i];
+          if (i < 2) {
+            continue;
+          }
+          functionArguments.push(arg);
+        }
+        return obj[hookName].apply(obj, functionArguments) !== false;
+      } else {
+        return true;
+      }
+    };
+
+    Hook.prototype.initTableHooks = function(table) {
+      var config;
+      config = table.config;
+      table.beforeMoveRow = config.beforeMoveRow;
+      table.afterMoveRow = config.afterMoveRow;
+      table.beforeAddRow = config.beforeAddRow;
+      table.afterAddRow = config.afterAddRow;
+      table.beforeAddRows = config.beforeAddRows;
+      table.afterAddRows = config.afterAddRows;
+      table.beforeRemoveRow = config.beforeRemoveRow;
+      table.afterRemoveRow = config.afterRemoveRow;
+      table.beforeRemoveRows = config.beforeRemoveRows;
+      table.afterRemoveRows = config.afterRemoveRows;
+      table.beforeInsertBelow = config.beforeInsertBelow;
+      table.afterInsertBelow = config.afterInsertBelow;
+      table.beforeInsertAbove = config.beforeInsertAbove;
+      return table.afterInsertAbove = config.afterInsertAbove;
+    };
+
+    Hook.prototype.initContextMenuHooks = function(contextMenu) {
+      var config;
+      config = contextMenu.table.config;
+      contextMenu.beforeContextMenuAction = config.beforeContextMenuAction;
+      return contextMenu.afterContextMenuAction = config.afterContextMenuAction;
+    };
+
+    Hook.prototype.initCellHooks = function(cell) {
+      var config;
+      config = cell.table.config;
+      cell.beforeEdit = config.beforeEdit;
+      cell.afterEdit = config.afterEdit;
+      cell.beforeActivate = config.beforeCellActivate;
+      cell.afterActivate = config.afterCellActivate;
+      cell.beforeControlInit = config.beforeControlInit;
+      cell.afterControlInit = config.afterControlInit;
+      cell.beforeControlHide = config.beforeControlHide;
+      cell.afterControlHide = config.afterControlHide;
+      return cell.beforeNavigateTo = config.beforeCellNavigateTo;
+    };
+
+    return Hook;
 
   })();
 

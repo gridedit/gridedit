@@ -23,7 +23,7 @@ class GridEdit.Cell
     @initControl()
     @applyControlBehavior()
     @applyEventBehavior()
-    @initUserHooks()
+    GridEdit.Hook::initCellHooks(@)
     @applyStyle()
 
   initOriginalValue: -> @originalValue = '' if @originalValue == undefined
@@ -33,32 +33,6 @@ class GridEdit.Cell
   initSource: -> @source = @table.config.rows[@address[0]]
   initNode: -> @element.appendChild document.createTextNode @col.format(@originalValue)
   initControl: -> @control = document.createElement 'input'
-
-  ###
-  	User Hooks
-	  -----------------------------------------------------------------------------------------
-  ###
-
-  initUserHooks: ->
-    @beforeEdit = @table.config.beforeEdit
-    @afterEdit = @table.config.afterEdit
-    @beforeActivate = @table.config.beforeCellActivate
-    @afterActivate = @table.config.afterCellActivate
-    @beforeControlInit = @table.config.beforeControlInit
-    @afterControlInit = @table.config.afterControlInit
-    @beforeControlHide = @table.config.beforeControlHide
-    @afterControlHide = @table.config.afterControlHide
-    @beforeNavigateTo = @table.config.beforeCellNavigateTo
-
-  userHook: (hookName) -> # all additional arguments are passed to user function
-    if @[hookName]
-      userArguments = []
-      for arg, i in arguments
-        continue if i == 0
-        userArguments.push arg
-      @[hookName].apply(@, userArguments) != false
-    else
-      true
 
   ###
   	Display
@@ -88,13 +62,13 @@ class GridEdit.Cell
     @table.hideControl()
     GridEdit.Utilities::clearActiveCells @table if clearActiveCells
     unless @isActive()
-      if @userHook 'beforeActivate', @
+      if GridEdit.Hook::run @, 'beforeActivate', @
         @showActive()
         @table.activeCells.push @
         @table.selectionStart = @
         openCell = @table.openCell
         openCell.edit openCell.control.value if openCell
-        @userHook 'afterActivate', @
+        GridEdit.Hook::run @, 'afterActivate', @
 
   makeInactive: -> @showInactive()
 
@@ -135,12 +109,13 @@ class GridEdit.Cell
     if newValue isnt null and newValue isnt currentValue
       newValue = @formatValue(newValue)
       oldValue = @value()
-      if @userHook 'beforeEdit', @, oldValue, newValue
+      if GridEdit.Hook::run @, 'beforeEdit', @, oldValue, newValue
         @table.addToStack { type: 'cell-edit', oldValue: oldValue, newValue: newValue, address: @address } if addToStack
         @setValue(newValue)
         @renderValue(newValue)
         @row.afterEdit()
-        @userHook 'afterEdit', @, oldValue, newValue, @table.contextMenu.getTargetPasteCell()
+        GridEdit.Hook::run @, 'afterEdit', @, oldValue, newValue, @table.contextMenu.getTargetPasteCell()
+        @table.checkIfCellIsDirty(@)
         return newValue
       else
         currentValue
@@ -153,18 +128,27 @@ class GridEdit.Cell
   select: -> @control.select()
 
   ###
+    Dirty
+	  -----------------------------------------------------------------------------------------
+  ###
+
+  isDirty: () ->
+    return false if @row.alwaysPristine
+    @originalValue != @value()
+  ###
+
   	Control
 	  -----------------------------------------------------------------------------------------
   ###
 
   showControl: (value = null) ->
     if @editable
-      if @userHook 'beforeControlInit', @
+      if GridEdit.Hook::run @, 'beforeControlInit', @
         @table.contextMenu.hideBorders()
         @renderControl()
         @setControlValue(value)
         @table.openCell = @
-        @userHook 'afterControlInit', @
+        GridEdit.Hook::run @, 'afterControlInit', @
     else
       @showUneditable()
 
@@ -181,10 +165,10 @@ class GridEdit.Cell
     , 0)
 
   hideControl: ->
-    if @userHook 'beforeControlHide', @
+    if GridEdit.Hook::run @, 'beforeControlHide', @
       @control.parentNode.removeChild(@control) if @isBeingEdited()
       @table.openCell = null
-      @userHook 'afterControlHide', @
+      GridEdit.Hook::run @, 'afterControlHide', @
 
   applyControlBehavior: ->
     cell = @
@@ -283,8 +267,6 @@ class GridEdit.Cell
               for row in [cellToRow..cellFromRow]
                 activateRow row
 
-
-
     @element.onmousedown = (e) ->
       if e.which is 3 # right mouse button
         table.contextMenu.show(e.x, e.y, cell)
@@ -373,7 +355,7 @@ class GridEdit.CheckBoxCell extends GridEdit.Cell
     @initOriginalValue()
     @initSourceValue()
     @applyEventBehavior()
-    @initUserHooks()
+    GridEdit.Hook::initCellHooks(@)
     @applyStyle()
     @initNode()
 

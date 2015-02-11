@@ -94,7 +94,7 @@ class GridEdit.ContextMenu
 
     @element.appendChild @menu
     @events @
-    @initUserHooks()
+    GridEdit.Hook::initContextMenuHooks(@)
     @
 
   # add a divider to the context menu
@@ -218,24 +218,10 @@ class GridEdit.ContextMenu
     classes.toggle 'enabled'
     classes.toggle 'disabled'
 
-  initUserHooks: ->
-    @beforeContextMenuAction = @table.config.beforeContextMenuAction
-    @afterContextMenuAction = @table.config.afterContextMenuAction
-
-  userHook: (hookName) -> # all additional arguments are passed to user function
-    if @[hookName]
-      userArguments = []
-      for arg, i in arguments
-        continue if i == 0
-        userArguments.push arg
-      @[hookName].apply(@, userArguments) != false
-    else
-      true
-
   execute: (actionCallback, event) ->
-    if @userHook 'beforeContextMenuAction', event, @table
+    if GridEdit.Hook::run @, 'beforeContextMenuAction', event, @table
       actionCallback event, @table
-      @userHook 'afterContextMenuAction', event, @table
+      GridEdit.Hook::run @, 'afterContextMenuAction', event, @table
 
   events: (menu) ->
     @element.onclick = (e) ->

@@ -9,6 +9,7 @@ class GridEdit.Row
     @oldBorderBottom = @element.style.borderBottom
     @oldBorderTop = @element.style.borderTop
     @type = @attributes.gridEditRowType
+    @alwaysPristine = false
 
     table = @table
     row = @
@@ -127,6 +128,7 @@ class GridEdit.SubTotalRow extends GridEdit.Row
     @subtotalColumns = {}
     @labels = @attributes.labels
     @running = @attributes.running
+    @alwaysPristine = true
 
     @addHandle()
 
@@ -163,8 +165,6 @@ class GridEdit.SubTotalRow extends GridEdit.Row
         cell = row.cells[index]
         total += Number(cell.value()) if cell
       @cells[index].value(total, false)
-
-    @
 
   afterEdit: () ->
     # do not calculate
