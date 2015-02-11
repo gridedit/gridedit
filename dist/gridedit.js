@@ -2097,7 +2097,7 @@
      */
 
     Cell.prototype.onReturnKeyPress = function() {
-      return false;
+      return this.table.moveTo(this.table.belowCell());
     };
 
     Cell.prototype.onSpaceKeyPress = function() {

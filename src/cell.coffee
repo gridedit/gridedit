@@ -212,7 +212,8 @@ class GridEdit.Cell
 	  -----------------------------------------------------------------------------------------
   ###
 
-  onReturnKeyPress: -> false
+  onReturnKeyPress: ->
+    @table.moveTo @table.belowCell()
   onSpaceKeyPress: -> @edit()
   onKeyPress:(value) -> @showControl(value)
 
