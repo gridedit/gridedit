@@ -157,8 +157,9 @@ class GridEdit
             when 16 # shift
               break
             when 32 # space
-              e.preventDefault()
-              table.activeCell().onSpaceKeyPress() unless table.openCell
+              unless table.openCell
+                e.preventDefault()
+                table.activeCell().onSpaceKeyPress()
               break
             when 37 # left arrow
               table.moveTo table.previousCell()

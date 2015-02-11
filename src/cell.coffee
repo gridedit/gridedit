@@ -385,7 +385,6 @@ class GridEdit.CheckBoxCell extends GridEdit.Cell
       @showUneditable()
 
   renderValue: ->
-    # todo - use css checkbox
     disabled = if @toggleable then '' else 'disabled'
     if @value()
       if @table.theme.inputs.checkbox.checkedClassName
