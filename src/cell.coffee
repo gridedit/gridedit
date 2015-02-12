@@ -227,8 +227,9 @@ class GridEdit.Cell
 
       if table.lastClickCell == cell
         # double click event
-        table.lastClickCell = null
-        cell.showControl(cell.value())
+        if GridEdit.Hook::run cell, 'onDblClick', cell, e
+          table.lastClickCell = null
+          cell.showControl(cell.value())
       else
         table.lastClickCell = cell
 
@@ -237,8 +238,7 @@ class GridEdit.Cell
           table.lastClickCell = null
         , 1000)
 
-        onClickReturnVal = if cell.col.onClick then cell.col.onClick(cell, e) else true
-        if onClickReturnVal
+        if GridEdit.Hook::run cell, 'onClick', cell, e
           ctrl = e.ctrlKey
           cmd = e.metaKey
           shift = e.shiftKey
@@ -267,6 +267,7 @@ class GridEdit.Cell
             else
               for row in [cellToRow..cellFromRow]
                 activateRow row
+        false
 
     @element.onmousedown = (e) ->
       if e.which is 3 # right mouse button
@@ -276,6 +277,7 @@ class GridEdit.Cell
         unless e.shiftKey or e.ctrlKey or e.metaKey
           table.state = "selecting"
           cell.makeActive()
+      false
 
     @element.onmouseover = (e) ->
       if table.state is 'selecting'

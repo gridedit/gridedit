@@ -70,3 +70,9 @@ class GridEdit.Hook
 
     # navigateTo
     cell.beforeNavigateTo = config.beforeCellNavigateTo
+
+    # onCellClick
+    cell.onClick = config.onCellClick
+
+    # onCellDblClick
+    cell.onDblClick = config.onCellDblClick

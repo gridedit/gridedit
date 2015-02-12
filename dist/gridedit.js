@@ -2114,19 +2114,20 @@
       table = this.table;
       doubleClickTimeout = null;
       this.element.onclick = function(e) {
-        var activateRow, c, cellFrom, cellFromCol, cellFromRow, cellToCol, cellToRow, cmd, col, ctrl, onClickReturnVal, row, shift, _i, _j, _k, _l, _results, _results1;
+        var activateRow, c, cellFrom, cellFromCol, cellFromRow, cellToCol, cellToRow, cmd, col, ctrl, row, shift, _i, _j, _k, _l;
         table.contextMenu.hideBorders();
         if (table.lastClickCell === cell) {
-          table.lastClickCell = null;
-          return cell.showControl(cell.value());
+          if (GridEdit.Hook.prototype.run(cell, 'onDblClick', cell, e)) {
+            table.lastClickCell = null;
+            return cell.showControl(cell.value());
+          }
         } else {
           table.lastClickCell = cell;
           clearInterval(doubleClickTimeout);
           doubleClickTimeout = setTimeout(function() {
             return table.lastClickCell = null;
           }, 1000);
-          onClickReturnVal = cell.col.onClick ? cell.col.onClick(cell, e) : true;
-          if (onClickReturnVal) {
+          if (GridEdit.Hook.prototype.run(cell, 'onClick', cell, e)) {
             ctrl = e.ctrlKey;
             cmd = e.metaKey;
             shift = e.shiftKey;
@@ -2152,31 +2153,30 @@
               cellToRow = cell.address[0];
               cellToCol = cell.address[1];
               if (cellFromRow <= cellToRow) {
-                _results = [];
                 for (row = _k = cellFromRow; cellFromRow <= cellToRow ? _k <= cellToRow : _k >= cellToRow; row = cellFromRow <= cellToRow ? ++_k : --_k) {
-                  _results.push(activateRow(row));
+                  activateRow(row);
                 }
-                return _results;
               } else {
-                _results1 = [];
                 for (row = _l = cellToRow; cellToRow <= cellFromRow ? _l <= cellFromRow : _l >= cellFromRow; row = cellToRow <= cellFromRow ? ++_l : --_l) {
-                  _results1.push(activateRow(row));
+                  activateRow(row);
                 }
-                return _results1;
               }
             }
           }
+          return false;
         }
       };
       this.element.onmousedown = function(e) {
         if (e.which === 3) {
           table.contextMenu.show(e.x, e.y, cell);
+          return;
         } else {
           if (!(e.shiftKey || e.ctrlKey || e.metaKey)) {
             table.state = "selecting";
-            return cell.makeActive();
+            cell.makeActive();
           }
         }
+        return false;
       };
       this.element.onmouseover = function(e) {
         if (table.state === 'selecting') {
@@ -3086,7 +3086,9 @@
       cell.afterControlInit = config.afterControlInit;
       cell.beforeControlHide = config.beforeControlHide;
       cell.afterControlHide = config.afterControlHide;
-      return cell.beforeNavigateTo = config.beforeCellNavigateTo;
+      cell.beforeNavigateTo = config.beforeCellNavigateTo;
+      cell.onClick = config.onCellClick;
+      return cell.onDblClick = config.onCellDblClick;
     };
 
     return Hook;
