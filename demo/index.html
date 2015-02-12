@@ -1,0 +1,468 @@
+<!doctype html>
+<html>
+<head>
+  <link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css'>
+
+  <style type='text/css'>
+
+    .myTable {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .myTable td, .myTable th {
+      border: 1px solid #dedede;
+      line-height: 1.5em;
+    }
+
+    .myTable th, .myTable td {
+      line-height: 2em;
+      padding: 3px;
+    }
+
+    #contextMenu {
+      position: absolute;
+    }
+
+    #contextMenu .disabled {
+      color: #C0C0C0;
+      background: none;
+    }
+
+    #contextMenu li a {
+      cursor: pointer;
+    }
+
+    div.subtotal-label {
+      width: 99%;
+      text-align: right;
+    }
+
+    td.handle {
+      background: #efefef;
+    }
+
+    td.handle {
+      padding: 0 !important;
+      vertical-align: middle !important;
+      margin: 0;
+      background: rgb(231, 231, 231);
+      width: 26px;
+      cursor: hand;
+      cursor: pointer;
+      min-width: 26px;
+    }
+
+    td.handle div {
+      width: 0;
+    }
+
+    td.handle div span {
+      display: block;
+      width: 14px;
+      height: 1px;
+      background-color: rgb(182, 182, 182);;
+      margin: 3px;
+      margin-left: 5px;
+    }
+
+    ul.dropdown-menu {
+      list-style: none;
+      background: white;
+      padding: 5px;
+      border: 1px solid #ddd;
+    }
+
+    ul.dropdown-menu li {
+      padding: 3px;
+    }
+
+    ul.dropdown-menu li:hover {
+      background: #eee;
+    }
+
+    td {
+      height: 1em;
+    }
+
+    @font-face {
+      font-family: 'gridEdit';
+      src: url('./gridedit.ttf') format('truetype');
+    }
+
+    .grid-edit {
+      position: relative;
+      top: 1px;
+      display: inline-block;
+      font-family: 'gridEdit';
+      font-style: normal;
+      font-weight: normal;
+      line-height: 1;
+      padding-right: 10px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .grid-edit:before {
+      content: "A";
+    }
+
+    div.intro {
+      text-align: center;
+      padding-bottom: 100px;
+    }
+
+    h1.intro {
+      font-size: 4em;
+    }
+
+    div.no-horizontal-padding {
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+    }
+
+    div.no-border-radius {
+      border-radius: 0;
+    }
+
+    div.demonstration {
+      text-align: center;
+      padding-right: 40px;
+      padding-left: 40px;
+      padding-top: 40px;
+      padding-bottom: 50px;
+    }
+
+    div.features {
+      text-align: left;
+      padding-left: 100px;
+      padding-right: 30px;
+      margin-bottom: 50px;
+    }
+
+    div.navbar-header {
+      padding-left: 15px;
+    }
+
+    button.btn-github {
+      min-width: 200px;
+      margin-top: 20px;
+    }
+
+    .right {
+      text-align: right;
+    }
+
+    .left {
+      text-align: left;
+    }
+
+    @media screen and (max-width: 768px) {
+      .right {
+        text-align: center;
+      }
+
+      .left {
+        text-align: center;
+      }
+
+      div.demonstration {
+        padding-left: 10px;
+      }
+
+      div.features {
+        padding-left: 10px;
+      }
+    }
+
+    .push-down {
+      margin-top: 50px;
+    }
+
+    .push-down-more {
+      margin-top: 70px;
+    }
+
+    .push-down-less {
+      margin-top: 30px;
+    }
+
+    .navbar-default {
+      background: rgb(231, 231, 231);
+      border-color: rgb(231, 231, 231);
+      border-radius: 0;
+    }
+
+    p.version {
+      color: #bbb;
+      font-weight: 100;
+      font-size: 1em;
+      margin-top: -10px;
+    }
+
+    #sample-grid-edit {
+      width: 700px;
+      margin: auto;
+    }
+
+    .centered {
+      text-align: center;
+    }
+
+    div.wrap {
+      min-height: 100%;
+    }
+
+  </style>
+  <script src='../dist/gridedit.js'></script>
+</head>
+<body>
+
+<div class='wrap'>
+
+  <div class='container-fluid intro no-horizontal-padding no-border-radius'>
+    <nav class='navbar navbar-default'>
+      <div class='container-fluid no-border-radius'>
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class='navbar-header'>
+          <button type='button' class='navbar-toggle collapsed' data-toggle='collapse'
+                  data-target='#bs-example-navbar-collapse-1'>
+            <span class='sr-only'>Toggle navigation</span>
+            <span class='icon-bar'></span>
+            <span class='icon-bar'></span>
+            <span class='icon-bar'></span>
+          </button>
+          <a class='navbar-brand' href='#'><span class='grid-edit'>&nbsp;GridEdit</span></a>
+        </div>
+
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+
+          <ul class="nav navbar-nav navbar-right">
+
+            <!--<li><a href="#">Docs</a></li>-->
+          </ul>
+        </div><!-- /.navbar-collapse -->
+      </div>
+      <!-- /.container-fluid -->
+    </nav>
+    <img class='push-down' src='./gridEdit-logo.png'/>
+
+    <h1 class='intro'>GridEdit</h1>
+
+    <p class='version'>
+      Beta
+    </p>
+
+    <p class='lead push-down-less'>
+      A simple & lightweight JavaScript library for creating an editable grid.
+    </p>
+
+    <div class='push-down'>
+      <div class='col-xs-12 col-sm-6 right'>
+        <button class='btn btn-large btn-primary btn-github'>View Project on GitHub</button>
+      </div>
+      <div class='col-xs-12 col-sm-6 left'>
+        <button class='btn btn-large btn-primary btn-github'>Download Beta Version</button>
+      </div>
+    </div>
+
+  </div>
+
+  <hr style='width: 90%'/>
+
+
+  <div class='container-fluid demonstration'>
+    <h1 class='push-down-less'>Example</h1>
+
+    <div id='sample-grid-edit' class='push-down-less'></div>
+  </div>
+
+  <!--<hr style='width: 90%'/>-->
+
+  <!--<h1 class='push-down centered'>Features</h1>-->
+
+  <!--<div class='container-fluid features'>-->
+
+    <!--<h5 class='push-down-less'>Cell Types</h5>-->
+    <!--<p>-->
+      <!--String, Number, Date, Select, Checkbox, TextArea, and HTML cell types make editing data quick and painless.-->
+    <!--</p>-->
+
+    <!--<h5 class='push-down-less'>Developer Hooks</h5>-->
+    <!--<p>-->
+      <!--GridEdit functions provide callbacks allowing developers to tailor GridEdit behavior to their liking.-->
+    <!--</p>-->
+
+    <!--<h5 class='push-down-less'>Themes</h5>-->
+    <!--<p>-->
+      <!--Aside from the default and Bootstrap themes, GridEdit allows for custom themes.-->
+    <!--</p>-->
+
+    <!--<h5 class='push-down-less'>Context Menu</h5>-->
+    <!--<p>-->
+      <!--The default context menu contains useful actions such as 'cut', 'copy', 'undo', and 'redo', but creating-->
+      <!--custom actions is simple using the GridEdit library.-->
+    <!--</p>-->
+
+    <!--<h5 class='push-down-less'>More</h5>-->
+    <!--<p>-->
+      <!--Check out the GridEdit <a href='#'>docs</a> to learn more about what GridEdit can do.-->
+    <!--</p>-->
+
+  <!--</div>-->
+
+</div>
+
+
+<script type='text/javascript'>
+
+  var colStyle = {
+    'text-align': 'left'
+  };
+
+  var cols = [
+    {
+      label: 'Date',
+      valueKey: 'date',
+      type: 'date',
+      style: colStyle
+    },
+    {
+      label: 'Food',
+      valueKey: 'name',
+      type: 'string',
+      style: colStyle
+    },
+    {
+      label: 'Food Group',
+      valueKey: 'foodGroup',
+      type: 'select',
+      choices: [
+        'Fruit',
+        'Vegetable',
+        'Meat',
+        'Grain',
+        'Junk',
+        'Dairy'
+      ],
+      style: colStyle
+    },
+    {
+      label: 'Calories',
+      valueKey: 'calories',
+      type: 'number',
+      style: colStyle
+    },
+    {
+      label: 'Liked',
+      valueKey: 'likedIt',
+      type: 'checkbox',
+      style: {
+        width: '20px'
+      }
+    }
+  ];
+
+  var rows = [
+    {
+      date: new Date(),
+      name: 'Banana',
+      foodGroup: 'Fruit',
+      calories: 110,
+      likedIt: true
+    },
+    {
+      date: new Date(),
+      name: 'Egg',
+      foodGroup: 'Meat',
+      calories: 100,
+      likedIt: false
+    },
+    {
+      date: new Date(),
+      name: 'Pizza',
+      foodGroup: 'Grain',
+      calories: 400,
+      likedIt: true
+    },
+    {
+      gridEditRowType: 'subtotal',
+      subtotal: {calories: true},
+      labels: {foodGroup: '<div class="subtotal-label"><b>Total Calories</b></div>'}
+    }
+  ];
+
+  ge = new GridEdit({
+    initialize: true,
+    cols: cols,
+    rows: rows,
+    tableClass: 'table',
+    includeRowHandles: true,
+    includeContextMenu: true,
+    themeName: 'bootstrap',
+    element: '#sample-grid-edit',
+    beforeMoveRow: function (fromIndex, toIndex) {
+      console.log('before move row', fromIndex, toIndex);
+    },
+    afterMoveRow: function (fromIndex, toIndex) {
+      console.log('after move row', fromIndex, toIndex);
+    },
+    beforeAddRow: function (index) {
+      console.log('before add row', index);
+    },
+    afterAddRow: function (index) {
+      console.log('after add row', index);
+    },
+    beforeRemoveRow: function (index) {
+      console.log('before remove row', index);
+    },
+    afterRemoveRow: function (index) {
+      console.log('after remove row', index);
+    },
+    beforeContextMenuAction: function (e, table) {
+      console.log('before context menu action');
+    },
+    afterContextMenuAction: function (e, table) {
+      console.log('after context menu action');
+    },
+    beforeInit: function () {
+      console.log('beforeInit');
+    },
+    afterInit: function () {
+      console.log('afterInit');
+    },
+    beforeCellActivate: function (cell) {
+      console.log(cell, 'beforeCellActivate');
+      return true;
+    },
+    afterCellActivate: function (cell) {
+      console.log(cell, 'afterCellActivate');
+    },
+    beforeCellNavigateTo: function (toCell, fromCell, direction) {
+      console.log(direction);
+    },
+    beforeEdit: function (cell, oldValue, newValue) {
+      console.log(cell, oldValue, newValue);
+    },
+    afterEdit: function (cell, oldValue, newValue) {
+      console.log(cell, oldValue, newValue);
+    },
+    beforeControlInit: function (cell) {
+      console.log(cell, 'beforeControlInit');
+    },
+    afterControlInit: function (cell) {
+      console.log(cell, 'afterControlInit');
+    },
+    beforeControlHide: function (cell) {
+      console.log(cell, 'beforeControlHide');
+    },
+    afterControlHide: function (cell) {
+      console.log(cell, 'afterControlHide');
+    },
+    onCellClick: function (cell, event) {
+      console.log(cell, event, 'onCellClick');
+    }
+  });
+</script>
+</body>
+</html>

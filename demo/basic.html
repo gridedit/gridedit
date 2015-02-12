@@ -1,151 +1,241 @@
 <!doctype html>
 <html>
-  <head>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+<head>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
 
-    <style type="text/css">
+  <style type="text/css">
 
-      .myTable {
-        width: 100%;
-        border-collapse: collapse;
-      }
-      .myTable td, .myTable th {
-        border: 1px solid #dedede;
-        line-height: 1.5em;
-      }
+    .myTable {
+      width: 100%;
+      border-collapse: collapse;
+    }
 
-      .myTable th, .myTable td {
-        line-height: 2em;
-        padding: 3px;
-      }
+    .myTable td, .myTable th {
+      border: 1px solid #dedede;
+      line-height: 1.5em;
+    }
 
-      #contextMenu {
-        position: absolute;
-      }
+    .myTable th, .myTable td {
+      line-height: 2em;
+      padding: 3px;
+    }
 
-      #contextMenu .disabled {
-        color: #C0C0C0;
-        background: none;
-      }
+    #contextMenu {
+      position: absolute;
+    }
 
-      #contextMenu li a {
-        cursor: pointer;
-      }
+    #contextMenu .disabled {
+      color: #C0C0C0;
+      background: none;
+    }
 
-      div.subtotal-label {
-        width: 99%;
-        text-align: right;
-      }
+    #contextMenu li a {
+      cursor: pointer;
+    }
 
-      td.handle {
-        background: #efefef;
-      }
+    div.subtotal-label {
+      width: 99%;
+      text-align: right;
+    }
 
-      td.handle {
-        padding: 0 !important;
-        vertical-align: middle !important;
-        margin: 0;
-        background: rgb(231, 231, 231);
-        width: 26px;
-        cursor: hand;
-        cursor: pointer;
-        min-width: 26px;
-      }
+    td.handle {
+      background: #efefef;
+    }
 
-      td.handle div {
-        width: 0;
-      }
+    td.handle {
+      padding: 0 !important;
+      vertical-align: middle !important;
+      margin: 0;
+      background: rgb(231, 231, 231);
+      width: 26px;
+      cursor: hand;
+      cursor: pointer;
+      min-width: 26px;
+    }
 
-      td.handle div span {
-        display: block;
-        width: 14px;
-        height: 1px;
-        background-color: rgb(182, 182, 182);;
-        margin: 3px;
-        margin-left: 5px;
-      }
+    td.handle div {
+      width: 0;
+    }
 
-    </style>
-    <script src="../dist/gridedit.js"></script>
-  </head>
-  <body>
-    <div id="gridedit"></div>
-    <script type="text/javascript">
-      var years = 365 * 24 * 60 * 60000;
-      var chucksDOB = new Date(new Date().valueOf() - (200 * years));
-      var bensDOB = new Date(new Date().valueOf() - (20 * years));
+    td.handle div span {
+      display: block;
+      width: 14px;
+      height: 1px;
+      background-color: rgb(182, 182, 182);;
+      margin: 3px;
+      margin-left: 5px;
+    }
 
-      var cols = [
-        { label: 'Prefix', valueKey: 'prefix', type: 'select', choices: ['Mr.', 'Jr.', 'Ms.']},
-        { label: 'Name', valueKey: 'name', type: 'string', style: {textAlign: 'center'} },
-        { label: 'Job Title', valueKey: 'jobTitle', type: 'string', style: { textAlign: 'left' } },
-        { label: 'Number of Projects', valueKey: 'numProjects', type: 'number', editable: true },
-        { label: 'Has Many Projects', valueKey: 'hasManyProjects', type: 'checkbox', editable: false},
-        { label: 'Editable CheckBox', valueKey: 'editableCheckBox', type: 'checkbox', editable: true},
-        { label: 'DOB', valueKey: 'dateOfBirth', type: 'date', editable: true }
-      ];
+  </style>
+  <script src="../dist/gridedit.js"></script>
+</head>
+<body>
+<div id="gridedit"></div>
+<script type="text/javascript">
+  var years = 365 * 24 * 60 * 60000;
+  var chucksDOB = new Date(new Date().valueOf() - (200 * years));
+  var bensDOB = new Date(new Date().valueOf() - (20 * years));
 
-      var rows = [
-        { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.', hasManyProjects: true, editableCheckBox: false, 'dateOfBirth': bensDOB },
-        { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.', hasManyProjects: false, editableCheckBox: false },
-        { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.', hasManyProjects: true, editableCheckBox: true },
-        { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.', hasManyProjects: false, editableCheckBox: true },
-        { name: 'Ben Simmons', jobTitle: 'AWESOME!', numProjects: 1000, prefix: 'Mr.', hasManyProjects: true, editableCheckBox: false },
-        { name: 'Chuck Guilbert', jobTitle: 'BORING', numProjects: 2, prefix: 'Mr.', hasManyProjects: false, editableCheckBox: false, 'dateOfBirth': chucksDOB },
-        { gridEditRowType: 'subtotal', subtotal: { numProjects: true }, labels: { jobTitle: '<div class="subtotal-label"><b>Total Projects</b></div>' } }
-      ];
+  var cols = [
+    {label: 'Prefix', valueKey: 'prefix', type: 'select', choices: ['Mr.', 'Jr.', 'Ms.']},
+    {label: 'Name', valueKey: 'name', type: 'string', style: {textAlign: 'center'}},
+    {label: 'Job Title', valueKey: 'jobTitle', type: 'string', style: {textAlign: 'left'}},
+    {label: 'Number of Projects', valueKey: 'numProjects', type: 'number', editable: true},
+    {label: 'Has Many Projects', valueKey: 'hasManyProjects', type: 'checkbox', editable: false},
+    {label: 'Editable CheckBox', valueKey: 'editableCheckBox', type: 'checkbox', editable: true},
+    {label: 'DOB', valueKey: 'dateOfBirth', type: 'date', editable: true}
+  ];
 
-      ge = new GridEdit({
-        initialize: true,
-        cols: cols,
-        rows: rows,
-        tableClass: 'myTable',
-        includeRowHandles: true,
-        includeContextMenu: true
-//        beforeContextMenuAction: function(e, table){
-//        },
-//        afterContextMenuAction: function(e, table){
-//        }
-        // beforeInit: function() {
-        //   console.log('beforeInit');
-        // },
-        // afterInit: function() {
-        //   console.log('afterInit');
-        // },
-//        beforeCellActivate: function(cell) {
-//           console.log(cell, 'beforeCellActivate');
-//          return true;
-//        }
-        // afterCellActivate: function(cell) {
-        //   console.log(cell, 'afterCellActivate');
-        // },
-        // beforeCellNavigateTo: function(toCell, fromCell, direction) {
-        //   console.log(direction);
-        // },
-        // beforeEdit: function(cell, oldValue, newValue) {
-        //   console.log(cell, oldValue, newValue);
-        // },
-        // afterEdit: function(cell, oldValue, newValue) {
-        //   console.log(cell, oldValue, newValue);
-        // },
-        // beforeControlInit: function(cell) {
-        //   console.log(cell, 'beforeControlInit');
-        // },
-        // afterControlInit: function(cell) {
-        //   console.log(cell, 'afterControlInit');
-        // },
-        // beforeControlHide: function(cell) {
-        //   console.log(cell, 'beforeControlHide');
-        // },
-        // afterControlHide: function(cell) {
-        //   console.log(cell, 'afterControlHide');
-        // },
-        // onCellClick: function(cell, event) {
-        //   console.log(cell, event, 'onCellClick');
-        // }
-      });
-    </script>
-  </body>
+  var rows = [
+    {
+      name: 'Matt Thompson',
+      jobTitle: 'Rails Conductor',
+      numProjects: 1,
+      prefix: 'Mr.',
+      hasManyProjects: false,
+      editableCheckBox: false,
+      'dateOfBirth': null,
+      id: 1
+    },
+    {
+      name: 'Ben Simmons',
+      jobTitle: 'AWESOME!',
+      numProjects: 1000,
+      prefix: 'Mr.',
+      hasManyProjects: true,
+      editableCheckBox: false,
+      'dateOfBirth': bensDOB,
+      id: 2
+    },
+    {
+      name: 'Chuck Guilbert',
+      jobTitle: 'BORING',
+      numProjects: 2,
+      prefix: 'Mr.',
+      hasManyProjects: false,
+      editableCheckBox: false,
+      id: 3
+    },
+    {
+      name: 'Ben Simmons',
+      jobTitle: 'AWESOME!',
+      numProjects: 1000,
+      prefix: 'Mr.',
+      hasManyProjects: true,
+      editableCheckBox: true,
+      id: 4
+    },
+    {
+      name: 'Chuck Guilbert',
+      jobTitle: 'BORING',
+      numProjects: 2,
+      prefix: 'Mr.',
+      hasManyProjects: false,
+      editableCheckBox: true,
+      id: 5
+    },
+    {
+      name: 'Ben Simmons',
+      jobTitle: 'AWESOME!',
+      numProjects: 1000,
+      prefix: 'Mr.',
+      hasManyProjects: true,
+      editableCheckBox: false,
+      id: 6
+    },
+    {
+      name: 'Chuck Guilbert',
+      jobTitle: 'BORING',
+      numProjects: 2,
+      prefix: 'Mr.',
+      hasManyProjects: false,
+      editableCheckBox: false,
+      'dateOfBirth': chucksDOB,
+      id: 434
+    },
+    {
+      gridEditRowType: 'subtotal',
+      subtotal: {numProjects: true},
+      labels: {jobTitle: '<div class="subtotal-label"><b>Total Projects</b></div>'},
+      id: 8
+    }
+  ];
+
+  ge = new GridEdit({
+    initialize: true,
+    cols: cols,
+    rows: rows,
+    tableClass: 'myTable',
+    includeRowHandles: true,
+    includeContextMenu: true
+//    uniqueValueKey: 'id',
+//    beforeMoveRow: function (fromIndex, toIndex) {
+//      console.log('before move row', fromIndex, toIndex);
+//    },
+//    afterMoveRow: function (fromIndex, toIndex) {
+//      console.log('after move row', fromIndex, toIndex);
+//    },
+//    beforeAddRow: function (index) {
+//      console.log('before add row', index);
+//    },
+//    afterAddRow: function (index) {
+//      console.log('after add row', index);
+//    },
+//    beforeRemoveRow: function (index) {
+//      console.log('before remove row', index);
+//    },
+//    afterRemoveRow: function (index) {
+//      console.log('after remove row', index);
+//    },
+//    beforeContextMenuAction: function (e, table) {
+//      console.log('before context menu action');
+//    },
+//    afterContextMenuAction: function (e, table) {
+//      console.log('after context menu action');
+//    },
+//    beforeInit: function () {
+//      console.log('beforeInit');
+//    },
+//    afterInit: function () {
+//      console.log('afterInit');
+//    },
+//    beforeCellActivate: function (cell) {
+//      console.log(cell, 'beforeCellActivate');
+//      return true;
+//    },
+//    afterCellActivate: function (cell) {
+//      console.log(cell, 'afterCellActivate');
+//    },
+//    beforeCellNavigateTo: function (toCell, fromCell, direction) {
+//      console.log(direction);
+//    },
+//    beforeEdit: function (cell, oldValue, newValue) {
+//      console.log(cell, oldValue, newValue);
+//    },
+//    afterEdit: function (cell, oldValue, newValue) {
+//      console.log(cell, oldValue, newValue);
+//    },
+//    beforeControlInit: function (cell) {
+//      console.log(cell, 'beforeControlInit');
+//    },
+//    afterControlInit: function (cell) {
+//      console.log(cell, 'afterControlInit');
+//    },
+//    beforeControlHide: function (cell) {
+//      console.log(cell, 'beforeControlHide');
+//    },
+//    afterControlHide: function (cell) {
+//      console.log(cell, 'afterControlHide');
+//    },
+//    onCellClick: function (cell, event) {
+//      console.log(cell, event, 'onCellClick');
+//    },
+//    onCellDblClick: function (cell, event) {
+//      console.log(cell, event, 'onDblClick');
+//    }
+  });
+</script>
+</body>
 
 <style>
   ul.dropdown-menu {

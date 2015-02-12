@@ -1,10 +1,13 @@
 class GridEdit
   constructor: (@config, @actionStack) ->
+    @dirtyCells = []
+    @dirtyRows = []
+    @uniqueValueKey = @config.uniqueValueKey
+    @rowIndex = @config.rowIndex
     @element = document.querySelectorAll(@config.element || '#gridedit')[0]
     @contextMenu = new GridEdit.ContextMenu @
     @themeName = @config.themeName
     @customTheme = @config.themeTemplate
-
     @theme = new GridEdit.Theme @themeName, @customTheme
     @draggingRow = null # the row being dragged
     @lastDragOver = null # the last row that was the row being dragged was over
@@ -38,12 +41,22 @@ class GridEdit
 
   init: ->
     do @config.beforeInit if @config.beforeInit
+    GridEdit.Hook::initTableHooks(@)
     do @build
     do @events
     do @render
     do @removeBrowserHighlighting
+    do @setRowIndexes unless @rowIndex
     do @config.afterInit if @config.afterInit
     return
+
+  setRowIndexes: ->
+    return false unless @config.uniqueValueKey
+    rowIndex = {}
+    uniqueValueKey = @config.uniqueValueKey
+    for row, i in @source
+      rowIndex[i] = row[uniqueValueKey]
+    @rowIndex = rowIndex
 
   removeBrowserHighlighting: ->
     stylesToSet = [
@@ -103,6 +116,7 @@ class GridEdit
 
   rebuild: (newConfig = null) ->
     config = Object.create @config
+    config.rowIndex = @rowIndex
     if newConfig isnt null
       for optionKey, optionValue of newConfig
         config[optionKey] = newConfig[optionKey]
@@ -143,7 +157,9 @@ class GridEdit
             when 16 # shift
               break
             when 32 # space
-              table.activeCell().onSpaceKeyPress() unless table.openCell
+              unless table.openCell
+                e.preventDefault()
+                table.activeCell().onSpaceKeyPress()
               break
             when 37 # left arrow
               table.moveTo table.previousCell()
@@ -291,41 +307,89 @@ class GridEdit
 
   moveRow: (rowToMoveIndex, newIndex, addToStack=true) ->
     row = @source[rowToMoveIndex];
-    @source.splice(rowToMoveIndex, 1)
-    @source.splice(newIndex, 0, row)
-    @addToStack({ type: 'move-row', oldIndex: rowToMoveIndex, newIndex: newIndex }) if addToStack
-    @rebuild({ rows: @source, initialize: true, selectedCell: [newIndex, 0] })
+    if GridEdit.Hook::run @, 'beforeMoveRow', rowToMoveIndex, newIndex
+      @source.splice(rowToMoveIndex, 1)
+      @source.splice(newIndex, 0, row)
+      @addToStack({ type: 'move-row', oldIndex: rowToMoveIndex, newIndex: newIndex }) if addToStack
+      @rebuild({ rows: @source, initialize: true, selectedCell: [newIndex, 0] })
+      @setDirtyRows()
+      GridEdit.Hook::run @, 'afterMoveRow', rowToMoveIndex, newIndex
 
   addRow: (index, addToStack=true, rowObject=false) ->
-    if rowObject
-      row = rowObject
-    else
-      row = {}
-      for c in @cols
-        row[c.valueKey] = c.defaultValue || ''
-    if index or index == 0
-      @source.splice(index, 0, row)
-    else
-      index = @source.length - 1
-      @source.push(row)
+    if GridEdit.Hook::run @, 'beforeAddRow', index, rowObject
+      if rowObject
+        row = rowObject
+      else
+        row = {}
+        for c in @cols
+          row[c.valueKey] = c.defaultValue || ''
+      if index or index == 0
+        @source.splice(index, 0, row)
+      else
+        index = @source.length - 1
+        @source.push(row)
 
-    @addToStack({ type: 'add-row', index: index, rowObject: rowObject }) if addToStack
-    @rebuild({ rows: @source, initialize: true, selectedCell: [index, 0] })
+      @addToStack({ type: 'add-row', index: index, rowObject: rowObject }) if addToStack
+      @rebuild({ rows: @source, initialize: true, selectedCell: [index, 0] })
+      @setDirtyRows()
+      GridEdit.Hook::run @, 'afterAddRow', index, rowObject
+
+  addRows: (index, addToStack=true, rowObjects=[]) ->
+    if GridEdit.Hook::run @, 'beforeAddRows', index, rowObjects
+      for rowObject, i in rowObjects
+        myIndex = index + i
+        if rowObject
+          row = rowObject
+        else
+          row = {}
+          for c in @cols
+            row[c.valueKey] = c.defaultValue || ''
+        if myIndex or myIndex == 0
+          @source.splice(myIndex, 0, row)
+        else
+          myIndex = @source.length - 1
+          @source.push(row)
+
+      @addToStack({ type: 'add-rows', index: index, rowObjects: rowObjects }) if addToStack
+      @rebuild({ rows: @source, initialize: true, selectedCell: [index, 0] })
+      @setDirtyRows()
+      GridEdit.Hook::run @, 'afterAddRows', index, rowObjects
 
   insertBelow: ->
     cell = @contextMenu.getTargetPasteCell()
-    @addRow(cell.address[0] + 1)
+    if GridEdit.Hook::run @, 'beforeInsertBelow', cell
+      @addRow(cell.address[0] + 1)
+      @setDirtyRows()
+      GridEdit.Hook::run @, 'afterInsertBelow', cell
 
   insertAbove: ->
     cell = @contextMenu.getTargetPasteCell()
-    @addRow(cell.address[0])
+    if GridEdit.Hook::run @, 'beforeInsertAbove', cell
+      @addRow(cell.address[0])
+      @setDirtyRows()
+      GridEdit.Hook::run @, 'afterInsertAbove', cell
 
   removeRow: (index, addToStack=true) ->
-    rowObject = @source[index]
-    row = @rows[index]
-    rows = @source.splice(index, 1)
-    @addToStack({ type: 'remove-row', index: index, rowObject: rowObject }) if addToStack
-    @rebuild({ rows: @source, initialize: true, selectedCell: [ index, 0 ] })
+    if GridEdit.Hook::run @, 'beforeRemoveRow', index
+      rowObject = @source[index]
+      row = @rows[index]
+      rows = @source.splice(index, 1)
+      @addToStack({ type: 'remove-row', index: index, rowObject: rowObject }) if addToStack
+      @rebuild({ rows: @source, initialize: true, selectedCell: [ index, 0 ] })
+      @setDirtyRows()
+      GridEdit.Hook::run @, 'afterRemoveRow', index
+
+  removeRows: (index, addToStack=true, numRows) ->
+    if GridEdit.Hook::run @, 'beforeRemoveRows', index, numRows
+      rowObjects = []
+      for i in [0..numRows - 1]
+        rowObject = @source[index + i]
+        rowObjects.push(rowObject)
+      @source.splice(index, numRows)
+      @addToStack({ type: 'remove-rows', index: index, rowObjects: rowObjects }) if addToStack
+      @rebuild({ rows: @source, initialize: true, selectedCell: [ index, 0 ] })
+      @setDirtyRows()
+      GridEdit.Hook::run @, 'afterRemoveRows', index, numRows
 
   selectRow: (e, index) ->
     if @activeCell() and e
@@ -358,6 +422,23 @@ class GridEdit
 
   openCellAndPopulateInitialValue: (shift, key) ->
     @activeCell().onKeyPress(GridEdit.Utilities::valueFromKey key, shift) unless @openCell
+
+  checkIfCellIsDirty: (cell) ->
+    dirtyIndex = @dirtyCells.indexOf(cell)
+    if dirtyIndex == -1
+      @dirtyCells.push(cell) if cell.isDirty()
+    else
+      @dirtyCells.splice(dirtyIndex, 1) unless cell.isDirty()
+
+  setDirtyRows: ->
+    return false unless @config.uniqueValueKey
+    @dirtyRows = []
+    uniqueValueKey = @uniqueValueKey
+    for rowIndex, uniqueIdentifier of @rowIndex
+      @dirtyRows.push(rowIndex) if uniqueIdentifier != @source[rowIndex][uniqueValueKey]
+
+  isDirty: ->
+    @dirtyRows.length > 0 or @dirtyCells.length > 0
 
 root = exports ? window
 root.GridEdit = GridEdit
