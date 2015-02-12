@@ -2119,7 +2119,7 @@
         if (table.lastClickCell === cell) {
           if (GridEdit.Hook.prototype.run(cell, 'onDblClick', cell, e)) {
             table.lastClickCell = null;
-            return cell.showControl(cell.value());
+            cell.showControl(cell.value());
           }
         } else {
           table.lastClickCell = cell;
@@ -2163,8 +2163,8 @@
               }
             }
           }
-          return false;
         }
+        return false;
       };
       this.element.onmousedown = function(e) {
         if (e.which === 3) {

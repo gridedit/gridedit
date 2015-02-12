@@ -267,7 +267,7 @@ class GridEdit.Cell
             else
               for row in [cellToRow..cellFromRow]
                 activateRow row
-        false
+      false
 
     @element.onmousedown = (e) ->
       if e.which is 3 # right mouse button
