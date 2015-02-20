@@ -1997,12 +1997,11 @@
       cell = this;
       table = this.table;
       return this.control.onkeydown = function(e) {
-        var key, _ref;
+        var key;
         key = e.which;
         switch (key) {
           case 13:
-            cell.edit(this.value);
-            return (_ref = cell.below()) != null ? _ref.makeActive() : void 0;
+            return cell.edit(this.value);
           case 9:
             cell.edit(this.value);
             return moveTo(table.nextCell());
@@ -2325,10 +2324,6 @@
 
     CheckBoxCell.prototype.edit = function() {
       return false;
-    };
-
-    CheckBoxCell.prototype.onReturnKeyPress = function() {
-      return this.toggle();
     };
 
     CheckBoxCell.prototype.initControl = function() {
