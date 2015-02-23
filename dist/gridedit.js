@@ -11,6 +11,7 @@
       this.dirtyRows = [];
       this.uniqueValueKey = this.config.uniqueValueKey;
       this.rowIndex = this.config.rowIndex;
+      this.useFixedHeaders = this.config.useFixedHeaders;
       this.element = document.querySelectorAll(this.config.element || '#gridedit')[0];
       this.contextMenu = new GridEdit.ContextMenu(this);
       this.themeName = this.config.themeName;
@@ -105,7 +106,7 @@
     };
 
     GridEdit.prototype.build = function() {
-      var col, colAttributes, ge, handleHeader, i, row, rowAttributes, rowType, table, tbody, thead, tr, _i, _j, _len, _len1, _ref, _ref1;
+      var col, colAttributes, ge, handleHeader, i, row, rowAttributes, rowType, table, tbody, tr, _i, _j, _len, _len1, _ref, _ref1;
       tr = document.createElement('tr');
       if (this.config.includeRowHandles) {
         handleHeader = document.createElement('th');
@@ -118,21 +119,21 @@
         this.cols.push(col);
         tr.appendChild(col.element);
       }
-      thead = document.createElement('thead');
+      this.thead = document.createElement('thead');
       ge = this;
-      thead.ondragenter = function() {
+      this.thead.ondragenter = function() {
         var prevRow;
         ge.lastDragOverIsBeforeFirstRow = true;
         prevRow = ge.lastDragOver;
         prevRow.element.style.borderBottom = prevRow.oldBorderBottom;
         return prevRow.element.style.borderTop = ge.theme.borders.dragBorderStyle;
       };
-      thead.ondragleave = function() {
+      this.thead.ondragleave = function() {
         var firstRow;
         firstRow = ge.rows[0];
         return firstRow.element.style.borderTop = firstRow.oldBorderTop;
       };
-      thead.appendChild(tr);
+      this.thead.appendChild(tr);
       tbody = document.createElement('tbody');
       _ref1 = this.source;
       for (i = _j = 0, _len1 = _ref1.length; _j < _len1; i = ++_j) {
@@ -162,9 +163,12 @@
         id: 'editable-grid',
         "class": this.config.tableClass
       });
-      table.appendChild(thead);
+      table.appendChild(this.thead);
       table.appendChild(tbody);
-      return this.tableEl = table;
+      this.tableEl = table;
+      if (this.useFixedHeaders) {
+        return GridEdit.Utilities.prototype.fixHeaders(this);
+      }
     };
 
     GridEdit.prototype.rebuild = function(newConfig) {
@@ -1323,6 +1327,80 @@
       } else {
         return char.toLowerCase();
       }
+    };
+
+    Utilities.prototype.fixHeaders = function(ge) {
+      clearTimeout(this.fixHeadersBuffer);
+      return this.fixHeadersBuffer = setTimeout((function() {
+        var backgroundColor, cell, currentTH, currentTHBounds, currentTHElement, currentTHElementBounds, currentTHElements, fakeTH, fakeTHCells, fakeTHead, fakeTR, fakeTable, index, left, windowOnResize, _i, _j, _len, _len1, _ref, _results;
+        currentTH = ge.thead;
+        currentTHElements = currentTH.getElementsByTagName('th');
+        if (ge.fixedHeader) {
+          left = 0;
+          _ref = ge.fixedHeader.cells;
+          _results = [];
+          for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
+            cell = _ref[index];
+            currentTHElement = currentTHElements[index];
+            currentTHElementBounds = currentTHElement.getBoundingClientRect();
+            cell.innerHTML = currentTHElement.innerHTML;
+            cell.className = currentTHElement.className;
+            cell.style.minWidth = currentTHElementBounds.width + 'px';
+            cell.style.minHeight = currentTHElementBounds.height + 'px';
+            cell.style.backgroundColor = ge.fixedHeader.backgroundColor;
+            cell.style.left = left + 'px';
+            _results.push(left += currentTHElementBounds.width);
+          }
+          return _results;
+        } else {
+          fakeTHCells = [];
+          backgroundColor = window.getComputedStyle(currentTH).backgroundColor;
+          if (backgroundColor === 'rgba(0, 0, 0, 0)') {
+            backgroundColor = 'white';
+          }
+          currentTHBounds = currentTH.getBoundingClientRect();
+          fakeTable = document.createElement('table');
+          fakeTable.className = ge.tableEl.className;
+          fakeTable.style.position = 'fixed';
+          fakeTable.style.top = currentTHBounds.top + 'px';
+          fakeTable.style.left = currentTHBounds.left + 'px';
+          fakeTable.style.zIndex = 1039;
+          fakeTHead = document.createElement('thead');
+          fakeTHead.className = currentTH.className;
+          fakeTR = document.createElement('tr');
+          if (ge.rows.length > 0) {
+            left = 0;
+            for (index = _j = 0, _len1 = currentTHElements.length; _j < _len1; index = ++_j) {
+              currentTHElement = currentTHElements[index];
+              currentTHElementBounds = currentTHElement.getBoundingClientRect();
+              fakeTH = document.createElement('th');
+              fakeTH.innerHTML = currentTHElement.innerHTML;
+              fakeTH.className = currentTHElement.className;
+              fakeTH.style.position = 'absolute';
+              fakeTH.style.width = currentTHElementBounds.width + 'px';
+              fakeTH.style.height = currentTHElementBounds.height + 'px';
+              fakeTH.style.left = left + 'px';
+              fakeTH.style.backgroundColor = backgroundColor;
+              left += currentTHElementBounds.width;
+              fakeTHCells.push(fakeTH);
+              fakeTR.appendChild(fakeTH);
+            }
+            fakeTHead.appendChild(fakeTR);
+            fakeTable.appendChild(fakeTHead);
+            document.body.appendChild(fakeTable);
+            ge.fixedHeader = {
+              thead: fakeTHead,
+              cells: fakeTHCells,
+              backgroundColor: backgroundColor
+            };
+            windowOnResize = window.onresize;
+            return window.onresize = function(e) {
+              GridEdit.Utilities.prototype.fixHeaders(ge);
+              return windowOnResize(e);
+            };
+          }
+        }
+      }), 100);
     };
 
     return Utilities;

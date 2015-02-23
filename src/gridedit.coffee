@@ -4,6 +4,7 @@ class GridEdit
     @dirtyRows = []
     @uniqueValueKey = @config.uniqueValueKey
     @rowIndex = @config.rowIndex
+    @useFixedHeaders = @config.useFixedHeaders
     @element = document.querySelectorAll(@config.element || '#gridedit')[0]
     @contextMenu = new GridEdit.ContextMenu @
     @themeName = @config.themeName
@@ -81,17 +82,17 @@ class GridEdit
       col = new GridEdit.Column(colAttributes, @)
       @cols.push col
       tr.appendChild col.element
-    thead = document.createElement 'thead'
+    @thead = document.createElement 'thead'
     ge = @
-    thead.ondragenter = () ->
+    @thead.ondragenter = () ->
       ge.lastDragOverIsBeforeFirstRow = true
       prevRow = ge.lastDragOver
       prevRow.element.style.borderBottom = prevRow.oldBorderBottom
       prevRow.element.style.borderTop = ge.theme.borders.dragBorderStyle
-    thead.ondragleave = () ->
+    @thead.ondragleave = () ->
       firstRow = ge.rows[0]
       firstRow.element.style.borderTop = firstRow.oldBorderTop
-    thead.appendChild tr
+    @thead.appendChild tr
     tbody = document.createElement 'tbody'
     for rowAttributes, i in @source
       switch rowAttributes.gridEditRowType
@@ -110,9 +111,10 @@ class GridEdit
       tbody.appendChild row.element
     table = document.createElement 'table'
     GridEdit.Utilities::setAttributes table, {id: 'editable-grid', class: @config.tableClass}
-    table.appendChild thead
+    table.appendChild @thead
     table.appendChild tbody
     @tableEl = table
+    GridEdit.Utilities::fixHeaders(@) if @useFixedHeaders
 
   rebuild: (newConfig = null) ->
     config = Object.create @config
