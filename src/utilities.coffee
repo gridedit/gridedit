@@ -63,9 +63,10 @@ class GridEdit.Utilities
       fakeTable.style.left = (currentTHBounds.left + pageLeft + geLeft) + 'px'
       fakeTable.style.width = currentTHBounds.width + 'px'
       fakeTable.style.zIndex = 1039
-      fakeTable.style.pointerEvents = 'none'
       fakeTHead = document.createElement 'thead'
       fakeTHead.className = currentTH.className
+      fakeTHead.ondragenter = currentTH.ondragenter()
+      fakeTHead.ondragleave = currentTH.ondragleave()
       fakeTR = document.createElement 'tr'
       left = 0
       for currentTHElement, index in currentTHElements
@@ -78,6 +79,7 @@ class GridEdit.Utilities
         fakeTH.style.minHeight = currentTHElementBounds.height + 'px'
         fakeTH.style.left = left + 'px'
         fakeTH.style.backgroundColor = backgroundColor
+        fakeTH.onclick = currentTHElement.onclick()
         left += currentTHElementBounds.width
         fakeTR.appendChild fakeTH
       fakeTHead.appendChild fakeTR

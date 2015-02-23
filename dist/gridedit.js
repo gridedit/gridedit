@@ -1367,9 +1367,10 @@
         fakeTable.style.left = (currentTHBounds.left + pageLeft + geLeft) + 'px';
         fakeTable.style.width = currentTHBounds.width + 'px';
         fakeTable.style.zIndex = 1039;
-        fakeTable.style.pointerEvents = 'none';
         fakeTHead = document.createElement('thead');
         fakeTHead.className = currentTH.className;
+        fakeTHead.ondragenter = currentTH.ondragenter();
+        fakeTHead.ondragleave = currentTH.ondragleave();
         fakeTR = document.createElement('tr');
         left = 0;
         for (index = _i = 0, _len = currentTHElements.length; _i < _len; index = ++_i) {
@@ -1383,6 +1384,7 @@
           fakeTH.style.minHeight = currentTHElementBounds.height + 'px';
           fakeTH.style.left = left + 'px';
           fakeTH.style.backgroundColor = backgroundColor;
+          fakeTH.onclick = currentTHElement.onclick();
           left += currentTHElementBounds.width;
           fakeTR.appendChild(fakeTH);
         }
@@ -1974,6 +1976,9 @@
           this.setValue(newValue);
           this.renderValue(newValue);
           this.row.afterEdit();
+          if (this.table.useFixedHeaders) {
+            GridEdit.Utilities.prototype.fixHeaders(this.table);
+          }
           GridEdit.Hook.prototype.run(this, 'afterEdit', this, oldValue, newValue, this.table.contextMenu.getTargetPasteCell());
           this.table.checkIfCellIsDirty(this);
           return newValue;
