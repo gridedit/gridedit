@@ -637,16 +637,19 @@ class GridEdit.HandleCell
       table.draggingRow = row
 
     @element.ondragend = () ->
-      rowToMoveInex = table.draggingRow.index
+      rowToMoveIndex = table.draggingRow.index
       lastDragOverIndex = table.lastDragOver.index
-      modifier = if lastDragOverIndex == 0 and !table.lastDragOverIsBeforeFirstRow then 1 else 0
+      modifier = 0
+      if lastDragOverIndex == 0
+        modifier++ unless table.lastDragOverIsBeforeFirstRow or rowToMoveIndex == 0
+      else
+        modifier++ if rowToMoveIndex - lastDragOverIndex == 1 # drag into same index, allowing for user hooks
       insertAtIndex = lastDragOverIndex + modifier
-
       table.lastDragOver.element.style.borderBottom = table.lastDragOver.oldBorderBottom
       table.lastDragOver.element.style.borderTop = table.lastDragOver.oldBorderTop
       table.lastDragOver.element.style.borderTop = table.lastDragOver.oldBorderTop
       table.lastDragOver = null
 
-      table.moveRow(rowToMoveInex, insertAtIndex)
+      table.moveRow(rowToMoveIndex, insertAtIndex)
 
     @

@@ -2817,16 +2817,25 @@
         return table.draggingRow = row;
       };
       this.element.ondragend = function() {
-        var insertAtIndex, lastDragOverIndex, modifier, rowToMoveInex;
-        rowToMoveInex = table.draggingRow.index;
+        var insertAtIndex, lastDragOverIndex, modifier, rowToMoveIndex;
+        rowToMoveIndex = table.draggingRow.index;
         lastDragOverIndex = table.lastDragOver.index;
-        modifier = lastDragOverIndex === 0 && !table.lastDragOverIsBeforeFirstRow ? 1 : 0;
+        modifier = 0;
+        if (lastDragOverIndex === 0) {
+          if (!(table.lastDragOverIsBeforeFirstRow || rowToMoveIndex === 0)) {
+            modifier++;
+          }
+        } else {
+          if (rowToMoveIndex - lastDragOverIndex === 1) {
+            modifier++;
+          }
+        }
         insertAtIndex = lastDragOverIndex + modifier;
         table.lastDragOver.element.style.borderBottom = table.lastDragOver.oldBorderBottom;
         table.lastDragOver.element.style.borderTop = table.lastDragOver.oldBorderTop;
         table.lastDragOver.element.style.borderTop = table.lastDragOver.oldBorderTop;
         table.lastDragOver = null;
-        return table.moveRow(rowToMoveInex, insertAtIndex);
+        return table.moveRow(rowToMoveIndex, insertAtIndex);
       };
       this;
     }
