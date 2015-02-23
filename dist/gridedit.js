@@ -166,11 +166,11 @@
       table.appendChild(this.thead);
       table.appendChild(tbody);
       this.tableEl = table;
-      window.addEventListener('resize', function() {
-        return GridEdit.Utilities.prototype.fixHeaders(ge);
-      });
       if (this.useFixedHeaders) {
-        return GridEdit.Utilities.prototype.fixHeaders(this);
+        GridEdit.Utilities.prototype.fixHeaders(this);
+        return window.addEventListener('resize', function() {
+          return GridEdit.Utilities.prototype.fixHeaders(ge);
+        });
       }
     };
 
@@ -501,14 +501,17 @@
     };
 
     GridEdit.prototype.destroy = function() {
-      var key;
+      var key, _results;
+      if (this.useFixedHeaders) {
+        console.log('cleanup');
+        document.body.removeChild(this.fixedHeader.table);
+      }
       this.element.removeChild(this.tableEl);
+      _results = [];
       for (key in this) {
-        delete this[key];
+        _results.push(delete this[key]);
       }
-      if (this.fixedHeader) {
-        return document.body.removeChild(this.fixedHeader.table);
-      }
+      return _results;
     };
 
     GridEdit.prototype.isDescendant = function(child) {
