@@ -203,6 +203,8 @@
     #sample-grid-edit {
       width: 700px;
       margin: auto;
+      overflow: scroll;
+      height: 200px;
     }
 
     .centered {
@@ -392,6 +394,10 @@
     }
   ];
 
+  for(var i=0;i<100;i++){
+    rows.push({}); // empty rows to show fixed headers
+  }
+
   ge = new GridEdit({
     initialize: true,
     cols: cols,
@@ -401,6 +407,7 @@
     includeContextMenu: true,
     themeName: 'bootstrap',
     element: '#sample-grid-edit',
+    useFixedHeaders: true,
     beforeMoveRow: function (fromIndex, toIndex) {
       console.log('before move row', fromIndex, toIndex);
     },

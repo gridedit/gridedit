@@ -114,6 +114,9 @@ class GridEdit
     table.appendChild @thead
     table.appendChild tbody
     @tableEl = table
+
+    window.addEventListener 'resize', ->
+        GridEdit.Utilities::fixHeaders ge
     GridEdit.Utilities::fixHeaders(@) if @useFixedHeaders
 
   rebuild: (newConfig = null) ->
@@ -290,6 +293,9 @@ class GridEdit
     @element.removeChild @tableEl
     for key of @
       delete @[key]
+
+
+    document.body.removeChild(@fixedHeader.table) if @fixedHeader
 
   isDescendant: (child) ->
     node = child.parentNode

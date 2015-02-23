@@ -166,6 +166,9 @@
       table.appendChild(this.thead);
       table.appendChild(tbody);
       this.tableEl = table;
+      window.addEventListener('resize', function() {
+        return GridEdit.Utilities.prototype.fixHeaders(ge);
+      });
       if (this.useFixedHeaders) {
         return GridEdit.Utilities.prototype.fixHeaders(this);
       }
@@ -498,13 +501,14 @@
     };
 
     GridEdit.prototype.destroy = function() {
-      var key, _results;
+      var key;
       this.element.removeChild(this.tableEl);
-      _results = [];
       for (key in this) {
-        _results.push(delete this[key]);
+        delete this[key];
       }
-      return _results;
+      if (this.fixedHeader) {
+        return document.body.removeChild(this.fixedHeader.table);
+      }
     };
 
     GridEdit.prototype.isDescendant = function(child) {
@@ -1332,73 +1336,55 @@
     Utilities.prototype.fixHeaders = function(ge) {
       clearTimeout(this.fixHeadersBuffer);
       return this.fixHeadersBuffer = setTimeout((function() {
-        var backgroundColor, cell, currentTH, currentTHBounds, currentTHElement, currentTHElementBounds, currentTHElements, fakeTH, fakeTHCells, fakeTHead, fakeTR, fakeTable, index, left, windowOnResize, _i, _j, _len, _len1, _ref, _results;
+        var backgroundColor, currentTH, currentTHBounds, currentTHElement, currentTHElementBounds, currentTHElements, doc, fakeTH, fakeTHead, fakeTR, fakeTable, index, left, pageLeft, pageTop, table, _i, _len;
         currentTH = ge.thead;
         currentTHElements = currentTH.getElementsByTagName('th');
         if (ge.fixedHeader) {
-          left = 0;
-          _ref = ge.fixedHeader.cells;
-          _results = [];
-          for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
-            cell = _ref[index];
-            currentTHElement = currentTHElements[index];
-            currentTHElementBounds = currentTHElement.getBoundingClientRect();
-            cell.innerHTML = currentTHElement.innerHTML;
-            cell.className = currentTHElement.className;
-            cell.style.minWidth = currentTHElementBounds.width + 'px';
-            cell.style.minHeight = currentTHElementBounds.height + 'px';
-            cell.style.backgroundColor = ge.fixedHeader.backgroundColor;
-            cell.style.left = left + 'px';
-            _results.push(left += currentTHElementBounds.width);
-          }
-          return _results;
+          table = ge.fixedHeader.table;
+          ge.fixedHeader.table.parentNode.removeChild(table);
+          backgroundColor = ge.fixedHeader.backgroundColor;
         } else {
-          fakeTHCells = [];
           backgroundColor = window.getComputedStyle(currentTH).backgroundColor;
           if (backgroundColor === 'rgba(0, 0, 0, 0)') {
             backgroundColor = 'white';
           }
-          currentTHBounds = currentTH.getBoundingClientRect();
-          fakeTable = document.createElement('table');
-          fakeTable.className = ge.tableEl.className;
-          fakeTable.style.position = 'fixed';
-          fakeTable.style.top = currentTHBounds.top + 'px';
-          fakeTable.style.left = currentTHBounds.left + 'px';
-          fakeTable.style.zIndex = 1039;
-          fakeTHead = document.createElement('thead');
-          fakeTHead.className = currentTH.className;
-          fakeTR = document.createElement('tr');
-          if (ge.rows.length > 0) {
-            left = 0;
-            for (index = _j = 0, _len1 = currentTHElements.length; _j < _len1; index = ++_j) {
-              currentTHElement = currentTHElements[index];
-              currentTHElementBounds = currentTHElement.getBoundingClientRect();
-              fakeTH = document.createElement('th');
-              fakeTH.innerHTML = currentTHElement.innerHTML;
-              fakeTH.className = currentTHElement.className;
-              fakeTH.style.position = 'absolute';
-              fakeTH.style.width = currentTHElementBounds.width + 'px';
-              fakeTH.style.height = currentTHElementBounds.height + 'px';
-              fakeTH.style.left = left + 'px';
-              fakeTH.style.backgroundColor = backgroundColor;
-              left += currentTHElementBounds.width;
-              fakeTHCells.push(fakeTH);
-              fakeTR.appendChild(fakeTH);
-            }
-            fakeTHead.appendChild(fakeTR);
-            fakeTable.appendChild(fakeTHead);
-            document.body.appendChild(fakeTable);
-            ge.fixedHeader = {
-              thead: fakeTHead,
-              cells: fakeTHCells,
-              backgroundColor: backgroundColor
-            };
-            windowOnResize = window.onresize;
-            return window.onresize = function(e) {
-              GridEdit.Utilities.prototype.fixHeaders(ge);
-              return windowOnResize(e);
-            };
+        }
+        doc = document.documentElement;
+        pageLeft = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
+        pageTop = (window.pageYOffset || doc.scrollTop) - (doc.clientTop || 0);
+        currentTHBounds = currentTH.getBoundingClientRect();
+        fakeTable = document.createElement('table');
+        fakeTable.className = ge.tableEl.className;
+        fakeTable.style.position = 'absolute';
+        fakeTable.style.top = (currentTHBounds.top + pageTop) + 'px';
+        fakeTable.style.left = (currentTHBounds.left + pageLeft) + 'px';
+        fakeTable.style.zIndex = 1039;
+        fakeTHead = document.createElement('thead');
+        fakeTHead.className = currentTH.className;
+        fakeTR = document.createElement('tr');
+        if (ge.rows.length > 0) {
+          left = 0;
+          for (index = _i = 0, _len = currentTHElements.length; _i < _len; index = ++_i) {
+            currentTHElement = currentTHElements[index];
+            currentTHElementBounds = currentTHElement.getBoundingClientRect();
+            fakeTH = document.createElement('th');
+            fakeTH.innerHTML = currentTHElement.innerHTML;
+            fakeTH.className = currentTHElement.className;
+            fakeTH.style.position = 'absolute';
+            fakeTH.style.minWidth = currentTHElementBounds.width + 'px';
+            fakeTH.style.minHeight = currentTHElementBounds.height + 'px';
+            fakeTH.style.left = left + 'px';
+            fakeTH.style.backgroundColor = backgroundColor;
+            left += currentTHElementBounds.width;
+            fakeTR.appendChild(fakeTH);
           }
+          fakeTHead.appendChild(fakeTR);
+          fakeTable.appendChild(fakeTHead);
+          document.body.appendChild(fakeTable);
+          return ge.fixedHeader = {
+            table: fakeTable,
+            backgroundColor: backgroundColor
+          };
         }
       }), 100);
     };
