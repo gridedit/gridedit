@@ -178,7 +178,6 @@ class GridEdit.Cell
       switch key
         when 13 # return
           cell.edit @value
-          cell.below()?.makeActive()
         when 9 # tab
           cell.edit @value
           moveTo table.nextCell()
@@ -375,7 +374,6 @@ class GridEdit.CheckBoxCell extends GridEdit.Cell
     @element.appendChild div
 
   edit: () -> false
-  onReturnKeyPress: () -> @toggle()
   initControl: -> @toggle()
   renderControl: -> GridEdit.Utilities::clearActiveCells @table
   isBeingEdited: -> false
