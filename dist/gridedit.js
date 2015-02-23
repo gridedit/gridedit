@@ -503,7 +503,9 @@
     GridEdit.prototype.destroy = function() {
       var key, _results;
       if (this.useFixedHeaders) {
-        document.body.removeChild(this.fixedHeader.table);
+        if (this.fixedHeader) {
+          document.body.removeChild(this.fixedHeader.table);
+        }
       }
       this.element.removeChild(this.tableEl);
       _results = [];
@@ -1365,6 +1367,7 @@
         fakeTable.style.left = (currentTHBounds.left + pageLeft + geLeft) + 'px';
         fakeTable.style.width = currentTHBounds.width + 'px';
         fakeTable.style.zIndex = 1039;
+        fakeTable.style.pointerEvents = 'none';
         fakeTHead = document.createElement('thead');
         fakeTHead.className = currentTH.className;
         fakeTR = document.createElement('tr');
@@ -2816,7 +2819,7 @@
             modifier++;
           }
         } else {
-          if (rowToMoveIndex - lastDragOverIndex === 1) {
+          if (rowToMoveIndex > lastDragOverIndex) {
             modifier++;
           }
         }
@@ -2825,9 +2828,10 @@
         table.lastDragOver.element.style.borderTop = table.lastDragOver.oldBorderTop;
         table.lastDragOver.element.style.borderTop = table.lastDragOver.oldBorderTop;
         table.lastDragOver = null;
-        return table.moveRow(rowToMoveIndex, insertAtIndex);
+        if (insertAtIndex !== rowToMoveIndex) {
+          return table.moveRow(rowToMoveIndex, insertAtIndex);
+        }
       };
-      this;
     }
 
     return HandleCell;

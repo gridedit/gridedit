@@ -292,7 +292,7 @@ class GridEdit
 
   destroy: ->
     if @useFixedHeaders
-      document.body.removeChild @fixedHeader.table
+      document.body.removeChild @fixedHeader.table if @fixedHeader
 
     @element.removeChild @tableEl
     for key of @

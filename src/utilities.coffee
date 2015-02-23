@@ -63,6 +63,7 @@ class GridEdit.Utilities
       fakeTable.style.left = (currentTHBounds.left + pageLeft + geLeft) + 'px'
       fakeTable.style.width = currentTHBounds.width + 'px'
       fakeTable.style.zIndex = 1039
+      fakeTable.style.pointerEvents = 'none'
       fakeTHead = document.createElement 'thead'
       fakeTHead.className = currentTH.className
       fakeTR = document.createElement 'tr'

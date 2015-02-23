@@ -643,13 +643,11 @@ class GridEdit.HandleCell
       if lastDragOverIndex == 0
         modifier++ unless table.lastDragOverIsBeforeFirstRow or rowToMoveIndex == 0
       else
-        modifier++ if rowToMoveIndex - lastDragOverIndex == 1 # drag into same index, allowing for user hooks
+        modifier++ if rowToMoveIndex > lastDragOverIndex
       insertAtIndex = lastDragOverIndex + modifier
       table.lastDragOver.element.style.borderBottom = table.lastDragOver.oldBorderBottom
       table.lastDragOver.element.style.borderTop = table.lastDragOver.oldBorderTop
       table.lastDragOver.element.style.borderTop = table.lastDragOver.oldBorderTop
       table.lastDragOver = null
 
-      table.moveRow(rowToMoveIndex, insertAtIndex)
-
-    @
+      table.moveRow(rowToMoveIndex, insertAtIndex) if insertAtIndex != rowToMoveIndex
