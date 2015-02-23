@@ -54,6 +54,7 @@ class GridEdit.Utilities
       fakeTable.style.position = 'absolute'
       fakeTable.style.top = (currentTHBounds.top + pageTop) + 'px'
       fakeTable.style.left = (currentTHBounds.left + pageLeft) + 'px'
+      fakeTable.style.width = currentTHBounds.width + 'px'
       fakeTable.style.zIndex = 1039
       fakeTHead = document.createElement 'thead'
       fakeTHead.className = currentTH.className

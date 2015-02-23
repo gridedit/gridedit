@@ -503,7 +503,6 @@
     GridEdit.prototype.destroy = function() {
       var key, _results;
       if (this.useFixedHeaders) {
-        console.log('cleanup');
         document.body.removeChild(this.fixedHeader.table);
       }
       this.element.removeChild(this.tableEl);
@@ -1361,6 +1360,7 @@
         fakeTable.style.position = 'absolute';
         fakeTable.style.top = (currentTHBounds.top + pageTop) + 'px';
         fakeTable.style.left = (currentTHBounds.left + pageLeft) + 'px';
+        fakeTable.style.width = currentTHBounds.width + 'px';
         fakeTable.style.zIndex = 1039;
         fakeTHead = document.createElement('thead');
         fakeTHead.className = currentTH.className;
