@@ -125,8 +125,10 @@
         var prevRow;
         ge.lastDragOverIsBeforeFirstRow = true;
         prevRow = ge.lastDragOver;
-        prevRow.element.style.borderBottom = prevRow.oldBorderBottom;
-        return prevRow.element.style.borderTop = ge.theme.borders.dragBorderStyle;
+        if (prevRow) {
+          prevRow.element.style.borderBottom = prevRow.oldBorderBottom;
+          return prevRow.element.style.borderTop = ge.theme.borders.dragBorderStyle;
+        }
       };
       this.thead.ondragleave = function() {
         var firstRow;
@@ -1340,7 +1342,8 @@
     Utilities.prototype.fixHeaders = function(ge) {
       clearTimeout(this.fixHeadersBuffer);
       return this.fixHeadersBuffer = setTimeout((function() {
-        var backgroundColor, currentTH, currentTHBounds, currentTHElement, currentTHElementBounds, currentTHElements, doc, fakeTH, fakeTHead, fakeTR, fakeTable, geElement, geLeft, geTop, index, left, pageLeft, pageTop, table, _i, _len;
+        var backgroundColor, currentTH, currentTHBounds, currentTHElement, currentTHElementBounds, currentTHElements, doc, fakeTH, fakeTHead, fakeTR, fakeTable, geElement, geLeft, geTop, index, indexModifier, left, pageLeft, pageTop, table, _i, _len;
+        indexModifier = ge.config.includeRowHandles ? 1 : 0;
         currentTH = ge.thead;
         currentTHElements = currentTH.getElementsByTagName('th');
         if (ge.fixedHeader) {
@@ -1369,8 +1372,6 @@
         fakeTable.style.zIndex = 1039;
         fakeTHead = document.createElement('thead');
         fakeTHead.className = currentTH.className;
-        fakeTHead.ondragenter = currentTH.ondragenter();
-        fakeTHead.ondragleave = currentTH.ondragleave();
         fakeTR = document.createElement('tr');
         left = 0;
         for (index = _i = 0, _len = currentTHElements.length; _i < _len; index = ++_i) {
@@ -1384,7 +1385,24 @@
           fakeTH.style.minHeight = currentTHElementBounds.height + 'px';
           fakeTH.style.left = left + 'px';
           fakeTH.style.backgroundColor = backgroundColor;
-          fakeTH.onclick = currentTHElement.onclick();
+          fakeTH.setAttribute('col-id', index - indexModifier);
+          fakeTH.onclick = function(e) {
+            var col, n;
+            n = this.getAttribute('col-id');
+            col = ge.cols[n];
+            GridEdit.Utilities.prototype.clearActiveCells(ge);
+            return setTimeout((function() {
+              var cell, _j, _len1, _ref, _results;
+              col.makeActive();
+              _ref = col.cells;
+              _results = [];
+              for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
+                cell = _ref[_j];
+                _results.push(cell.addToSelection());
+              }
+              return _results;
+            }), 0);
+          };
           left += currentTHElementBounds.width;
           fakeTR.appendChild(fakeTH);
         }

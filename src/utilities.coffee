@@ -32,8 +32,11 @@ class GridEdit.Utilities
     if shift then char else char.toLowerCase()
 
   fixHeaders: (ge) ->
+
     clearTimeout @fixHeadersBuffer
+
     @fixHeadersBuffer = setTimeout ( ->
+      indexModifier = if ge.config.includeRowHandles then 1 else 0
       currentTH = ge.thead
       currentTHElements = currentTH.getElementsByTagName 'th'
 
@@ -65,8 +68,6 @@ class GridEdit.Utilities
       fakeTable.style.zIndex = 1039
       fakeTHead = document.createElement 'thead'
       fakeTHead.className = currentTH.className
-      fakeTHead.ondragenter = currentTH.ondragenter()
-      fakeTHead.ondragleave = currentTH.ondragleave()
       fakeTR = document.createElement 'tr'
       left = 0
       for currentTHElement, index in currentTHElements
@@ -79,7 +80,16 @@ class GridEdit.Utilities
         fakeTH.style.minHeight = currentTHElementBounds.height + 'px'
         fakeTH.style.left = left + 'px'
         fakeTH.style.backgroundColor = backgroundColor
-        fakeTH.onclick = currentTHElement.onclick()
+        fakeTH.setAttribute('col-id', index - indexModifier)
+        fakeTH.onclick = (e) ->
+          n = @getAttribute 'col-id'
+          col = ge.cols[n]
+          GridEdit.Utilities::clearActiveCells ge
+          setTimeout ( ->
+            col.makeActive()
+            for cell in col.cells
+              cell.addToSelection()
+          ), 0
         left += currentTHElementBounds.width
         fakeTR.appendChild fakeTH
       fakeTHead.appendChild fakeTR
