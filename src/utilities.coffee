@@ -68,6 +68,9 @@ class GridEdit.Utilities
       fakeTable.style.zIndex = 1039
       fakeTHead = document.createElement 'thead'
       fakeTHead.className = currentTH.className
+      fakeTHead.ondragenter = currentTH.ondragenter
+      fakeTHead.ondragleave = currentTH.ondragleave
+
       fakeTR = document.createElement 'tr'
       left = 0
       for currentTHElement, index in currentTHElements

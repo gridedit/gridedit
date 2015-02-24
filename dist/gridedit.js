@@ -1372,6 +1372,8 @@
         fakeTable.style.zIndex = 1039;
         fakeTHead = document.createElement('thead');
         fakeTHead.className = currentTH.className;
+        fakeTHead.ondragenter = currentTH.ondragenter;
+        fakeTHead.ondragleave = currentTH.ondragleave;
         fakeTR = document.createElement('tr');
         left = 0;
         for (index = _i = 0, _len = currentTHElements.length; _i < _len; index = ++_i) {

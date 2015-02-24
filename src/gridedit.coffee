@@ -299,8 +299,6 @@ class GridEdit
     for key of @
       delete @[key]
 
-
-
   isDescendant: (child) ->
     node = child.parentNode
     while node?
