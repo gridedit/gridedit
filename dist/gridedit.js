@@ -1372,7 +1372,7 @@
           backgroundColor = ge.fixedHeader.backgroundColor;
         } else {
           backgroundColor = window.getComputedStyle(currentTH).backgroundColor;
-          if (backgroundColor === 'rgba(0, 0, 0, 0)') {
+          if (backgroundColor === 'rgba(0, 0, 0, 0)' || backgroundColor === 'transparent') {
             backgroundColor = 'white';
           }
         }

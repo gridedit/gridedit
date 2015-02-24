@@ -62,7 +62,7 @@ class GridEdit.Utilities
         backgroundColor = ge.fixedHeader.backgroundColor
       else
         backgroundColor = window.getComputedStyle(currentTH).backgroundColor
-        backgroundColor = 'white' if backgroundColor == 'rgba(0, 0, 0, 0)'
+        backgroundColor = 'white' if (backgroundColor == 'rgba(0, 0, 0, 0)' or backgroundColor == 'transparent')
 
       # adjust for page scroll
       doc = document.documentElement
