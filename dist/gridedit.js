@@ -285,6 +285,11 @@
           return table.openCell.reposition();
         }
       };
+      this.element.onscroll = function(e) {
+        if (table.useFixedHeaders) {
+          return GridEdit.Utilities.prototype.repositionFixedHeader(table);
+        }
+      };
       this.tableEl.oncontextmenu = function(e) {
         return false;
       };
@@ -1336,6 +1341,21 @@
         return char;
       } else {
         return char.toLowerCase();
+      }
+    };
+
+    Utilities.prototype.repositionFixedHeader = function(ge) {
+      var currentTH, currentTHBounds, doc, fakeTable, fixedHeader, pageLeft;
+      fixedHeader = ge.fixedHeader;
+      if (fixedHeader) {
+        fakeTable = fixedHeader.table;
+        if (fakeTable) {
+          doc = document.documentElement;
+          pageLeft = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
+          currentTH = ge.thead;
+          currentTHBounds = currentTH.getBoundingClientRect();
+          return fakeTable.style.left = (currentTHBounds.left + pageLeft) + 'px';
+        }
       }
     };
 

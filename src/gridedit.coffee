@@ -191,6 +191,8 @@ class GridEdit
 
     window.onresize = -> GridEdit.Utilities::setStyles table.openCell.control, table.openCell.position() if table.openCell
     window.onscroll = -> table.openCell.reposition() if table.openCell
+    @element.onscroll = (e) ->
+      GridEdit.Utilities::repositionFixedHeader(table) if table.useFixedHeaders
     @tableEl.oncontextmenu = (e) -> false
     document.onclick = (e) ->
       activeCell = table.firstActiveCell()

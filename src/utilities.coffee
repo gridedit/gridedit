@@ -31,6 +31,22 @@ class GridEdit.Utilities
     char = String.fromCharCode key
     if shift then char else char.toLowerCase()
 
+  repositionFixedHeader: (ge) ->
+    fixedHeader = ge.fixedHeader
+    if fixedHeader
+      fakeTable = fixedHeader.table
+      if fakeTable
+        # adjust for page scroll
+        doc = document.documentElement
+        pageLeft = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0)
+#        geElement = ge.element
+#        geLeft = (geElement.scrollLeft || 0)
+        currentTH = ge.thead
+        currentTHBounds = currentTH.getBoundingClientRect()
+        fakeTable.style.left = (currentTHBounds.left + pageLeft) + 'px'
+
+
+
   fixHeaders: (ge) ->
 
     clearTimeout @fixHeadersBuffer
@@ -49,14 +65,14 @@ class GridEdit.Utilities
         backgroundColor = 'white' if backgroundColor == 'rgba(0, 0, 0, 0)'
 
       # adjust for page scroll
-      doc = document.documentElement;
-      pageLeft = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
-      pageTop = (window.pageYOffset || doc.scrollTop)  - (doc.clientTop || 0);
+      doc = document.documentElement
+      pageLeft = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0)
+      pageTop = (window.pageYOffset || doc.scrollTop)  - (doc.clientTop || 0)
 
       # adjust for GridEdit scroll
       geElement = ge.element
-      geLeft = (geElement.scrollLeft || 0);
-      geTop = (geElement.scrollTop || 0);
+      geLeft = (geElement.scrollLeft || 0)
+      geTop = (geElement.scrollTop || 0)
 
       currentTHBounds = currentTH.getBoundingClientRect()
       fakeTable = document.createElement 'table'
@@ -70,7 +86,6 @@ class GridEdit.Utilities
       fakeTHead.className = currentTH.className
       fakeTHead.ondragenter = currentTH.ondragenter
       fakeTHead.ondragleave = currentTH.ondragleave
-
       fakeTR = document.createElement 'tr'
       left = 0
       for currentTHElement, index in currentTHElements
