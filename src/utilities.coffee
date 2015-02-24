@@ -80,6 +80,7 @@ class GridEdit.Utilities
         fakeTH.className = currentTHElement.className
         fakeTH.style.position = 'absolute'
         fakeTH.style.minWidth = currentTHElementBounds.width + 'px'
+        fakeTH.style.maxWidth = currentTHElementBounds.width + 'px'
         fakeTH.style.minHeight = currentTHElementBounds.height + 'px'
         fakeTH.style.left = left + 'px'
         fakeTH.style.backgroundColor = backgroundColor
