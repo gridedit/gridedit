@@ -67,6 +67,7 @@ class GridEdit.ContextMenu
     # create the contextMenu div
     @element = document.createElement 'div'
     @element.style.position = 'fixed'
+    @element.style.zIndex = '1040'
     # create the ul to hold context menu items
     @menu = document.createElement 'ul'
     GridEdit.Utilities::setAttributes @menu, {class: 'dropdown-menu', role: 'menu', 'aria-labelledby', style: 'display:block;position:static;margin-bottom:5px;'}
@@ -138,9 +139,63 @@ class GridEdit.ContextMenu
       cell.makeActive() if not cell.isActive()
       @cells = cell.table.activeCells
       GridEdit.Utilities::setStyles @element, {left: x, top: y}
-      @table.tableEl.appendChild @element
+      document.body.appendChild @element
+      menu = @element
+      setTimeout ->
+        # reposition the context menu so it is fully visible on screen
 
-  hide: -> @table.tableEl.removeChild @element if @isVisible()
+        menuBounds = menu.getBoundingClientRect()
+        screenDimensions = GridEdit.Utilities::getScreenDimensions()
+
+        # check menu fits on the screen vertically
+        fitsVertically = screenDimensions.height > menuBounds.height
+
+        # check menu will be cut off screen vertically
+        cutsBottom = menuBounds.bottom > screenDimensions.height
+        cutsTop = menuBounds.top < 0
+
+        # check menu fits on the screen horizontally
+        fitsHorizontally = screenDimensions.width > menuBounds.width
+
+        # check menu will be cut off screen horizontally
+        cutsRight = menuBounds.right > screenDimensions.width
+        cutsLeft = menuBounds.left < 0
+
+        if fitsVertically
+          menu.style.overflowY = 'hidden'
+          menu.style.height = 'auto'
+          # reposition the menu within the screen if needed
+          if cutsBottom
+            top = menuBounds.top - ( menuBounds.bottom - screenDimensions.height )
+            menu.style.top = top + 'px'
+          if cutsTop
+            bottom = menuBounds.bottom + ( Math.abs(menuBounds.top) )
+            menu.style.bottom = bottom + 'px'
+        else
+          # make the menu scrollable vertically
+          menu.style.top = 0;
+          menu.style.height = screenDimensions.height + 'px';
+          menu.style.overflowY = 'scroll'
+
+        if fitsHorizontally
+          menu.style.overflowX = 'hidden'
+          menu.style.width = 'auto'
+          # reposition the menu within the screen if needed
+          if cutsRight
+            left = menuBounds.left - ( menuBounds.right - screenDimensions.width )
+            menu.style.left = left + 'px'
+          if cutsLeft
+            right = menuBounds.right + ( Math.abs(menuBounds.left) )
+            menu.style.right = right + 'px'
+        else
+          # make the menu scrollable horizontally
+          menu.style.left = 0;
+          menu.style.width = screenDimensions.width + 'px';
+          menu.style.overflowX = 'scroll'
+      , 100
+      false
+
+  hide: -> document.body.removeChild @element if @isVisible()
 
   isVisible: -> @element.parentNode?
 

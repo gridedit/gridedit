@@ -11,6 +11,7 @@
       this.dirtyRows = [];
       this.uniqueValueKey = this.config.uniqueValueKey;
       this.rowIndex = this.config.rowIndex;
+      this.useFixedHeaders = this.config.useFixedHeaders;
       this.element = document.querySelectorAll(this.config.element || '#gridedit')[0];
       this.contextMenu = new GridEdit.ContextMenu(this);
       this.themeName = this.config.themeName;
@@ -105,7 +106,7 @@
     };
 
     GridEdit.prototype.build = function() {
-      var col, colAttributes, ge, handleHeader, i, row, rowAttributes, rowType, table, tbody, thead, tr, _i, _j, _len, _len1, _ref, _ref1;
+      var col, colAttributes, ge, handleHeader, i, row, rowAttributes, rowType, table, tbody, tr, _i, _j, _len, _len1, _ref, _ref1;
       tr = document.createElement('tr');
       if (this.config.includeRowHandles) {
         handleHeader = document.createElement('th');
@@ -118,21 +119,23 @@
         this.cols.push(col);
         tr.appendChild(col.element);
       }
-      thead = document.createElement('thead');
+      this.thead = document.createElement('thead');
       ge = this;
-      thead.ondragenter = function() {
+      this.thead.ondragenter = function() {
         var prevRow;
         ge.lastDragOverIsBeforeFirstRow = true;
         prevRow = ge.lastDragOver;
-        prevRow.element.style.borderBottom = prevRow.oldBorderBottom;
-        return prevRow.element.style.borderTop = ge.theme.borders.dragBorderStyle;
+        if (prevRow) {
+          prevRow.element.style.borderBottom = prevRow.oldBorderBottom;
+          return prevRow.element.style.borderTop = ge.theme.borders.dragBorderStyle;
+        }
       };
-      thead.ondragleave = function() {
+      this.thead.ondragleave = function() {
         var firstRow;
         firstRow = ge.rows[0];
         return firstRow.element.style.borderTop = firstRow.oldBorderTop;
       };
-      thead.appendChild(tr);
+      this.thead.appendChild(tr);
       tbody = document.createElement('tbody');
       _ref1 = this.source;
       for (i = _j = 0, _len1 = _ref1.length; _j < _len1; i = ++_j) {
@@ -162,9 +165,15 @@
         id: 'editable-grid',
         "class": this.config.tableClass
       });
-      table.appendChild(thead);
+      table.appendChild(this.thead);
       table.appendChild(tbody);
-      return this.tableEl = table;
+      this.tableEl = table;
+      if (this.useFixedHeaders) {
+        GridEdit.Utilities.prototype.fixHeaders(this);
+        return window.addEventListener('resize', function() {
+          return GridEdit.Utilities.prototype.fixHeaders(ge);
+        });
+      }
     };
 
     GridEdit.prototype.rebuild = function(newConfig) {
@@ -172,6 +181,7 @@
       if (newConfig == null) {
         newConfig = null;
       }
+      this.contextMenu.hide();
       config = Object.create(this.config);
       config.rowIndex = this.rowIndex;
       if (newConfig !== null) {
@@ -276,8 +286,19 @@
           return table.openCell.reposition();
         }
       };
+      this.element.onscroll = function(e) {
+        if (table.useFixedHeaders) {
+          return GridEdit.Utilities.prototype.repositionFixedHeader(table);
+        }
+      };
       this.tableEl.oncontextmenu = function(e) {
         return false;
+      };
+      document.oncontextmenu = function(e) {
+        if (table.contextMenu.element === e.target) {
+          return false;
+        }
+        return true;
       };
       return document.onclick = function(e) {
         var activeCell;
@@ -495,6 +516,11 @@
 
     GridEdit.prototype.destroy = function() {
       var key, _results;
+      if (this.useFixedHeaders) {
+        if (this.fixedHeader) {
+          document.body.removeChild(this.fixedHeader.table);
+        }
+      }
       this.element.removeChild(this.tableEl);
       _results = [];
       for (key in this) {
@@ -990,6 +1016,7 @@
       };
       this.element = document.createElement('div');
       this.element.style.position = 'fixed';
+      this.element.style.zIndex = '1040';
       this.menu = document.createElement('ul');
       GridEdit.Utilities.prototype.setAttributes(this.menu, {
         "class": 'dropdown-menu',
@@ -1078,6 +1105,7 @@
     };
 
     ContextMenu.prototype.show = function(x, y, cell) {
+      var menu;
       this.cell = cell;
       if (this.active) {
         if (!cell.isActive()) {
@@ -1088,13 +1116,58 @@
           left: x,
           top: y
         });
-        return this.table.tableEl.appendChild(this.element);
+        document.body.appendChild(this.element);
+        menu = this.element;
+        setTimeout(function() {
+          var bottom, cutsBottom, cutsLeft, cutsRight, cutsTop, fitsHorizontally, fitsVertically, left, menuBounds, right, screenDimensions, top;
+          menuBounds = menu.getBoundingClientRect();
+          screenDimensions = GridEdit.Utilities.prototype.getScreenDimensions();
+          fitsVertically = screenDimensions.height > menuBounds.height;
+          cutsBottom = menuBounds.bottom > screenDimensions.height;
+          cutsTop = menuBounds.top < 0;
+          fitsHorizontally = screenDimensions.width > menuBounds.width;
+          cutsRight = menuBounds.right > screenDimensions.width;
+          cutsLeft = menuBounds.left < 0;
+          if (fitsVertically) {
+            menu.style.overflowY = 'hidden';
+            menu.style.height = 'auto';
+            if (cutsBottom) {
+              top = menuBounds.top - (menuBounds.bottom - screenDimensions.height);
+              menu.style.top = top + 'px';
+            }
+            if (cutsTop) {
+              bottom = menuBounds.bottom + (Math.abs(menuBounds.top));
+              menu.style.bottom = bottom + 'px';
+            }
+          } else {
+            menu.style.top = 0;
+            menu.style.height = screenDimensions.height + 'px';
+            menu.style.overflowY = 'scroll';
+          }
+          if (fitsHorizontally) {
+            menu.style.overflowX = 'hidden';
+            menu.style.width = 'auto';
+            if (cutsRight) {
+              left = menuBounds.left - (menuBounds.right - screenDimensions.width);
+              menu.style.left = left + 'px';
+            }
+            if (cutsLeft) {
+              right = menuBounds.right + (Math.abs(menuBounds.left));
+              return menu.style.right = right + 'px';
+            }
+          } else {
+            menu.style.left = 0;
+            menu.style.width = screenDimensions.width + 'px';
+            return menu.style.overflowX = 'scroll';
+          }
+        }, 100);
+        return false;
       }
     };
 
     ContextMenu.prototype.hide = function() {
       if (this.isVisible()) {
-        return this.table.tableEl.removeChild(this.element);
+        return document.body.removeChild(this.element);
       }
     };
 
@@ -1323,6 +1396,115 @@
       } else {
         return char.toLowerCase();
       }
+    };
+
+    Utilities.prototype.getScreenDimensions = function() {
+      var d, e, g, w, x, y;
+      w = window;
+      d = document;
+      e = d.documentElement;
+      g = d.getElementsByTagName('body')[0];
+      x = w.innerWidth || e.clientWidth || g.clientWidth;
+      y = w.innerHeight || e.clientHeight || g.clientHeight;
+      return {
+        width: x,
+        height: y
+      };
+    };
+
+    Utilities.prototype.repositionFixedHeader = function(ge) {
+      var currentTH, currentTHBounds, doc, fakeTable, fixedHeader, pageLeft;
+      fixedHeader = ge.fixedHeader;
+      if (fixedHeader) {
+        fakeTable = fixedHeader.table;
+        if (fakeTable) {
+          doc = document.documentElement;
+          pageLeft = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
+          currentTH = ge.thead;
+          currentTHBounds = currentTH.getBoundingClientRect();
+          return fakeTable.style.left = (currentTHBounds.left + pageLeft) + 'px';
+        }
+      }
+    };
+
+    Utilities.prototype.fixHeaders = function(ge) {
+      clearTimeout(this.fixHeadersBuffer);
+      return this.fixHeadersBuffer = setTimeout((function() {
+        var backgroundColor, currentTH, currentTHBounds, currentTHElement, currentTHElementBounds, currentTHElements, doc, fakeTH, fakeTHead, fakeTR, fakeTable, geElement, geLeft, geTop, index, indexModifier, left, pageLeft, pageTop, table, _i, _len;
+        indexModifier = ge.config.includeRowHandles ? 1 : 0;
+        currentTH = ge.thead;
+        currentTHElements = currentTH.getElementsByTagName('th');
+        if (ge.fixedHeader) {
+          table = ge.fixedHeader.table;
+          ge.fixedHeader.table.parentNode.removeChild(table);
+          backgroundColor = ge.fixedHeader.backgroundColor;
+        } else {
+          backgroundColor = window.getComputedStyle(currentTH).backgroundColor;
+          if (backgroundColor === 'rgba(0, 0, 0, 0)' || backgroundColor === 'transparent') {
+            backgroundColor = 'white';
+          }
+        }
+        doc = document.documentElement;
+        pageLeft = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
+        pageTop = (window.pageYOffset || doc.scrollTop) - (doc.clientTop || 0);
+        geElement = ge.element;
+        geLeft = geElement.scrollLeft || 0;
+        geTop = geElement.scrollTop || 0;
+        currentTHBounds = currentTH.getBoundingClientRect();
+        fakeTable = document.createElement('table');
+        fakeTable.className = ge.tableEl.className;
+        fakeTable.style.position = 'absolute';
+        fakeTable.style.top = (currentTHBounds.top + pageTop + geTop) + 'px';
+        fakeTable.style.left = (currentTHBounds.left + pageLeft + geLeft) + 'px';
+        fakeTable.style.width = currentTHBounds.width + 'px';
+        fakeTable.style.zIndex = 1039;
+        fakeTHead = document.createElement('thead');
+        fakeTHead.className = currentTH.className;
+        fakeTHead.ondragenter = currentTH.ondragenter;
+        fakeTHead.ondragleave = currentTH.ondragleave;
+        fakeTR = document.createElement('tr');
+        left = 0;
+        for (index = _i = 0, _len = currentTHElements.length; _i < _len; index = ++_i) {
+          currentTHElement = currentTHElements[index];
+          currentTHElementBounds = currentTHElement.getBoundingClientRect();
+          fakeTH = document.createElement('th');
+          fakeTH.innerHTML = currentTHElement.innerHTML;
+          fakeTH.className = currentTHElement.className;
+          fakeTH.style.position = 'absolute';
+          fakeTH.style.minWidth = currentTHElementBounds.width + 'px';
+          fakeTH.style.maxWidth = currentTHElementBounds.width + 'px';
+          fakeTH.style.minHeight = currentTHElementBounds.height + 'px';
+          fakeTH.style.left = left + 'px';
+          fakeTH.style.backgroundColor = backgroundColor;
+          fakeTH.setAttribute('col-id', index - indexModifier);
+          fakeTH.onclick = function(e) {
+            var col, n;
+            n = this.getAttribute('col-id');
+            col = ge.cols[n];
+            GridEdit.Utilities.prototype.clearActiveCells(ge);
+            return setTimeout((function() {
+              var cell, _j, _len1, _ref, _results;
+              col.makeActive();
+              _ref = col.cells;
+              _results = [];
+              for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
+                cell = _ref[_j];
+                _results.push(cell.addToSelection());
+              }
+              return _results;
+            }), 0);
+          };
+          left += currentTHElementBounds.width;
+          fakeTR.appendChild(fakeTH);
+        }
+        fakeTHead.appendChild(fakeTR);
+        fakeTable.appendChild(fakeTHead);
+        document.body.appendChild(fakeTable);
+        return ge.fixedHeader = {
+          table: fakeTable,
+          backgroundColor: backgroundColor
+        };
+      }), 100);
     };
 
     return Utilities;
@@ -1903,6 +2085,9 @@
           this.setValue(newValue);
           this.renderValue(newValue);
           this.row.afterEdit();
+          if (this.table.useFixedHeaders) {
+            GridEdit.Utilities.prototype.fixHeaders(this.table);
+          }
           GridEdit.Hook.prototype.run(this, 'afterEdit', this, oldValue, newValue, this.table.contextMenu.getTargetPasteCell());
           this.table.checkIfCellIsDirty(this);
           return newValue;
@@ -2118,7 +2303,7 @@
         if (table.lastClickCell === cell) {
           if (GridEdit.Hook.prototype.run(cell, 'onDblClick', cell, e)) {
             table.lastClickCell = null;
-            return cell.showControl(cell.value());
+            cell.showControl(cell.value());
           }
         } else {
           table.lastClickCell = cell;
@@ -2162,8 +2347,8 @@
               }
             }
           }
-          return false;
         }
+        return false;
       };
       this.element.onmousedown = function(e) {
         if (e.which === 3) {
@@ -2739,18 +2924,28 @@
         return table.draggingRow = row;
       };
       this.element.ondragend = function() {
-        var insertAtIndex, lastDragOverIndex, modifier, rowToMoveInex;
-        rowToMoveInex = table.draggingRow.index;
+        var insertAtIndex, lastDragOverIndex, modifier, rowToMoveIndex;
+        rowToMoveIndex = table.draggingRow.index;
         lastDragOverIndex = table.lastDragOver.index;
-        modifier = lastDragOverIndex === 0 && !table.lastDragOverIsBeforeFirstRow ? 1 : 0;
+        modifier = 0;
+        if (lastDragOverIndex === 0) {
+          if (!(table.lastDragOverIsBeforeFirstRow || rowToMoveIndex === 0)) {
+            modifier++;
+          }
+        } else {
+          if (rowToMoveIndex > lastDragOverIndex) {
+            modifier++;
+          }
+        }
         insertAtIndex = lastDragOverIndex + modifier;
         table.lastDragOver.element.style.borderBottom = table.lastDragOver.oldBorderBottom;
         table.lastDragOver.element.style.borderTop = table.lastDragOver.oldBorderTop;
         table.lastDragOver.element.style.borderTop = table.lastDragOver.oldBorderTop;
         table.lastDragOver = null;
-        return table.moveRow(rowToMoveInex, insertAtIndex);
+        if (insertAtIndex !== rowToMoveIndex) {
+          return table.moveRow(rowToMoveIndex, insertAtIndex);
+        }
       };
-      this;
     }
 
     return HandleCell;
