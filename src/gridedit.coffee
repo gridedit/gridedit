@@ -122,6 +122,7 @@ class GridEdit
           GridEdit.Utilities::fixHeaders ge
 
   rebuild: (newConfig = null) ->
+    @contextMenu.hide()
     config = Object.create @config
     config.rowIndex = @rowIndex
     if newConfig isnt null

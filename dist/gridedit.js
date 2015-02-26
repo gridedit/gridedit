@@ -181,6 +181,7 @@
       if (newConfig == null) {
         newConfig = null;
       }
+      this.contextMenu.hide();
       config = Object.create(this.config);
       config.rowIndex = this.rowIndex;
       if (newConfig !== null) {
