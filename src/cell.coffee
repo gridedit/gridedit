@@ -533,10 +533,9 @@ class GridEdit.SelectCell extends GridEdit.Cell
     node = document.createTextNode @originalValue
     @element.appendChild node
 
-  initControl: ->
+  setControlValue: ->
     cell = @
-    select = document.createElement "select"
-    console.log "There is not a 'choices' key in cell #{@address} and you specified that it was of type 'select'" if not @meta.choices
+    @control.innerHTML = '';
     for choice in @meta.choices
       option = document.createElement "option"
       if choice instanceof Array
@@ -546,11 +545,17 @@ class GridEdit.SelectCell extends GridEdit.Cell
       else
         option.value = option.text = choice
       option.selected = true if cell.value() is choice
-      select.add option
+      @control.add option
+
+  initControl: ->
+    cell = @
+    select = document.createElement "select"
+    @control = select
+    console.log "There is not a 'choices' key in cell #{@address} and you specified that it was of type 'select'" if not @meta.choices
+    @setControlValue()
     select.classList.add @table.theme.inputs.select.className
     select.onchange = (e) ->
       cell.edit e.target.value
-    @control = select
 
   select: -> false
 
