@@ -293,6 +293,12 @@
       this.tableEl.oncontextmenu = function(e) {
         return false;
       };
+      document.oncontextmenu = function(e) {
+        if (table.contextMenu.element === e.target) {
+          return false;
+        }
+        return true;
+      };
       return document.onclick = function(e) {
         var activeCell;
         activeCell = table.firstActiveCell();
@@ -1009,6 +1015,7 @@
       };
       this.element = document.createElement('div');
       this.element.style.position = 'fixed';
+      this.element.style.zIndex = '1040';
       this.menu = document.createElement('ul');
       GridEdit.Utilities.prototype.setAttributes(this.menu, {
         "class": 'dropdown-menu',
@@ -1097,6 +1104,7 @@
     };
 
     ContextMenu.prototype.show = function(x, y, cell) {
+      var menu;
       this.cell = cell;
       if (this.active) {
         if (!cell.isActive()) {
@@ -1107,13 +1115,54 @@
           left: x,
           top: y
         });
-        return this.table.tableEl.appendChild(this.element);
+        document.body.appendChild(this.element);
+        menu = this.element;
+        setTimeout(function() {
+          var bottom, cutsBottom, cutsLeft, cutsRight, cutsTop, fitsHorizontally, fitsVertically, left, menuBounds, right, screenDimensions, top;
+          menuBounds = menu.getBoundingClientRect();
+          screenDimensions = GridEdit.Utilities.prototype.getScreenDimensions();
+          fitsVertically = screenDimensions.height > menuBounds.height;
+          cutsBottom = menuBounds.bottom > screenDimensions.height;
+          cutsTop = menuBounds.top < 0;
+          fitsHorizontally = screenDimensions.width > menuBounds.width;
+          cutsRight = menuBounds.right > screenDimensions.width;
+          cutsLeft = menuBounds.left < 0;
+          if (fitsVertically) {
+            if (cutsBottom) {
+              top = menuBounds.top - (menuBounds.bottom - screenDimensions.height);
+              menu.style.top = top + 'px';
+            }
+            if (cutsTop) {
+              bottom = menuBounds.bottom + (Math.abs(menuBounds.top));
+              menu.style.bottom = bottom + 'px';
+            }
+          } else {
+            menu.style.top = 0;
+            menu.style.height = screenDimensions.height + 'px';
+            menu.style.overflowY = 'scroll';
+          }
+          if (fitsHorizontally) {
+            if (cutsRight) {
+              left = menuBounds.left - (menuBounds.right - screenDimensions.width);
+              menu.style.left = left + 'px';
+            }
+            if (cutsLeft) {
+              right = menuBounds.right + (Math.abs(menuBounds.left));
+              return menu.style.right = right + 'px';
+            }
+          } else {
+            menu.style.left = 0;
+            menu.style.width = screenDimensions.width + 'px';
+            return menu.style.overflowX = 'scroll';
+          }
+        }, 100);
+        return false;
       }
     };
 
     ContextMenu.prototype.hide = function() {
       if (this.isVisible()) {
-        return this.table.tableEl.removeChild(this.element);
+        return document.body.removeChild(this.element);
       }
     };
 
@@ -1342,6 +1391,20 @@
       } else {
         return char.toLowerCase();
       }
+    };
+
+    Utilities.prototype.getScreenDimensions = function() {
+      var d, e, g, w, x, y;
+      w = window;
+      d = document;
+      e = d.documentElement;
+      g = d.getElementsByTagName('body')[0];
+      x = w.innerWidth || e.clientWidth || g.clientWidth;
+      y = w.innerHeight || e.clientHeight || g.clientHeight;
+      return {
+        width: x,
+        height: y
+      };
     };
 
     Utilities.prototype.repositionFixedHeader = function(ge) {

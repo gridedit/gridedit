@@ -194,6 +194,9 @@ class GridEdit
     @element.onscroll = (e) ->
       GridEdit.Utilities::repositionFixedHeader(table) if table.useFixedHeaders
     @tableEl.oncontextmenu = (e) -> false
+    document.oncontextmenu = (e) ->
+      return false if table.contextMenu.element is e.target
+      true
     document.onclick = (e) ->
       activeCell = table.firstActiveCell()
       unless table.isDescendant e.target or table.contextMenu.isVisible()

@@ -31,6 +31,15 @@ class GridEdit.Utilities
     char = String.fromCharCode key
     if shift then char else char.toLowerCase()
 
+  getScreenDimensions: ->
+    w = window
+    d = document
+    e = d.documentElement
+    g = d.getElementsByTagName('body')[0]
+    x = w.innerWidth || e.clientWidth || g.clientWidth
+    y = w.innerHeight|| e.clientHeight|| g.clientHeight
+    { width: x, height: y }
+
   repositionFixedHeader: (ge) ->
     fixedHeader = ge.fixedHeader
     if fixedHeader
@@ -39,13 +48,9 @@ class GridEdit.Utilities
         # adjust for page scroll
         doc = document.documentElement
         pageLeft = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0)
-#        geElement = ge.element
-#        geLeft = (geElement.scrollLeft || 0)
         currentTH = ge.thead
         currentTHBounds = currentTH.getBoundingClientRect()
         fakeTable.style.left = (currentTHBounds.left + pageLeft) + 'px'
-
-
 
   fixHeaders: (ge) ->
 
