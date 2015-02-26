@@ -162,6 +162,8 @@ class GridEdit.ContextMenu
         cutsLeft = menuBounds.left < 0
 
         if fitsVertically
+          menu.style.overflowY = 'hidden'
+          menu.style.height = 'auto'
           # reposition the menu within the screen if needed
           if cutsBottom
             top = menuBounds.top - ( menuBounds.bottom - screenDimensions.height )
@@ -176,6 +178,8 @@ class GridEdit.ContextMenu
           menu.style.overflowY = 'scroll'
 
         if fitsHorizontally
+          menu.style.overflowX = 'hidden'
+          menu.style.width = 'auto'
           # reposition the menu within the screen if needed
           if cutsRight
             left = menuBounds.left - ( menuBounds.right - screenDimensions.width )

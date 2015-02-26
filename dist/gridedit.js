@@ -1128,6 +1128,8 @@
           cutsRight = menuBounds.right > screenDimensions.width;
           cutsLeft = menuBounds.left < 0;
           if (fitsVertically) {
+            menu.style.overflowY = 'hidden';
+            menu.style.height = 'auto';
             if (cutsBottom) {
               top = menuBounds.top - (menuBounds.bottom - screenDimensions.height);
               menu.style.top = top + 'px';
@@ -1142,6 +1144,8 @@
             menu.style.overflowY = 'scroll';
           }
           if (fitsHorizontally) {
+            menu.style.overflowX = 'hidden';
+            menu.style.width = 'auto';
             if (cutsRight) {
               left = menuBounds.left - (menuBounds.right - screenDimensions.width);
               menu.style.left = left + 'px';
