@@ -1391,6 +1391,9 @@
       var activeCell, activeCells, index, redCell, redCells, _i, _j, _len, _len1;
       redCells = table.redCells;
       activeCells = table.activeCells;
+      if (table.openCell) {
+        table.openCell.edit(table.openCell.control.value);
+      }
       if (redCells.length > 0) {
         for (index = _i = 0, _len = redCells.length; _i < _len; index = ++_i) {
           redCell = redCells[index];

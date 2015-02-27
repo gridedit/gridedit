@@ -12,6 +12,7 @@ class GridEdit.Utilities
   clearActiveCells: (table) ->
     redCells = table.redCells
     activeCells = table.activeCells
+    table.openCell.edit(table.openCell.control.value) if table.openCell
     if redCells.length > 0
       for redCell, index in redCells
         redCell?.makeInactive()
