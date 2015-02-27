@@ -1430,7 +1430,7 @@
     Utilities.prototype.fixHeaders = function(ge) {
       clearTimeout(this.fixHeadersBuffer);
       return this.fixHeadersBuffer = setTimeout((function() {
-        var backgroundColor, currentTH, currentTHBounds, currentTHElement, currentTHElementBounds, currentTHElements, doc, fakeTH, fakeTHead, fakeTR, fakeTable, geElement, geLeft, geTop, index, indexModifier, left, pageLeft, pageTop, table, _i, _len;
+        var backgroundColor, col, currentTH, currentTHBounds, currentTHElement, currentTHElementBounds, currentTHElements, doc, fakeTH, fakeTHead, fakeTR, fakeTable, geElement, geLeft, geTop, index, indexModifier, key, left, pageLeft, pageTop, table, value, _i, _len, _ref, _ref1;
         indexModifier = ge.config.includeRowHandles ? 1 : 0;
         currentTH = ge.thead;
         currentTHElements = currentTH.getElementsByTagName('th');
@@ -1494,6 +1494,22 @@
               return _results;
             }), 0);
           };
+          col = ge.cols[index - indexModifier];
+          if (col) {
+            if (col.headerStyle) {
+              _ref = col.headerStyle;
+              for (key in _ref) {
+                value = _ref[key];
+                fakeTH.style[key] = value;
+              }
+            } else {
+              _ref1 = col.style;
+              for (key in _ref1) {
+                value = _ref1[key];
+                fakeTH.style[key] = value;
+              }
+            }
+          }
           left += currentTHElementBounds.width;
           fakeTR.appendChild(fakeTH);
         }
@@ -1539,8 +1555,26 @@
         this[key] = value;
       }
       delete this.attributes;
+      this.applyStyle();
       this.events();
     }
+
+    Column.prototype.applyStyle = function() {
+      var styleName, _results, _results1;
+      if (this.headerStyle) {
+        _results = [];
+        for (styleName in this.headerStyle) {
+          _results.push(this.element.style[styleName] = this.headerStyle[styleName]);
+        }
+        return _results;
+      } else {
+        _results1 = [];
+        for (styleName in this.style) {
+          _results1.push(this.element.style[styleName] = this.style[styleName]);
+        }
+        return _results1;
+      }
+    };
 
     Column.prototype.next = function() {
       return this.table.cols[this.index + 1];

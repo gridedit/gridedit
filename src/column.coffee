@@ -12,7 +12,16 @@ class GridEdit.Column
     for key, value of @attributes
       @[key] = value
     delete @attributes
+    @applyStyle()
     do @events
+
+  applyStyle: ->
+    if @headerStyle
+      for styleName of @headerStyle
+        @element.style[styleName] = @headerStyle[styleName]
+    else
+      for styleName of @style
+        @element.style[styleName] = @style[styleName]
 
   next: -> @table.cols[@index + 1]
 

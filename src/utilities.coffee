@@ -114,6 +114,16 @@ class GridEdit.Utilities
             for cell in col.cells
               cell.addToSelection()
           ), 0
+
+        col = ge.cols[index - indexModifier]
+        if col
+          if col.headerStyle
+            for key, value of col.headerStyle
+              fakeTH.style[key] = value
+          else
+            for key, value of col.style
+              fakeTH.style[key] = value
+
         left += currentTHElementBounds.width
         fakeTR.appendChild fakeTH
       fakeTHead.appendChild fakeTR
