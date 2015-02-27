@@ -1974,12 +1974,21 @@
       return this.source = this.table.config.rows[this.address[0]];
     };
 
-    Cell.prototype.initNode = function() {
-      return this.element.appendChild(document.createTextNode(this.col.format(this.originalValue)));
-    };
-
     Cell.prototype.initControl = function() {
       return this.control = document.createElement('input');
+    };
+
+    Cell.prototype.initNode = function() {
+      this.element.appendChild(document.createTextNode(this.col.format(this.originalValue)));
+      if ((this.placeholder || this.col.placeholder) && !this.originalValue) {
+        return this.renderPlaceholder();
+      }
+    };
+
+    Cell.prototype.renderPlaceholder = function() {
+      this.originalColor = this.element.style.color;
+      this.element.style.color = '#ccc';
+      return this.element.textContent = this.placeholder || this.col.placeholder;
     };
 
 
@@ -2141,12 +2150,17 @@
       return this.source[this.valueKey] = value;
     };
 
-    Cell.prototype.renderValue = function(value) {
-      return this.element.textContent = this.col.format(value);
-    };
-
     Cell.prototype.select = function() {
       return this.control.select();
+    };
+
+    Cell.prototype.renderValue = function(value) {
+      if ((this.placeholder || this.col.placeholder) && value === '') {
+        return this.renderPlaceholder();
+      } else {
+        this.element.style.color = this.originalColor || '';
+        return this.element.textContent = this.col.format(value);
+      }
     };
 
 
@@ -2884,12 +2898,6 @@
       this.initialize();
       this;
     }
-
-    TextAreaCell.prototype.initNode = function() {
-      var node;
-      node = document.createTextNode(this.originalValue || '');
-      return this.element.appendChild(node);
-    };
 
     TextAreaCell.prototype.initControl = function() {
       var cell, textarea;

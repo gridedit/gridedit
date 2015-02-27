@@ -31,8 +31,16 @@ class GridEdit.Cell
   initEditable: -> @editable = @col.editable != false
   initValueKey: -> @valueKey = @col.valueKey
   initSource: -> @source = @table.config.rows[@address[0]]
-  initNode: -> @element.appendChild document.createTextNode @col.format(@originalValue)
   initControl: -> @control = document.createElement 'input'
+
+  initNode: ->
+    @element.appendChild document.createTextNode @col.format(@originalValue)
+    @renderPlaceholder() if ( @placeholder or @col.placeholder ) and !@originalValue
+
+  renderPlaceholder: ->
+    @originalColor = @element.style.color
+    @element.style.color = '#ccc'
+    @element.textContent = @placeholder or @col.placeholder
 
   ###
   	Display
@@ -125,8 +133,14 @@ class GridEdit.Cell
 
   formatValue: (value) -> value
   setValue: (value) -> @source[@valueKey] = value
-  renderValue: (value) -> @element.textContent = @col.format(value)
   select: -> @control.select()
+  renderValue: (value) ->
+    if ( @placeholder or @col.placeholder ) and value == ''
+      @renderPlaceholder()
+    else
+      @element.style.color = @originalColor or ''
+      @element.textContent = @col.format(value)
+
 
   ###
     Dirty
@@ -585,15 +599,12 @@ class GridEdit.TextAreaCell extends GridEdit.Cell
     @initialize()
     @
 
-  initNode: ->
-    node = document.createTextNode @originalValue || ''
-    @element.appendChild node
-
   initControl: ->
     cell = @
     textarea = document.createElement 'textarea'
     textarea.classList.add @table.theme.inputs.textarea.className
     @control = textarea
+
 
 ###
   Generic Cell
