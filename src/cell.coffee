@@ -610,7 +610,6 @@ class GridEdit.TextAreaCell extends GridEdit.Cell
     textarea.classList.add @table.theme.inputs.textarea.className
     @control = textarea
 
-
 ###
   Generic Cell
   -----------------------------------------------------------------------------------------
