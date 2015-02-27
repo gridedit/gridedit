@@ -667,6 +667,23 @@
       }
     };
 
+    GridEdit.prototype.addScatteredRows = function(rowObjects) {
+      var index, rowIndexes, rowObject, _i, _len;
+      rowIndexes = Object.keys(rowObjects);
+      rowIndexes = rowIndexes.sort();
+      for (_i = 0, _len = rowIndexes.length; _i < _len; _i++) {
+        index = rowIndexes[_i];
+        rowObject = rowObjects[index];
+        this.source.splice(index, 0, rowObject);
+      }
+      this.rebuild({
+        rows: this.source,
+        initialize: true,
+        selectedCell: [index, 0]
+      });
+      return this.setDirtyRows();
+    };
+
     GridEdit.prototype.insertBelow = function() {
       var cell;
       cell = this.contextMenu.getTargetPasteCell();
@@ -713,22 +730,26 @@
       }
     };
 
-    GridEdit.prototype.removeRows = function(index, addToStack, numRows) {
-      var i, rowObject, rowObjects, _i, _ref;
+    GridEdit.prototype.removeRows = function(rowIndexes, addToStack) {
+      var index, rowObject, rowObjects, _i, _len;
       if (addToStack == null) {
         addToStack = true;
       }
-      if (GridEdit.Hook.prototype.run(this, 'beforeRemoveRows', index, numRows)) {
-        rowObjects = [];
-        for (i = _i = 0, _ref = numRows - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
-          rowObject = this.source[index + i];
-          rowObjects.push(rowObject);
+      if (GridEdit.Hook.prototype.run(this, 'beforeRemoveRows', rowIndexes)) {
+        rowIndexes = rowIndexes.sort(function(a, b) {
+          return b - a;
+        });
+        rowObjects = {};
+        for (_i = 0, _len = rowIndexes.length; _i < _len; _i++) {
+          index = rowIndexes[_i];
+          rowObject = this.source[index];
+          rowObjects[index] = rowObject;
+          this.source.splice(index, 1);
         }
-        this.source.splice(index, numRows);
         if (addToStack) {
           this.addToStack({
             type: 'remove-rows',
-            index: index,
+            rowIndexes: rowIndexes,
             rowObjects: rowObjects
           });
         }
@@ -738,7 +759,7 @@
           selectedCell: [index, 0]
         });
         this.setDirtyRows();
-        return GridEdit.Hook.prototype.run(this, 'afterRemoveRows', index, numRows);
+        return GridEdit.Hook.prototype.run(this, 'afterRemoveRows', rowIndexes);
       }
     };
 
@@ -866,7 +887,7 @@
     };
 
     ActionStack.prototype.undo = function() {
-      var action, cell;
+      var action, cell, i, rowIndexes, _i, _ref;
       if (this.index > -1) {
         this.index--;
         action = this.actions[this.index + 1];
@@ -894,10 +915,14 @@
             this.table.moveRow(action.newIndex, action.oldIndex, false);
             break;
           case 'add-rows':
-            this.table.removeRows(action.index, false, action.rowObjects.length);
+            rowIndexes = [];
+            for (i = _i = 0, _ref = action.rowObjects.length; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
+              rowIndexes.push(i + action.index);
+            }
+            this.table.removeRows(rowIndexes, false);
             break;
           case 'remove-rows':
-            this.table.addRows(action.index, false, action.rowObjects);
+            this.table.addScatteredRows(action.rowObjects);
             break;
         }
       }
@@ -935,7 +960,7 @@
             this.table.addRows(action.index, false, action.rowObjects);
             break;
           case 'remove-rows':
-            this.table.removeRows(action.index, false, action.rowObjects);
+            this.table.removeRows(action.rowIndexes, false);
             break;
         }
       }
@@ -1009,7 +1034,7 @@
           callback: this.insertAbove
         },
         removeRow: {
-          name: 'Remove Row',
+          name: 'Remove Row(s)',
           shortCut: '',
           callback: this.removeRow
         }
@@ -1281,9 +1306,15 @@
     };
 
     ContextMenu.prototype.removeRow = function(e, table) {
-      var cell;
-      cell = table.contextMenu.getTargetPasteCell();
-      return table.removeRow(cell.row.index);
+      var cell, gridChange, rows, _i, _len, _ref;
+      gridChange = new GridEdit.GridChange(table.activeCells);
+      rows = {};
+      _ref = gridChange.cells;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        cell = _ref[_i];
+        rows[cell.address[0]] = true;
+      }
+      return table.removeRows(Object.keys(rows));
     };
 
     ContextMenu.prototype.undo = function(e, table) {
@@ -1302,8 +1333,15 @@
     };
 
     ContextMenu.prototype.execute = function(actionCallback, event) {
+      var table;
       if (GridEdit.Hook.prototype.run(this, 'beforeContextMenuAction', event, this.table)) {
         actionCallback(event, this.table);
+        table = this.table;
+        setTimeout((function() {
+          if (table.useFixedHeaders) {
+            return GridEdit.Utilities.prototype.fixHeaders(table);
+          }
+        }), 100);
         return GridEdit.Hook.prototype.run(this, 'afterContextMenuAction', event, this.table);
       }
     };
@@ -1474,6 +1512,7 @@
           fakeTH.style.minWidth = currentTHElementBounds.width + 'px';
           fakeTH.style.maxWidth = currentTHElementBounds.width + 'px';
           fakeTH.style.minHeight = currentTHElementBounds.height + 'px';
+          fakeTH.style.maxHeight = currentTHElementBounds.height + 'px';
           fakeTH.style.left = left + 'px';
           fakeTH.style.backgroundColor = backgroundColor;
           fakeTH.setAttribute('col-id', index - indexModifier);
