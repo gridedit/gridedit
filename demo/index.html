@@ -5,21 +5,6 @@
 
   <style type='text/css'>
 
-    .myTable {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    .myTable td, .myTable th {
-      border: 1px solid #dedede;
-      line-height: 1.5em;
-    }
-
-    .myTable th, .myTable td {
-      line-height: 2em;
-      padding: 3px;
-    }
-
     #contextMenu {
       position: absolute;
     }
@@ -203,6 +188,8 @@
     #sample-grid-edit {
       width: 700px;
       margin: auto;
+      overflow: scroll;
+      height: 200px;
     }
 
     .centered {
@@ -325,7 +312,13 @@
       label: 'Date',
       valueKey: 'date',
       type: 'date',
-      style: colStyle
+      style: {
+        'text-align' : 'left'
+      }
+//      headerStyle: {
+//        'text-align' : 'center',
+//        'color' : 'blue'
+//      }
     },
     {
       label: 'Food',
@@ -392,6 +385,10 @@
     }
   ];
 
+  for(var i=0;i<100;i++){
+    rows.push({}); // empty rows to show fixed headers
+  }
+
   ge = new GridEdit({
     initialize: true,
     cols: cols,
@@ -401,67 +398,68 @@
     includeContextMenu: true,
     themeName: 'bootstrap',
     element: '#sample-grid-edit',
-    beforeMoveRow: function (fromIndex, toIndex) {
-      console.log('before move row', fromIndex, toIndex);
-    },
-    afterMoveRow: function (fromIndex, toIndex) {
-      console.log('after move row', fromIndex, toIndex);
-    },
-    beforeAddRow: function (index) {
-      console.log('before add row', index);
-    },
-    afterAddRow: function (index) {
-      console.log('after add row', index);
-    },
-    beforeRemoveRow: function (index) {
-      console.log('before remove row', index);
-    },
-    afterRemoveRow: function (index) {
-      console.log('after remove row', index);
-    },
-    beforeContextMenuAction: function (e, table) {
-      console.log('before context menu action');
-    },
-    afterContextMenuAction: function (e, table) {
-      console.log('after context menu action');
-    },
-    beforeInit: function () {
-      console.log('beforeInit');
-    },
-    afterInit: function () {
-      console.log('afterInit');
-    },
-    beforeCellActivate: function (cell) {
-      console.log(cell, 'beforeCellActivate');
-      return true;
-    },
-    afterCellActivate: function (cell) {
-      console.log(cell, 'afterCellActivate');
-    },
-    beforeCellNavigateTo: function (toCell, fromCell, direction) {
-      console.log(direction);
-    },
-    beforeEdit: function (cell, oldValue, newValue) {
-      console.log(cell, oldValue, newValue);
-    },
-    afterEdit: function (cell, oldValue, newValue) {
-      console.log(cell, oldValue, newValue);
-    },
-    beforeControlInit: function (cell) {
-      console.log(cell, 'beforeControlInit');
-    },
-    afterControlInit: function (cell) {
-      console.log(cell, 'afterControlInit');
-    },
-    beforeControlHide: function (cell) {
-      console.log(cell, 'beforeControlHide');
-    },
-    afterControlHide: function (cell) {
-      console.log(cell, 'afterControlHide');
-    },
-    onCellClick: function (cell, event) {
-      console.log(cell, event, 'onCellClick');
-    }
+    useFixedHeaders: true
+//    beforeMoveRow: function (fromIndex, toIndex) {
+//      console.log('before move row', fromIndex, toIndex);
+//    },
+//    afterMoveRow: function (fromIndex, toIndex) {
+//      console.log('after move row', fromIndex, toIndex);
+//    },
+//    beforeAddRow: function (index) {
+//      console.log('before add row', index);
+//    },
+//    afterAddRow: function (index) {
+//      console.log('after add row', index);
+//    },
+//    beforeRemoveRow: function (index) {
+//      console.log('before remove row', index);
+//    },
+//    afterRemoveRow: function (index) {
+//      console.log('after remove row', index);
+//    },
+//    beforeContextMenuAction: function (e, table) {
+//      console.log('before context menu action');
+//    },
+//    afterContextMenuAction: function (e, table) {
+//      console.log('after context menu action');
+//    },
+//    beforeInit: function () {
+//      console.log('beforeInit');
+//    },
+//    afterInit: function () {
+//      console.log('afterInit');
+//    },
+//    beforeCellActivate: function (cell) {
+//      console.log(cell, 'beforeCellActivate');
+//      return true;
+//    },
+//    afterCellActivate: function (cell) {
+//      console.log(cell, 'afterCellActivate');
+//    },
+//    beforeCellNavigateTo: function (toCell, fromCell, direction) {
+//      console.log(direction);
+//    },
+//    beforeEdit: function (cell, oldValue, newValue) {
+//      console.log(cell, oldValue, newValue);
+//    },
+//    afterEdit: function (cell, oldValue, newValue) {
+//      console.log(cell, oldValue, newValue);
+//    },
+//    beforeControlInit: function (cell) {
+//      console.log(cell, 'beforeControlInit');
+//    },
+//    afterControlInit: function (cell) {
+//      console.log(cell, 'afterControlInit');
+//    },
+//    beforeControlHide: function (cell) {
+//      console.log(cell, 'beforeControlHide');
+//    },
+//    afterControlHide: function (cell) {
+//      console.log(cell, 'afterControlHide');
+//    },
+//    onCellClick: function (cell, event) {
+//      console.log(cell, event, 'onCellClick');
+//    }
   });
 </script>
 </body>

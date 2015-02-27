@@ -4,6 +4,7 @@ class GridEdit
     @dirtyRows = []
     @uniqueValueKey = @config.uniqueValueKey
     @rowIndex = @config.rowIndex
+    @useFixedHeaders = @config.useFixedHeaders
     @element = document.querySelectorAll(@config.element || '#gridedit')[0]
     @contextMenu = new GridEdit.ContextMenu @
     @themeName = @config.themeName
@@ -81,17 +82,18 @@ class GridEdit
       col = new GridEdit.Column(colAttributes, @)
       @cols.push col
       tr.appendChild col.element
-    thead = document.createElement 'thead'
+    @thead = document.createElement 'thead'
     ge = @
-    thead.ondragenter = () ->
+    @thead.ondragenter = () ->
       ge.lastDragOverIsBeforeFirstRow = true
       prevRow = ge.lastDragOver
-      prevRow.element.style.borderBottom = prevRow.oldBorderBottom
-      prevRow.element.style.borderTop = ge.theme.borders.dragBorderStyle
-    thead.ondragleave = () ->
+      if prevRow
+        prevRow.element.style.borderBottom = prevRow.oldBorderBottom
+        prevRow.element.style.borderTop = ge.theme.borders.dragBorderStyle
+    @thead.ondragleave = () ->
       firstRow = ge.rows[0]
       firstRow.element.style.borderTop = firstRow.oldBorderTop
-    thead.appendChild tr
+    @thead.appendChild tr
     tbody = document.createElement 'tbody'
     for rowAttributes, i in @source
       switch rowAttributes.gridEditRowType
@@ -110,11 +112,17 @@ class GridEdit
       tbody.appendChild row.element
     table = document.createElement 'table'
     GridEdit.Utilities::setAttributes table, {id: 'editable-grid', class: @config.tableClass}
-    table.appendChild thead
+    table.appendChild @thead
     table.appendChild tbody
     @tableEl = table
 
+    if @useFixedHeaders
+      GridEdit.Utilities::fixHeaders(@)
+      window.addEventListener 'resize', ->
+          GridEdit.Utilities::fixHeaders ge
+
   rebuild: (newConfig = null) ->
+    @contextMenu.hide()
     config = Object.create @config
     config.rowIndex = @rowIndex
     if newConfig isnt null
@@ -184,7 +192,12 @@ class GridEdit
 
     window.onresize = -> GridEdit.Utilities::setStyles table.openCell.control, table.openCell.position() if table.openCell
     window.onscroll = -> table.openCell.reposition() if table.openCell
+    @element.onscroll = (e) ->
+      GridEdit.Utilities::repositionFixedHeader(table) if table.useFixedHeaders
     @tableEl.oncontextmenu = (e) -> false
+    document.oncontextmenu = (e) ->
+      return false if table.contextMenu.element is e.target
+      true
     document.onclick = (e) ->
       activeCell = table.firstActiveCell()
       unless table.isDescendant e.target or table.contextMenu.isVisible()
@@ -285,6 +298,9 @@ class GridEdit
         cell.value(cell.source[cell.valueKey])
 
   destroy: ->
+    if @useFixedHeaders
+      document.body.removeChild @fixedHeader.table if @fixedHeader
+
     @element.removeChild @tableEl
     for key of @
       delete @[key]
