@@ -2807,14 +2807,12 @@
       return this.element.appendChild(node);
     };
 
-    SelectCell.prototype.initControl = function() {
-      var cell, choice, index, option, select, subchoice, _i, _j, _len, _len1, _ref;
+    SelectCell.prototype.setControlValue = function() {
+      var cell, choice, index, option, subchoice, _i, _j, _len, _len1, _ref, _results;
       cell = this;
-      select = document.createElement("select");
-      if (!this.meta.choices) {
-        console.log("There is not a 'choices' key in cell " + this.address + " and you specified that it was of type 'select'");
-      }
+      this.control.innerHTML = '';
       _ref = this.meta.choices;
+      _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         choice = _ref[_i];
         option = document.createElement("option");
@@ -2834,13 +2832,24 @@
         if (cell.value() === choice) {
           option.selected = true;
         }
-        select.add(option);
+        _results.push(this.control.add(option));
       }
+      return _results;
+    };
+
+    SelectCell.prototype.initControl = function() {
+      var cell, select;
+      cell = this;
+      select = document.createElement("select");
+      this.control = select;
+      if (!this.meta.choices) {
+        console.log("There is not a 'choices' key in cell " + this.address + " and you specified that it was of type 'select'");
+      }
+      this.setControlValue();
       select.classList.add(this.table.theme.inputs.select.className);
-      select.onchange = function(e) {
+      return select.onchange = function(e) {
         return cell.edit(e.target.value);
       };
-      return this.control = select;
     };
 
     SelectCell.prototype.select = function() {
