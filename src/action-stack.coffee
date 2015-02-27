@@ -47,11 +47,14 @@ class GridEdit.ActionStack
           break
 
         when 'add-rows'
-          @table.removeRows(action.index, false, action.rowObjects.length)
+          rowIndexes = []
+          for i in [0...action.rowObjects.length]
+            rowIndexes.push(i + action.index)
+          @table.removeRows(rowIndexes, false)
           break
 
         when 'remove-rows'
-          @table.addRows(action.index, false, action.rowObjects)
+          @table.addScatteredRows(action.rowObjects)
           break
 
   redo: ->
@@ -94,5 +97,5 @@ class GridEdit.ActionStack
           break
 
         when 'remove-rows'
-          @table.removeRows(action.index, false, action.rowObjects)
+          @table.removeRows(action.rowIndexes, false)
           break

@@ -371,6 +371,15 @@ class GridEdit
       @setDirtyRows()
       GridEdit.Hook::run @, 'afterAddRows', index, rowObjects
 
+  addScatteredRows: (rowObjects) ->
+    rowIndexes = Object.keys(rowObjects)
+    rowIndexes = rowIndexes.sort()
+    for index in rowIndexes
+      rowObject = rowObjects[index]
+      @source.splice(index, 0, rowObject)
+    @rebuild({ rows: @source, initialize: true, selectedCell: [ index, 0 ] })
+    @setDirtyRows()
+
   insertBelow: ->
     cell = @contextMenu.getTargetPasteCell()
     if GridEdit.Hook::run @, 'beforeInsertBelow', cell
@@ -395,17 +404,19 @@ class GridEdit
       @setDirtyRows()
       GridEdit.Hook::run @, 'afterRemoveRow', index
 
-  removeRows: (index, addToStack=true, numRows) ->
-    if GridEdit.Hook::run @, 'beforeRemoveRows', index, numRows
-      rowObjects = []
-      for i in [0..numRows - 1]
-        rowObject = @source[index + i]
-        rowObjects.push(rowObject)
-      @source.splice(index, numRows)
-      @addToStack({ type: 'remove-rows', index: index, rowObjects: rowObjects }) if addToStack
+  removeRows: (rowIndexes, addToStack=true) ->
+    if GridEdit.Hook::run @, 'beforeRemoveRows', rowIndexes
+      rowIndexes = rowIndexes.sort (a,b) -> b - a
+      # remove rows from highest to lowest index
+      rowObjects = {}
+      for index in rowIndexes
+        rowObject = @source[index]
+        rowObjects[index] = rowObject
+        @source.splice(index, 1)
+      @addToStack({ type: 'remove-rows', rowIndexes: rowIndexes, rowObjects: rowObjects }) if addToStack
       @rebuild({ rows: @source, initialize: true, selectedCell: [ index, 0 ] })
       @setDirtyRows()
-      GridEdit.Hook::run @, 'afterRemoveRows', index, numRows
+      GridEdit.Hook::run @, 'afterRemoveRows', rowIndexes
 
   selectRow: (e, index) ->
     if @activeCell() and e

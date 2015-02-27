@@ -59,7 +59,7 @@ class GridEdit.ContextMenu
         callback: @insertAbove
       },
       removeRow: {
-        name: 'Remove Row',
+        name: 'Remove Row(s)',
         shortCut: '',
         callback: @removeRow
       }
@@ -259,8 +259,11 @@ class GridEdit.ContextMenu
     table.insertAbove()
 
   removeRow: (e, table) ->
-    cell = table.contextMenu.getTargetPasteCell()
-    table.removeRow(cell.row.index)
+    gridChange = new GridEdit.GridChange(table.activeCells)
+    rows = {}
+    for cell in gridChange.cells
+      rows[cell.address[0]] = true
+    table.removeRows(Object.keys(rows))
 
   undo: (e, table) ->
     table.undo()
@@ -276,6 +279,8 @@ class GridEdit.ContextMenu
   execute: (actionCallback, event) ->
     if GridEdit.Hook::run @, 'beforeContextMenuAction', event, @table
       actionCallback event, @table
+      table = @table
+      setTimeout ( -> GridEdit.Utilities::fixHeaders(table) if table.useFixedHeaders ), 100
       GridEdit.Hook::run @, 'afterContextMenuAction', event, @table
 
   events: (menu) ->
