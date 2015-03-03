@@ -117,6 +117,7 @@ class GridEdit
     @tableEl = table
 
     if @useFixedHeaders
+      @element.style.overflowY = 'scroll'
       GridEdit.Utilities::fixHeaders(@)
       window.addEventListener 'resize', ->
           GridEdit.Utilities::fixHeaders ge
