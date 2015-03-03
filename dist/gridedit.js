@@ -169,6 +169,7 @@
       table.appendChild(tbody);
       this.tableEl = table;
       if (this.useFixedHeaders) {
+        this.element.style.overflowY = 'scroll';
         GridEdit.Utilities.prototype.fixHeaders(this);
         return window.addEventListener('resize', function() {
           return GridEdit.Utilities.prototype.fixHeaders(ge);
