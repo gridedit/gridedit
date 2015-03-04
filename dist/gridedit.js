@@ -2231,7 +2231,9 @@
      */
 
     Cell.prototype.focus = function() {
-      return this.control.focus();
+      if (this.table.mobile) {
+        return this.control.focus();
+      }
     };
 
     Cell.prototype.showControl = function(value) {
