@@ -66,6 +66,7 @@ class GridEdit.ContextMenu
     }
     # create the contextMenu div
     @element = document.createElement 'div'
+    @element.id = 'gridedit-context-menu'
     @element.style.position = 'fixed'
     @element.style.zIndex = '1040'
     # create the ul to hold context menu items

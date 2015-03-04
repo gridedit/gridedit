@@ -5,7 +5,7 @@ class GridEdit
     @uniqueValueKey = @config.uniqueValueKey
     @rowIndex = @config.rowIndex
     @useFixedHeaders = @config.useFixedHeaders
-    @element = document.querySelectorAll('#' + @config.element || '#gridedit')[0]
+    @element = document.querySelectorAll(@config.element || '#gridedit')[0]
     @contextMenu = new GridEdit.ContextMenu @
     @themeName = @config.themeName
     @customTheme = @config.themeTemplate
