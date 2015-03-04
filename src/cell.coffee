@@ -156,6 +156,9 @@ class GridEdit.Cell
 	  -----------------------------------------------------------------------------------------
   ###
 
+  focus: ->
+    @control.focus()
+
   showControl: (value = null) ->
     if @editable
       if GridEdit.Hook::run @, 'beforeControlInit', @
@@ -163,6 +166,7 @@ class GridEdit.Cell
         @renderControl()
         @setControlValue(value)
         @table.openCell = @
+        @focus()
         GridEdit.Hook::run @, 'afterControlInit', @
     else
       @showUneditable()
@@ -173,11 +177,7 @@ class GridEdit.Cell
   renderControl: ->
     GridEdit.Utilities::setStyles @control, @position()
     @table.element.appendChild @control
-    @control.style.position = 'fixed'
-    control = @control
-    setTimeout(->
-      control.focus()
-    , 0)
+    @control.style.position = 'absolute'
 
   hideControl: ->
     if GridEdit.Hook::run @, 'beforeControlHide', @
@@ -202,8 +202,19 @@ class GridEdit.Cell
 	  -----------------------------------------------------------------------------------------
   ###
 
-  position: -> @element.getBoundingClientRect()
-  reposition: -> GridEdit.Utilities::setStyles @control, @position()
+  position: ->
+    bounds = @element.getBoundingClientRect()
+
+    {
+      top: @element.offsetTop,
+      bottom: @element.offsetTop + bounds.height,
+      left: @element.offsetLeft,
+      right: @element.offsetLeft + bounds.width,
+      width: bounds.width,
+      height: bounds.height
+    }
+
+  reposition: -> GridEdit.Utilities::setStyles @control, @position() unless @table.mobile
   next: -> @row.cells[@index + 1] or @row.below()?.cells[0]
   previous: -> @row.cells[@index - 1] or @row.above()?.cells[@row.cells.length - 1]
   above: -> @row.above()?.cells[@index]
@@ -236,73 +247,8 @@ class GridEdit.Cell
     table = @table
     doubleClickTimeout = null
 
-    @element.onclick = (e) ->
-      table.contextMenu.hideBorders()
-
-      if table.lastClickCell == cell
-        # double click event
-        if GridEdit.Hook::run cell, 'onDblClick', cell, e
-          table.lastClickCell = null
-          cell.showControl(cell.value())
-      else
-        table.lastClickCell = cell
-
-        clearInterval doubleClickTimeout
-        doubleClickTimeout = setTimeout(->
-          table.lastClickCell = null
-        , 1000)
-
-        if GridEdit.Hook::run cell, 'onClick', cell, e
-          ctrl = e.ctrlKey
-          cmd = e.metaKey
-          shift = e.shiftKey
-
-          activateRow = (row) ->
-          if cellFromCol <= cellToCol
-            for col in [cellFromCol..cellToCol]
-              c = table.getCell(row, col)
-              c.makeActive(false)
-          else
-            for col in [cellToCol..cellFromCol]
-              c = table.getCell(row, col)
-              c.makeActive(false)
-
-          if ctrl or cmd
-            cell.toggleActive()
-          if shift
-            cellFrom = table.activeCells[0]
-            cellFromRow = cellFrom.address[0]
-            cellFromCol = cellFrom.address[1]
-            cellToRow = cell.address[0]
-            cellToCol = cell.address[1]
-            if cellFromRow <= cellToRow
-              for row in [cellFromRow..cellToRow]
-                activateRow row
-            else
-              for row in [cellToRow..cellFromRow]
-                activateRow row
-      false
-
-    @element.onmousedown = (e) ->
-      if e.which is 3 # right mouse button
-        table.contextMenu.show(e.x, e.y, cell)
-        return
-      else
-        unless e.shiftKey or e.ctrlKey or e.metaKey
-          table.state = "selecting"
-          cell.makeActive()
-      false
-
-    @element.onmouseover = (e) ->
-      if table.state is 'selecting'
-        table.selectionEnd = cell
-        table.setSelection()
-
-    @element.onmouseup = (e) ->
-      if e.which != 3 # right mouse button
-        table.selectionEnd = cell
-        table.state = "ready"
-        table.setSelection() unless e.metaKey or e.ctrlKey
+    @element.onfocus = (e) ->
+      cell.reposition()
 
     if table.mobile
       startY = null
@@ -315,6 +261,77 @@ class GridEdit.Cell
         if e.changedTouches.length < 2 and (y is startY)
           e.preventDefault()
           cell.edit()
+    else
+
+      @element.onclick = (e) ->
+        table.contextMenu.hideBorders()
+
+        if table.lastClickCell == cell
+          # double click event
+          if GridEdit.Hook::run cell, 'onDblClick', cell, e
+            table.lastClickCell = null
+            cell.showControl(cell.value())
+        else
+          table.lastClickCell = cell
+
+          clearInterval doubleClickTimeout
+          doubleClickTimeout = setTimeout(->
+            table.lastClickCell = null
+          , 1000)
+
+          if GridEdit.Hook::run cell, 'onClick', cell, e
+            ctrl = e.ctrlKey
+            cmd = e.metaKey
+            shift = e.shiftKey
+
+            activateRow = (row) ->
+            if cellFromCol <= cellToCol
+              for col in [cellFromCol..cellToCol]
+                c = table.getCell(row, col)
+                c.makeActive(false)
+            else
+              for col in [cellToCol..cellFromCol]
+                c = table.getCell(row, col)
+                c.makeActive(false)
+
+            if ctrl or cmd
+              cell.toggleActive()
+            if shift
+              cellFrom = table.activeCells[0]
+              cellFromRow = cellFrom.address[0]
+              cellFromCol = cellFrom.address[1]
+              cellToRow = cell.address[0]
+              cellToCol = cell.address[1]
+              if cellFromRow <= cellToRow
+                for row in [cellFromRow..cellToRow]
+                  activateRow row
+              else
+                for row in [cellToRow..cellFromRow]
+                  activateRow row
+        false
+
+      @element.onmousedown = (e) ->
+        if e.which is 3 # right mouse button
+          table.contextMenu.show(e.x, e.y, cell)
+          return
+        else
+          unless e.shiftKey or e.ctrlKey or e.metaKey
+            table.state = "selecting"
+            cell.makeActive()
+        false
+
+      @element.onmouseover = (e) ->
+        if table.state is 'selecting'
+          table.selectionEnd = cell
+          table.setSelection()
+
+      @element.onmouseup = (e) ->
+        if e.which != 3 # right mouse button
+          table.selectionEnd = cell
+          table.state = "ready"
+          table.setSelection() unless e.metaKey or e.ctrlKey
+
+
 
 ###
   String Cell
@@ -339,6 +356,11 @@ class GridEdit.NumberCell extends GridEdit.Cell
     @type = 'number'
     @initialize()
     @
+
+  initControl: ->
+    @control = document.createElement 'input'
+    @control.type = 'number'
+
 
   normalizeValue: (value) ->
     if value is null or value is undefined or value == ''

@@ -5,7 +5,7 @@ class GridEdit
     @uniqueValueKey = @config.uniqueValueKey
     @rowIndex = @config.rowIndex
     @useFixedHeaders = @config.useFixedHeaders
-    @element = document.querySelectorAll(@config.element || '#gridedit')[0]
+    @element = document.querySelectorAll('#' + @config.element || '#gridedit')[0]
     @contextMenu = new GridEdit.ContextMenu @
     @themeName = @config.themeName
     @customTheme = @config.themeTemplate
@@ -117,6 +117,7 @@ class GridEdit
     @tableEl = table
 
     if @useFixedHeaders
+      @element.style.overflowY = 'scroll'
       GridEdit.Utilities::fixHeaders(@)
       window.addEventListener 'resize', ->
           GridEdit.Utilities::fixHeaders ge
@@ -193,6 +194,7 @@ class GridEdit
     window.onresize = -> GridEdit.Utilities::setStyles table.openCell.control, table.openCell.position() if table.openCell
     window.onscroll = -> table.openCell.reposition() if table.openCell
     @element.onscroll = (e) ->
+      table.openCell.reposition() if table.openCell
       GridEdit.Utilities::repositionFixedHeader(table) if table.useFixedHeaders
     @tableEl.oncontextmenu = (e) -> false
     document.oncontextmenu = (e) ->

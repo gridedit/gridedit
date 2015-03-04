@@ -12,7 +12,7 @@
       this.uniqueValueKey = this.config.uniqueValueKey;
       this.rowIndex = this.config.rowIndex;
       this.useFixedHeaders = this.config.useFixedHeaders;
-      this.element = document.querySelectorAll(this.config.element || '#gridedit')[0];
+      this.element = document.querySelectorAll('#' + this.config.element || '#gridedit')[0];
       this.contextMenu = new GridEdit.ContextMenu(this);
       this.themeName = this.config.themeName;
       this.customTheme = this.config.themeTemplate;
@@ -169,6 +169,7 @@
       table.appendChild(tbody);
       this.tableEl = table;
       if (this.useFixedHeaders) {
+        this.element.style.overflowY = 'scroll';
         GridEdit.Utilities.prototype.fixHeaders(this);
         return window.addEventListener('resize', function() {
           return GridEdit.Utilities.prototype.fixHeaders(ge);
@@ -287,6 +288,9 @@
         }
       };
       this.element.onscroll = function(e) {
+        if (table.openCell) {
+          table.openCell.reposition();
+        }
         if (table.useFixedHeaders) {
           return GridEdit.Utilities.prototype.repositionFixedHeader(table);
         }
@@ -2225,6 +2229,10 @@
     	  -----------------------------------------------------------------------------------------
      */
 
+    Cell.prototype.focus = function() {
+      return this.control.focus();
+    };
+
     Cell.prototype.showControl = function(value) {
       if (value == null) {
         value = null;
@@ -2235,6 +2243,7 @@
           this.renderControl();
           this.setControlValue(value);
           this.table.openCell = this;
+          this.focus();
           return GridEdit.Hook.prototype.run(this, 'afterControlInit', this);
         }
       } else {
@@ -2247,14 +2256,9 @@
     };
 
     Cell.prototype.renderControl = function() {
-      var control;
       GridEdit.Utilities.prototype.setStyles(this.control, this.position());
       this.table.element.appendChild(this.control);
-      this.control.style.position = 'fixed';
-      control = this.control;
-      return setTimeout(function() {
-        return control.focus();
-      }, 0);
+      return this.control.style.position = 'absolute';
     };
 
     Cell.prototype.hideControl = function() {
@@ -2291,11 +2295,22 @@
      */
 
     Cell.prototype.position = function() {
-      return this.element.getBoundingClientRect();
+      var bounds;
+      bounds = this.element.getBoundingClientRect();
+      return {
+        top: this.element.offsetTop,
+        bottom: this.element.offsetTop + bounds.height,
+        left: this.element.offsetLeft,
+        right: this.element.offsetLeft + bounds.width,
+        width: bounds.width,
+        height: bounds.height
+      };
     };
 
     Cell.prototype.reposition = function() {
-      return GridEdit.Utilities.prototype.setStyles(this.control, this.position());
+      if (!this.table.mobile) {
+        return GridEdit.Utilities.prototype.setStyles(this.control, this.position());
+      }
     };
 
     Cell.prototype.next = function() {
@@ -2387,85 +2402,8 @@
       cell = this;
       table = this.table;
       doubleClickTimeout = null;
-      this.element.onclick = function(e) {
-        var activateRow, c, cellFrom, cellFromCol, cellFromRow, cellToCol, cellToRow, cmd, col, ctrl, row, shift, _i, _j, _k, _l;
-        table.contextMenu.hideBorders();
-        if (table.lastClickCell === cell) {
-          if (GridEdit.Hook.prototype.run(cell, 'onDblClick', cell, e)) {
-            table.lastClickCell = null;
-            cell.showControl(cell.value());
-          }
-        } else {
-          table.lastClickCell = cell;
-          clearInterval(doubleClickTimeout);
-          doubleClickTimeout = setTimeout(function() {
-            return table.lastClickCell = null;
-          }, 1000);
-          if (GridEdit.Hook.prototype.run(cell, 'onClick', cell, e)) {
-            ctrl = e.ctrlKey;
-            cmd = e.metaKey;
-            shift = e.shiftKey;
-            activateRow = function(row) {};
-            if (cellFromCol <= cellToCol) {
-              for (col = _i = cellFromCol; cellFromCol <= cellToCol ? _i <= cellToCol : _i >= cellToCol; col = cellFromCol <= cellToCol ? ++_i : --_i) {
-                c = table.getCell(row, col);
-                c.makeActive(false);
-              }
-            } else {
-              for (col = _j = cellToCol; cellToCol <= cellFromCol ? _j <= cellFromCol : _j >= cellFromCol; col = cellToCol <= cellFromCol ? ++_j : --_j) {
-                c = table.getCell(row, col);
-                c.makeActive(false);
-              }
-            }
-            if (ctrl || cmd) {
-              cell.toggleActive();
-            }
-            if (shift) {
-              cellFrom = table.activeCells[0];
-              cellFromRow = cellFrom.address[0];
-              cellFromCol = cellFrom.address[1];
-              cellToRow = cell.address[0];
-              cellToCol = cell.address[1];
-              if (cellFromRow <= cellToRow) {
-                for (row = _k = cellFromRow; cellFromRow <= cellToRow ? _k <= cellToRow : _k >= cellToRow; row = cellFromRow <= cellToRow ? ++_k : --_k) {
-                  activateRow(row);
-                }
-              } else {
-                for (row = _l = cellToRow; cellToRow <= cellFromRow ? _l <= cellFromRow : _l >= cellFromRow; row = cellToRow <= cellFromRow ? ++_l : --_l) {
-                  activateRow(row);
-                }
-              }
-            }
-          }
-        }
-        return false;
-      };
-      this.element.onmousedown = function(e) {
-        if (e.which === 3) {
-          table.contextMenu.show(e.x, e.y, cell);
-          return;
-        } else {
-          if (!(e.shiftKey || e.ctrlKey || e.metaKey)) {
-            table.state = "selecting";
-            cell.makeActive();
-          }
-        }
-        return false;
-      };
-      this.element.onmouseover = function(e) {
-        if (table.state === 'selecting') {
-          table.selectionEnd = cell;
-          return table.setSelection();
-        }
-      };
-      this.element.onmouseup = function(e) {
-        if (e.which !== 3) {
-          table.selectionEnd = cell;
-          table.state = "ready";
-          if (!(e.metaKey || e.ctrlKey)) {
-            return table.setSelection();
-          }
-        }
+      this.element.onfocus = function(e) {
+        return cell.reposition();
       };
       if (table.mobile) {
         startY = null;
@@ -2482,6 +2420,87 @@
           if (e.changedTouches.length < 2 && (y === startY)) {
             e.preventDefault();
             return cell.edit();
+          }
+        };
+      } else {
+        this.element.onclick = function(e) {
+          var activateRow, c, cellFrom, cellFromCol, cellFromRow, cellToCol, cellToRow, cmd, col, ctrl, row, shift, _i, _j, _k, _l;
+          table.contextMenu.hideBorders();
+          if (table.lastClickCell === cell) {
+            if (GridEdit.Hook.prototype.run(cell, 'onDblClick', cell, e)) {
+              table.lastClickCell = null;
+              cell.showControl(cell.value());
+            }
+          } else {
+            table.lastClickCell = cell;
+            clearInterval(doubleClickTimeout);
+            doubleClickTimeout = setTimeout(function() {
+              return table.lastClickCell = null;
+            }, 1000);
+            if (GridEdit.Hook.prototype.run(cell, 'onClick', cell, e)) {
+              ctrl = e.ctrlKey;
+              cmd = e.metaKey;
+              shift = e.shiftKey;
+              activateRow = function(row) {};
+              if (cellFromCol <= cellToCol) {
+                for (col = _i = cellFromCol; cellFromCol <= cellToCol ? _i <= cellToCol : _i >= cellToCol; col = cellFromCol <= cellToCol ? ++_i : --_i) {
+                  c = table.getCell(row, col);
+                  c.makeActive(false);
+                }
+              } else {
+                for (col = _j = cellToCol; cellToCol <= cellFromCol ? _j <= cellFromCol : _j >= cellFromCol; col = cellToCol <= cellFromCol ? ++_j : --_j) {
+                  c = table.getCell(row, col);
+                  c.makeActive(false);
+                }
+              }
+              if (ctrl || cmd) {
+                cell.toggleActive();
+              }
+              if (shift) {
+                cellFrom = table.activeCells[0];
+                cellFromRow = cellFrom.address[0];
+                cellFromCol = cellFrom.address[1];
+                cellToRow = cell.address[0];
+                cellToCol = cell.address[1];
+                if (cellFromRow <= cellToRow) {
+                  for (row = _k = cellFromRow; cellFromRow <= cellToRow ? _k <= cellToRow : _k >= cellToRow; row = cellFromRow <= cellToRow ? ++_k : --_k) {
+                    activateRow(row);
+                  }
+                } else {
+                  for (row = _l = cellToRow; cellToRow <= cellFromRow ? _l <= cellFromRow : _l >= cellFromRow; row = cellToRow <= cellFromRow ? ++_l : --_l) {
+                    activateRow(row);
+                  }
+                }
+              }
+            }
+          }
+          return false;
+        };
+        this.element.onmousedown = function(e) {
+          if (e.which === 3) {
+            table.contextMenu.show(e.x, e.y, cell);
+            return;
+          } else {
+            if (!(e.shiftKey || e.ctrlKey || e.metaKey)) {
+              table.state = "selecting";
+              cell.makeActive();
+            }
+          }
+          return false;
+        };
+        this.element.onmouseover = function(e) {
+          if (table.state === 'selecting') {
+            table.selectionEnd = cell;
+            return table.setSelection();
+          }
+        };
+        return this.element.onmouseup = function(e) {
+          if (e.which !== 3) {
+            table.selectionEnd = cell;
+            table.state = "ready";
+            if (!(e.metaKey || e.ctrlKey)) {
+              return table.setSelection();
+            }
           }
         };
       }
@@ -2528,6 +2547,11 @@
       this.initialize();
       this;
     }
+
+    NumberCell.prototype.initControl = function() {
+      this.control = document.createElement('input');
+      return this.control.type = 'number';
+    };
 
     NumberCell.prototype.normalizeValue = function(value) {
       var n;
