@@ -157,7 +157,7 @@ class GridEdit.Cell
   ###
 
   focus: ->
-    @control.focus()
+    @control.focus() if @table.mobile
 
   showControl: (value = null) ->
     if @editable
