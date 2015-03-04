@@ -12,7 +12,7 @@
       this.uniqueValueKey = this.config.uniqueValueKey;
       this.rowIndex = this.config.rowIndex;
       this.useFixedHeaders = this.config.useFixedHeaders;
-      this.element = document.querySelectorAll(this.config.element || '#gridedit')[0];
+      this.element = document.querySelectorAll('#' + this.config.element || '#gridedit')[0];
       this.contextMenu = new GridEdit.ContextMenu(this);
       this.themeName = this.config.themeName;
       this.customTheme = this.config.themeTemplate;
@@ -288,6 +288,9 @@
         }
       };
       this.element.onscroll = function(e) {
+        if (table.openCell) {
+          table.openCell.reposition();
+        }
         if (table.useFixedHeaders) {
           return GridEdit.Utilities.prototype.repositionFixedHeader(table);
         }
@@ -2255,7 +2258,7 @@
     Cell.prototype.renderControl = function() {
       GridEdit.Utilities.prototype.setStyles(this.control, this.position());
       this.table.element.appendChild(this.control);
-      return this.control.style.position = 'fixed';
+      return this.control.style.position = 'absolute';
     };
 
     Cell.prototype.hideControl = function() {
@@ -2292,7 +2295,16 @@
      */
 
     Cell.prototype.position = function() {
-      return this.element.getBoundingClientRect();
+      var bounds;
+      bounds = this.element.getBoundingClientRect();
+      return {
+        top: this.element.offsetTop,
+        bottom: this.element.offsetTop + bounds.height,
+        left: this.element.offsetLeft,
+        right: this.element.offsetLeft + bounds.width,
+        width: bounds.width,
+        height: bounds.height
+      };
     };
 
     Cell.prototype.reposition = function() {

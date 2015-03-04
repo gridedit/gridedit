@@ -177,7 +177,7 @@ class GridEdit.Cell
   renderControl: ->
     GridEdit.Utilities::setStyles @control, @position()
     @table.element.appendChild @control
-    @control.style.position = 'fixed'
+    @control.style.position = 'absolute'
 
   hideControl: ->
     if GridEdit.Hook::run @, 'beforeControlHide', @
@@ -202,7 +202,18 @@ class GridEdit.Cell
 	  -----------------------------------------------------------------------------------------
   ###
 
-  position: -> @element.getBoundingClientRect()
+  position: ->
+    bounds = @element.getBoundingClientRect()
+
+    {
+      top: @element.offsetTop,
+      bottom: @element.offsetTop + bounds.height,
+      left: @element.offsetLeft,
+      right: @element.offsetLeft + bounds.width,
+      width: bounds.width,
+      height: bounds.height
+    }
+
   reposition: -> GridEdit.Utilities::setStyles @control, @position() unless @table.mobile
   next: -> @row.cells[@index + 1] or @row.below()?.cells[0]
   previous: -> @row.cells[@index - 1] or @row.above()?.cells[@row.cells.length - 1]
