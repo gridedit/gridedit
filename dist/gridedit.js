@@ -12,7 +12,7 @@
       this.uniqueValueKey = this.config.uniqueValueKey;
       this.rowIndex = this.config.rowIndex;
       this.useFixedHeaders = this.config.useFixedHeaders;
-      this.element = document.querySelectorAll('#' + this.config.element || '#gridedit')[0];
+      this.element = document.querySelectorAll(this.config.element || '#gridedit')[0];
       this.contextMenu = new GridEdit.ContextMenu(this);
       this.themeName = this.config.themeName;
       this.customTheme = this.config.themeTemplate;
@@ -1044,6 +1044,7 @@
         }
       };
       this.element = document.createElement('div');
+      this.element.id = 'gridedit-context-menu';
       this.element.style.position = 'fixed';
       this.element.style.zIndex = '1040';
       this.menu = document.createElement('ul');
