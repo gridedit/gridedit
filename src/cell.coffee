@@ -157,7 +157,13 @@ class GridEdit.Cell
   ###
 
   focus: ->
-    @control.focus() if @table.mobile
+    if @table.mobile
+      @control.focus()
+    else
+      control = @control
+      setTimeout(->
+        control.focus()
+      , 0)
 
   showControl: (value = null) ->
     if @editable
