@@ -249,9 +249,11 @@ class GridEdit.ContextMenu
 
   selectAll: (e, table) ->
     table.clearActiveCells()
-    for row in table.rows
-      for cell in row.cells
-        cell.addToSelection()
+    setTimeout ->
+      for row in table.rows
+        row.select()
+    , 100
+
 
   insertBelow: (e, table) ->
     table.insertBelow()

@@ -1282,24 +1282,17 @@
     };
 
     ContextMenu.prototype.selectAll = function(e, table) {
-      var cell, row, _i, _len, _ref, _results;
       table.clearActiveCells();
-      _ref = table.rows;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        row = _ref[_i];
-        _results.push((function() {
-          var _j, _len1, _ref1, _results1;
-          _ref1 = row.cells;
-          _results1 = [];
-          for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-            cell = _ref1[_j];
-            _results1.push(cell.addToSelection());
-          }
-          return _results1;
-        })());
-      }
-      return _results;
+      return setTimeout(function() {
+        var row, _i, _len, _ref, _results;
+        _ref = table.rows;
+        _results = [];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          row = _ref[_i];
+          _results.push(row.select());
+        }
+        return _results;
+      }, 100);
     };
 
     ContextMenu.prototype.insertBelow = function(e, table) {
@@ -2231,8 +2224,14 @@
      */
 
     Cell.prototype.focus = function() {
+      var control;
       if (this.table.mobile) {
         return this.control.focus();
+      } else {
+        control = this.control;
+        return setTimeout(function() {
+          return control.focus();
+        }, 0);
       }
     };
 
