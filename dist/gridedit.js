@@ -1257,13 +1257,15 @@
         gridChange = table.copiedGridChange;
         x = cell.address[0];
         y = cell.address[1];
-        gridChange.apply(x, y);
-        return table.addToStack({
-          type: 'paste',
-          grid: gridChange,
-          x: x,
-          y: y
-        });
+        if (gridChange) {
+          gridChange.apply(x, y);
+          return table.addToStack({
+            type: 'paste',
+            grid: gridChange,
+            x: x,
+            y: y
+          });
+        }
       }
     };
 
