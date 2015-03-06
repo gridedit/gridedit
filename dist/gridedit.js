@@ -583,6 +583,51 @@
       }
     };
 
+    GridEdit.prototype.moveRows = function(rowToMoveIndex, newIndex, numRows, addToStack) {
+      var endIndex, modifiedRowToMoveIndex, originalNewindex, row, source;
+      if (addToStack == null) {
+        addToStack = true;
+      }
+      if (GridEdit.Hook.prototype.run(this, 'beforeMoveRows', rowToMoveIndex, newIndex)) {
+        modifiedRowToMoveIndex = rowToMoveIndex;
+        originalNewindex = newIndex;
+        endIndex = rowToMoveIndex + numRows;
+        if (newIndex > rowToMoveIndex) {
+          if (newIndex < endIndex) {
+            this.clearActiveCells();
+            return;
+          } else {
+            newIndex = newIndex - numRows + 1;
+          }
+        } else {
+          modifiedRowToMoveIndex = rowToMoveIndex + numRows - 1;
+        }
+        source = this.source.splice(rowToMoveIndex, numRows);
+        row = source.pop();
+        while (row) {
+          this.source.splice(newIndex, 0, row);
+          row = source.pop();
+        }
+        if (addToStack) {
+          this.addToStack({
+            type: 'move-rows',
+            modifiedRowToMoveIndex: modifiedRowToMoveIndex,
+            modifiedNewIndex: newIndex,
+            numRows: numRows,
+            originalRowToMoveIndex: rowToMoveIndex,
+            originalNewIndex: originalNewindex
+          });
+        }
+        this.rebuild({
+          rows: this.source,
+          initialize: true,
+          selectedCell: [newIndex, 0]
+        });
+        this.setDirtyRows();
+        return GridEdit.Hook.prototype.run(this, 'afterMoveRows', rowToMoveIndex, newIndex, numRows);
+      }
+    };
+
     GridEdit.prototype.addRow = function(index, addToStack, rowObject) {
       var c, row, _i, _len, _ref;
       if (addToStack == null) {
@@ -928,6 +973,9 @@
           case 'remove-rows':
             this.table.addScatteredRows(action.rowObjects);
             break;
+          case 'move-rows':
+            this.table.moveRows(action.modifiedNewIndex, action.modifiedRowToMoveIndex, action.numRows, false);
+            break;
         }
       }
     };
@@ -965,6 +1013,9 @@
             break;
           case 'remove-rows':
             this.table.removeRows(action.rowIndexes, false);
+            break;
+          case 'move-rows':
+            this.table.moveRows(action.originalRowToMoveIndex, action.originalNewIndex, action.numRows, false);
             break;
         }
       }
@@ -1259,13 +1310,13 @@
         y = cell.address[1];
         if (gridChange) {
           gridChange.apply(x, y);
-          return table.addToStack({
-            type: 'paste',
-            grid: gridChange,
-            x: x,
-            y: y
-          });
         }
+        return table.addToStack({
+          type: 'paste',
+          grid: gridChange,
+          x: x,
+          y: y
+        });
       }
     };
 
@@ -3039,14 +3090,19 @@
         return row.table.selectRow(e, index);
       };
       this.element.ondragstart = function() {
-        GridEdit.Utilities.prototype.clearActiveCells(table);
+        var gridChange, i, _i, _ref, _ref1;
+        row.cells[0].addToSelection();
+        gridChange = new GridEdit.GridChange(table.activeCells);
+        for (i = _i = _ref = gridChange.lowRow, _ref1 = gridChange.highRow; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; i = _ref <= _ref1 ? ++_i : --_i) {
+          table.rows[i].select();
+        }
         table.contextMenu.hideBorders();
-        row.select();
-        return table.draggingRow = row;
+        return table.draggingRow = gridChange;
       };
       this.element.ondragend = function() {
-        var insertAtIndex, lastDragOverIndex, modifier, rowToMoveIndex;
-        rowToMoveIndex = table.draggingRow.index;
+        var insertAtIndex, lastDragOverIndex, modifier, numRows, rowToMoveIndex;
+        rowToMoveIndex = table.draggingRow.lowRow;
+        numRows = table.draggingRow.highRow - table.draggingRow.lowRow + 1;
         lastDragOverIndex = table.lastDragOver.index;
         modifier = 0;
         if (lastDragOverIndex === 0) {
@@ -3064,7 +3120,7 @@
         table.lastDragOver.element.style.borderTop = table.lastDragOver.oldBorderTop;
         table.lastDragOver = null;
         if (insertAtIndex !== rowToMoveIndex) {
-          return table.moveRow(rowToMoveIndex, insertAtIndex);
+          return table.moveRows(rowToMoveIndex, insertAtIndex, numRows, true);
         }
       };
     }
@@ -3365,6 +3421,8 @@
       config = table.config;
       table.beforeMoveRow = config.beforeMoveRow;
       table.afterMoveRow = config.afterMoveRow;
+      table.beforeMoveRows = config.beforeMoveRows;
+      table.afterMoveRows = config.afterMoveRows;
       table.beforeAddRow = config.beforeAddRow;
       table.afterAddRow = config.afterAddRow;
       table.beforeAddRows = config.beforeAddRows;

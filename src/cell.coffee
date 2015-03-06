@@ -675,13 +675,16 @@ class GridEdit.HandleCell
       row.table.selectRow(e, index)
 
     @element.ondragstart = () ->
-      GridEdit.Utilities::clearActiveCells(table)
+      row.cells[0].addToSelection()
+      gridChange = new GridEdit.GridChange(table.activeCells)
+      for i in [gridChange.lowRow..gridChange.highRow]
+        table.rows[i].select()
       table.contextMenu.hideBorders()
-      row.select()
-      table.draggingRow = row
+      table.draggingRow = gridChange
 
     @element.ondragend = () ->
-      rowToMoveIndex = table.draggingRow.index
+      rowToMoveIndex = table.draggingRow.lowRow
+      numRows = table.draggingRow.highRow - table.draggingRow.lowRow + 1
       lastDragOverIndex = table.lastDragOver.index
       modifier = 0
       if lastDragOverIndex == 0
@@ -694,4 +697,4 @@ class GridEdit.HandleCell
       table.lastDragOver.element.style.borderTop = table.lastDragOver.oldBorderTop
       table.lastDragOver = null
 
-      table.moveRow(rowToMoveIndex, insertAtIndex) if insertAtIndex != rowToMoveIndex
+      table.moveRows(rowToMoveIndex, insertAtIndex, numRows, true) if insertAtIndex != rowToMoveIndex

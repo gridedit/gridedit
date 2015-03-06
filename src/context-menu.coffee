@@ -237,7 +237,7 @@ class GridEdit.ContextMenu
       y = cell.address[1]
       if gridChange
         gridChange.apply(x, y)
-        table.addToStack({ type: 'paste', grid: gridChange, x: x, y: y })
+      table.addToStack({ type: 'paste', grid: gridChange, x: x, y: y })
 
   fill: (e, table) ->
     menu = table.contextMenu
