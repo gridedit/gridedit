@@ -333,6 +333,31 @@ class GridEdit
       @setDirtyRows()
       GridEdit.Hook::run @, 'afterMoveRow', rowToMoveIndex, newIndex
 
+  moveRows: (rowToMoveIndex, newIndex, numRows, addToStack=true) ->
+    if GridEdit.Hook::run @, 'beforeMoveRows', rowToMoveIndex, newIndex
+      modifiedRowToMoveIndex = rowToMoveIndex
+      originalNewindex = newIndex
+      endIndex = rowToMoveIndex + numRows
+      if newIndex > rowToMoveIndex
+        if newIndex < endIndex
+          # moving a group into itself
+          # leaving this alone for now
+          @clearActiveCells();
+          return
+        else
+          newIndex = newIndex - numRows + 1
+      else
+        modifiedRowToMoveIndex = rowToMoveIndex + numRows - 1
+      source = @source.splice(rowToMoveIndex, numRows);
+      row = source.pop();
+      while(row)
+        @source.splice(newIndex, 0, row)
+        row = source.pop()
+      @addToStack({ type: 'move-rows', modifiedRowToMoveIndex: modifiedRowToMoveIndex, modifiedNewIndex: newIndex, numRows: numRows, originalRowToMoveIndex: rowToMoveIndex, originalNewIndex: originalNewindex }) if addToStack
+      @rebuild({ rows: @source, initialize: true, selectedCell: [newIndex, 0] })
+      @setDirtyRows()
+      GridEdit.Hook::run @, 'afterMoveRows', rowToMoveIndex, newIndex, numRows
+
   addRow: (index, addToStack=true, rowObject=false) ->
     if GridEdit.Hook::run @, 'beforeAddRow', index, rowObject
       if rowObject

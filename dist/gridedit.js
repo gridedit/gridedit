@@ -1,12 +1,12 @@
 (function() {
   var GridEdit, root,
-    __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+    indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   GridEdit = (function() {
-    function GridEdit(config, actionStack) {
-      var cell, key, value, _ref;
-      this.config = config;
-      this.actionStack = actionStack;
+    function GridEdit(config1, actionStack1) {
+      var cell, key, ref, value;
+      this.config = config1;
+      this.actionStack = actionStack1;
       this.dirtyCells = [];
       this.dirtyRows = [];
       this.uniqueValueKey = this.config.uniqueValueKey;
@@ -37,9 +37,9 @@
       this.mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       this.topOffset = !this.config.topOffset ? 0 : this.config.topOffset;
       if (this.config.custom) {
-        _ref = this.config.custom;
-        for (key in _ref) {
-          value = _ref[key];
+        ref = this.config.custom;
+        for (key in ref) {
+          value = ref[key];
           if (key in this.config.custom) {
             this.set(key, value);
           }
@@ -80,41 +80,41 @@
     };
 
     GridEdit.prototype.setRowIndexes = function() {
-      var i, row, rowIndex, uniqueValueKey, _i, _len, _ref;
+      var i, j, len, ref, row, rowIndex, uniqueValueKey;
       if (!this.config.uniqueValueKey) {
         return false;
       }
       rowIndex = {};
       uniqueValueKey = this.config.uniqueValueKey;
-      _ref = this.source;
-      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
-        row = _ref[i];
+      ref = this.source;
+      for (i = j = 0, len = ref.length; j < len; i = ++j) {
+        row = ref[i];
         rowIndex[i] = row[uniqueValueKey];
       }
       return this.rowIndex = rowIndex;
     };
 
     GridEdit.prototype.removeBrowserHighlighting = function() {
-      var styleToSet, stylesToSet, _i, _len, _results;
+      var j, len, results, styleToSet, stylesToSet;
       stylesToSet = ['-webkit-touch-callout', '-webkit-user-select', '-khtml-user-select', '-moz-user-select', '-ms-user-select', 'user-select'];
-      _results = [];
-      for (_i = 0, _len = stylesToSet.length; _i < _len; _i++) {
-        styleToSet = stylesToSet[_i];
-        _results.push(this.tableEl.style[styleToSet] = 'none');
+      results = [];
+      for (j = 0, len = stylesToSet.length; j < len; j++) {
+        styleToSet = stylesToSet[j];
+        results.push(this.tableEl.style[styleToSet] = 'none');
       }
-      return _results;
+      return results;
     };
 
     GridEdit.prototype.build = function() {
-      var col, colAttributes, ge, handleHeader, i, row, rowAttributes, rowType, table, tbody, tr, _i, _j, _len, _len1, _ref, _ref1;
+      var col, colAttributes, ge, handleHeader, i, j, k, len, len1, ref, ref1, row, rowAttributes, rowType, table, tbody, tr;
       tr = document.createElement('tr');
       if (this.config.includeRowHandles) {
         handleHeader = document.createElement('th');
         tr.appendChild(handleHeader);
       }
-      _ref = this.config.cols;
-      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
-        colAttributes = _ref[i];
+      ref = this.config.cols;
+      for (i = j = 0, len = ref.length; j < len; i = ++j) {
+        colAttributes = ref[i];
         col = new GridEdit.Column(colAttributes, this);
         this.cols.push(col);
         tr.appendChild(col.element);
@@ -137,9 +137,9 @@
       };
       this.thead.appendChild(tr);
       tbody = document.createElement('tbody');
-      _ref1 = this.source;
-      for (i = _j = 0, _len1 = _ref1.length; _j < _len1; i = ++_j) {
-        rowAttributes = _ref1[i];
+      ref1 = this.source;
+      for (i = k = 0, len1 = ref1.length; k < len1; i = ++k) {
+        rowAttributes = ref1[i];
         switch (rowAttributes.gridEditRowType) {
           case 'static':
             row = new GridEdit.StaticRow(rowAttributes, this);
@@ -269,7 +269,7 @@
                 }
                 break;
               default:
-                if (__indexOf.call([96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111], key) >= 0) {
+                if (indexOf.call([96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111], key) >= 0) {
                   key = key - 48;
                 }
                 return table.openCellAndPopulateInitialValue(shift, key);
@@ -356,23 +356,23 @@
     };
 
     GridEdit.prototype.nextCell = function() {
-      var _ref;
-      return (_ref = this.firstActiveCell()) != null ? _ref.next() : void 0;
+      var ref;
+      return (ref = this.firstActiveCell()) != null ? ref.next() : void 0;
     };
 
     GridEdit.prototype.previousCell = function() {
-      var _ref;
-      return (_ref = this.firstActiveCell()) != null ? _ref.previous() : void 0;
+      var ref;
+      return (ref = this.firstActiveCell()) != null ? ref.previous() : void 0;
     };
 
     GridEdit.prototype.aboveCell = function() {
-      var _ref;
-      return (_ref = this.firstActiveCell()) != null ? _ref.above() : void 0;
+      var ref;
+      return (ref = this.firstActiveCell()) != null ? ref.above() : void 0;
     };
 
     GridEdit.prototype.belowCell = function() {
-      var _ref;
-      return (_ref = this.firstActiveCell()) != null ? _ref.below() : void 0;
+      var ref;
+      return (ref = this.firstActiveCell()) != null ? ref.below() : void 0;
     };
 
     GridEdit.prototype.moveTo = function(toCell, fromCell) {
@@ -438,14 +438,14 @@
     };
 
     GridEdit.prototype["delete"] = function() {
-      var cell, _i, _len, _ref, _results;
-      _ref = this.activeCells;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        cell = _ref[_i];
-        _results.push(cell.value(''));
+      var cell, j, len, ref, results;
+      ref = this.activeCells;
+      results = [];
+      for (j = 0, len = ref.length; j < len; j++) {
+        cell = ref[j];
+        results.push(cell.value(''));
       }
-      return _results;
+      return results;
     };
 
     GridEdit.prototype.clearActiveCells = function() {
@@ -453,28 +453,28 @@
     };
 
     GridEdit.prototype.setSelection = function() {
-      var cell, col, colRange, row, rowRange, _i, _j, _k, _l, _len, _len1, _len2, _m, _ref, _ref1, _ref2, _ref3, _ref4, _results, _results1;
+      var cell, col, colRange, j, k, l, len, len1, len2, m, n, ref, ref1, ref2, ref3, ref4, results, results1, row, rowRange;
       if (this.selectionStart && this.selectionEnd && this.selectionStart !== this.selectionEnd) {
-        _ref = this.activeCells;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          cell = _ref[_i];
+        ref = this.activeCells;
+        for (j = 0, len = ref.length; j < len; j++) {
+          cell = ref[j];
           cell.showInactive();
         }
         this.activeCells = [];
         rowRange = (function() {
-          _results = [];
-          for (var _j = _ref1 = this.selectionStart.address[0], _ref2 = this.selectionEnd.address[0]; _ref1 <= _ref2 ? _j <= _ref2 : _j >= _ref2; _ref1 <= _ref2 ? _j++ : _j--){ _results.push(_j); }
-          return _results;
+          results = [];
+          for (var k = ref1 = this.selectionStart.address[0], ref2 = this.selectionEnd.address[0]; ref1 <= ref2 ? k <= ref2 : k >= ref2; ref1 <= ref2 ? k++ : k--){ results.push(k); }
+          return results;
         }).apply(this);
         colRange = (function() {
-          _results1 = [];
-          for (var _k = _ref3 = this.selectionStart.address[1], _ref4 = this.selectionEnd.address[1]; _ref3 <= _ref4 ? _k <= _ref4 : _k >= _ref4; _ref3 <= _ref4 ? _k++ : _k--){ _results1.push(_k); }
-          return _results1;
+          results1 = [];
+          for (var l = ref3 = this.selectionStart.address[1], ref4 = this.selectionEnd.address[1]; ref3 <= ref4 ? l <= ref4 : l >= ref4; ref3 <= ref4 ? l++ : l--){ results1.push(l); }
+          return results1;
         }).apply(this);
-        for (_l = 0, _len1 = rowRange.length; _l < _len1; _l++) {
-          row = rowRange[_l];
-          for (_m = 0, _len2 = colRange.length; _m < _len2; _m++) {
-            col = colRange[_m];
+        for (m = 0, len1 = rowRange.length; m < len1; m++) {
+          row = rowRange[m];
+          for (n = 0, len2 = colRange.length; n < len2; n++) {
+            col = colRange[n];
             this.rows[row].cells[col].addToSelection();
           }
         }
@@ -482,15 +482,15 @@
     };
 
     GridEdit.prototype.data = function() {
-      var cell, data, row, rowData, _i, _j, _len, _len1, _ref, _ref1;
+      var cell, data, j, k, len, len1, ref, ref1, row, rowData;
       data = [];
-      _ref = this.rows;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        row = _ref[_i];
+      ref = this.rows;
+      for (j = 0, len = ref.length; j < len; j++) {
+        row = ref[j];
         rowData = [];
-        _ref1 = row.cells;
-        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-          cell = _ref1[_j];
+        ref1 = row.cells;
+        for (k = 0, len1 = ref1.length; k < len1; k++) {
+          cell = ref1[k];
           rowData.push(cell.cellTypeObject.value());
         }
         data.push(rowData);
@@ -499,38 +499,38 @@
     };
 
     GridEdit.prototype.repopulate = function() {
-      var cell, row, _i, _len, _ref, _results;
-      _ref = this.rows;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        row = _ref[_i];
-        _results.push((function() {
-          var _j, _len1, _ref1, _results1;
-          _ref1 = row.cells;
-          _results1 = [];
-          for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-            cell = _ref1[_j];
-            _results1.push(cell.value(cell.source[cell.valueKey]));
+      var cell, j, len, ref, results, row;
+      ref = this.rows;
+      results = [];
+      for (j = 0, len = ref.length; j < len; j++) {
+        row = ref[j];
+        results.push((function() {
+          var k, len1, ref1, results1;
+          ref1 = row.cells;
+          results1 = [];
+          for (k = 0, len1 = ref1.length; k < len1; k++) {
+            cell = ref1[k];
+            results1.push(cell.value(cell.source[cell.valueKey]));
           }
-          return _results1;
+          return results1;
         })());
       }
-      return _results;
+      return results;
     };
 
     GridEdit.prototype.destroy = function() {
-      var key, _results;
+      var key, results;
       if (this.useFixedHeaders) {
         if (this.fixedHeader) {
           document.body.removeChild(this.fixedHeader.table);
         }
       }
       this.element.removeChild(this.tableEl);
-      _results = [];
+      results = [];
       for (key in this) {
-        _results.push(delete this[key]);
+        results.push(delete this[key]);
       }
-      return _results;
+      return results;
     };
 
     GridEdit.prototype.isDescendant = function(child) {
@@ -583,8 +583,53 @@
       }
     };
 
+    GridEdit.prototype.moveRows = function(rowToMoveIndex, newIndex, numRows, addToStack) {
+      var endIndex, modifiedRowToMoveIndex, originalNewindex, row, source;
+      if (addToStack == null) {
+        addToStack = true;
+      }
+      if (GridEdit.Hook.prototype.run(this, 'beforeMoveRows', rowToMoveIndex, newIndex)) {
+        modifiedRowToMoveIndex = rowToMoveIndex;
+        originalNewindex = newIndex;
+        endIndex = rowToMoveIndex + numRows;
+        if (newIndex > rowToMoveIndex) {
+          if (newIndex < endIndex) {
+            this.clearActiveCells();
+            return;
+          } else {
+            newIndex = newIndex - numRows + 1;
+          }
+        } else {
+          modifiedRowToMoveIndex = rowToMoveIndex + numRows - 1;
+        }
+        source = this.source.splice(rowToMoveIndex, numRows);
+        row = source.pop();
+        while (row) {
+          this.source.splice(newIndex, 0, row);
+          row = source.pop();
+        }
+        if (addToStack) {
+          this.addToStack({
+            type: 'move-rows',
+            modifiedRowToMoveIndex: modifiedRowToMoveIndex,
+            modifiedNewIndex: newIndex,
+            numRows: numRows,
+            originalRowToMoveIndex: rowToMoveIndex,
+            originalNewIndex: originalNewindex
+          });
+        }
+        this.rebuild({
+          rows: this.source,
+          initialize: true,
+          selectedCell: [newIndex, 0]
+        });
+        this.setDirtyRows();
+        return GridEdit.Hook.prototype.run(this, 'afterMoveRows', rowToMoveIndex, newIndex, numRows);
+      }
+    };
+
     GridEdit.prototype.addRow = function(index, addToStack, rowObject) {
-      var c, row, _i, _len, _ref;
+      var c, j, len, ref, row;
       if (addToStack == null) {
         addToStack = true;
       }
@@ -596,9 +641,9 @@
           row = rowObject;
         } else {
           row = {};
-          _ref = this.cols;
-          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-            c = _ref[_i];
+          ref = this.cols;
+          for (j = 0, len = ref.length; j < len; j++) {
+            c = ref[j];
             row[c.valueKey] = c.defaultValue || '';
           }
         }
@@ -626,7 +671,7 @@
     };
 
     GridEdit.prototype.addRows = function(index, addToStack, rowObjects) {
-      var c, i, myIndex, row, rowObject, _i, _j, _len, _len1, _ref;
+      var c, i, j, k, len, len1, myIndex, ref, row, rowObject;
       if (addToStack == null) {
         addToStack = true;
       }
@@ -634,16 +679,16 @@
         rowObjects = [];
       }
       if (GridEdit.Hook.prototype.run(this, 'beforeAddRows', index, rowObjects)) {
-        for (i = _i = 0, _len = rowObjects.length; _i < _len; i = ++_i) {
+        for (i = j = 0, len = rowObjects.length; j < len; i = ++j) {
           rowObject = rowObjects[i];
           myIndex = index + i;
           if (rowObject) {
             row = rowObject;
           } else {
             row = {};
-            _ref = this.cols;
-            for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
-              c = _ref[_j];
+            ref = this.cols;
+            for (k = 0, len1 = ref.length; k < len1; k++) {
+              c = ref[k];
               row[c.valueKey] = c.defaultValue || '';
             }
           }
@@ -672,11 +717,11 @@
     };
 
     GridEdit.prototype.addScatteredRows = function(rowObjects) {
-      var index, rowIndexes, rowObject, _i, _len;
+      var index, j, len, rowIndexes, rowObject;
       rowIndexes = Object.keys(rowObjects);
       rowIndexes = rowIndexes.sort();
-      for (_i = 0, _len = rowIndexes.length; _i < _len; _i++) {
-        index = rowIndexes[_i];
+      for (j = 0, len = rowIndexes.length; j < len; j++) {
+        index = rowIndexes[j];
         rowObject = rowObjects[index];
         this.source.splice(index, 0, rowObject);
       }
@@ -735,7 +780,7 @@
     };
 
     GridEdit.prototype.removeRows = function(rowIndexes, addToStack) {
-      var index, rowObject, rowObjects, _i, _len;
+      var index, j, len, rowObject, rowObjects;
       if (addToStack == null) {
         addToStack = true;
       }
@@ -744,8 +789,8 @@
           return b - a;
         });
         rowObjects = {};
-        for (_i = 0, _len = rowIndexes.length; _i < _len; _i++) {
-          index = rowIndexes[_i];
+        for (j = 0, len = rowIndexes.length; j < len; j++) {
+          index = rowIndexes[j];
           rowObject = this.source[index];
           rowObjects[index] = rowObject;
           this.source.splice(index, 1);
@@ -768,7 +813,7 @@
     };
 
     GridEdit.prototype.selectRow = function(e, index) {
-      var cmd, ctrl, currentRowIndex, diff, row, shift, _i, _j, _len, _len1, _ref, _ref1, _results, _results1;
+      var cmd, ctrl, currentRowIndex, diff, j, k, len, len1, ref, ref1, results, results1, row, shift;
       if (this.activeCell() && e) {
         currentRowIndex = this.activeCells[0].address[0];
         shift = e.shiftKey;
@@ -780,21 +825,21 @@
         if (shift) {
           diff = currentRowIndex - index;
           if (diff < 0) {
-            _ref = this.rows.slice(currentRowIndex, +index + 1 || 9e9);
-            _results = [];
-            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-              row = _ref[_i];
-              _results.push(row.select());
+            ref = this.rows.slice(currentRowIndex, +index + 1 || 9e9);
+            results = [];
+            for (j = 0, len = ref.length; j < len; j++) {
+              row = ref[j];
+              results.push(row.select());
             }
-            return _results;
+            return results;
           } else {
-            _ref1 = this.rows.slice(index, +currentRowIndex + 1 || 9e9);
-            _results1 = [];
-            for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-              row = _ref1[_j];
-              _results1.push(row.select());
+            ref1 = this.rows.slice(index, +currentRowIndex + 1 || 9e9);
+            results1 = [];
+            for (k = 0, len1 = ref1.length; k < len1; k++) {
+              row = ref1[k];
+              results1.push(row.select());
             }
-            return _results1;
+            return results1;
           }
         } else {
           row = this.rows[index];
@@ -807,14 +852,14 @@
     };
 
     GridEdit.prototype.calculateSubtotals = function() {
-      var row, _i, _len, _ref, _results;
-      _ref = this.subtotalRows;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        row = _ref[_i];
-        _results.push(row.calculate());
+      var j, len, ref, results, row;
+      ref = this.subtotalRows;
+      results = [];
+      for (j = 0, len = ref.length; j < len; j++) {
+        row = ref[j];
+        results.push(row.calculate());
       }
-      return _results;
+      return results;
     };
 
     GridEdit.prototype.openCellAndPopulateInitialValue = function(shift, key) {
@@ -838,23 +883,23 @@
     };
 
     GridEdit.prototype.setDirtyRows = function() {
-      var rowIndex, uniqueIdentifier, uniqueValueKey, _ref, _results;
+      var ref, results, rowIndex, uniqueIdentifier, uniqueValueKey;
       if (!this.config.uniqueValueKey) {
         return false;
       }
       this.dirtyRows = [];
       uniqueValueKey = this.uniqueValueKey;
-      _ref = this.rowIndex;
-      _results = [];
-      for (rowIndex in _ref) {
-        uniqueIdentifier = _ref[rowIndex];
+      ref = this.rowIndex;
+      results = [];
+      for (rowIndex in ref) {
+        uniqueIdentifier = ref[rowIndex];
         if (uniqueIdentifier !== this.source[rowIndex][uniqueValueKey]) {
-          _results.push(this.dirtyRows.push(rowIndex));
+          results.push(this.dirtyRows.push(rowIndex));
         } else {
-          _results.push(void 0);
+          results.push(void 0);
         }
       }
-      return _results;
+      return results;
     };
 
     GridEdit.prototype.isDirty = function() {
@@ -891,7 +936,7 @@
     };
 
     ActionStack.prototype.undo = function() {
-      var action, cell, i, rowIndexes, _i, _ref;
+      var action, cell, i, j, ref, rowIndexes;
       if (this.index > -1) {
         this.index--;
         action = this.actions[this.index + 1];
@@ -920,13 +965,16 @@
             break;
           case 'add-rows':
             rowIndexes = [];
-            for (i = _i = 0, _ref = action.rowObjects.length; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
+            for (i = j = 0, ref = action.rowObjects.length; 0 <= ref ? j < ref : j > ref; i = 0 <= ref ? ++j : --j) {
               rowIndexes.push(i + action.index);
             }
             this.table.removeRows(rowIndexes, false);
             break;
           case 'remove-rows':
             this.table.addScatteredRows(action.rowObjects);
+            break;
+          case 'move-rows':
+            this.table.moveRows(action.modifiedNewIndex, action.modifiedRowToMoveIndex, action.numRows, false);
             break;
         }
       }
@@ -966,6 +1014,9 @@
           case 'remove-rows':
             this.table.removeRows(action.rowIndexes, false);
             break;
+          case 'move-rows':
+            this.table.moveRows(action.originalRowToMoveIndex, action.originalNewIndex, action.numRows, false);
+            break;
         }
       }
     };
@@ -977,9 +1028,9 @@
 }).call(this);
 ;(function() {
   GridEdit.ContextMenu = (function() {
-    function ContextMenu(table) {
-      var action, actionName, ctrlOrCmd, _i, _len, _ref, _ref1, _ref2;
-      this.table = table;
+    function ContextMenu(table1) {
+      var action, actionName, ctrlOrCmd, i, len, ref, ref1, ref2;
+      this.table = table1;
       this.active = this.table.config.includeContextMenu !== false;
       this.userDefinedActions = this.table.config.contextMenuItems;
       this.userDefinedOrder = this.table.config.contextMenuOrder;
@@ -1056,9 +1107,9 @@
       });
       if (this.active) {
         if (this.userDefinedOrder) {
-          _ref = this.userDefinedOrder;
-          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-            actionName = _ref[_i];
+          ref = this.userDefinedOrder;
+          for (i = 0, len = ref.length; i < len; i++) {
+            actionName = ref[i];
             if (this.userDefinedActions) {
               action = this.userDefinedActions[actionName] || this.defaultActions[actionName];
             } else {
@@ -1069,17 +1120,17 @@
             }
           }
         } else {
-          _ref1 = this.defaultActions;
-          for (actionName in _ref1) {
-            action = _ref1[actionName];
+          ref1 = this.defaultActions;
+          for (actionName in ref1) {
+            action = ref1[actionName];
             if (this.userDefinedActions && (this.userDefinedActions[actionName] || this.userDefinedActions[actionName] === false)) {
               continue;
             }
             this.addAction(action);
           }
-          _ref2 = this.userDefinedActions;
-          for (actionName in _ref2) {
-            action = _ref2[actionName];
+          ref2 = this.userDefinedActions;
+          for (actionName in ref2) {
+            action = ref2[actionName];
             this.addAction(action);
           }
         }
@@ -1134,9 +1185,9 @@
       return this.menu.appendChild(li);
     };
 
-    ContextMenu.prototype.show = function(x, y, cell) {
+    ContextMenu.prototype.show = function(x, y, cell1) {
       var menu;
-      this.cell = cell;
+      this.cell = cell1;
       if (this.active) {
         if (!cell.isActive()) {
           cell.makeActive();
@@ -1257,7 +1308,9 @@
         gridChange = table.copiedGridChange;
         x = cell.address[0];
         y = cell.address[1];
-        gridChange.apply(x, y);
+        if (gridChange) {
+          gridChange.apply(x, y);
+        }
         return table.addToStack({
           type: 'paste',
           grid: gridChange,
@@ -1284,14 +1337,14 @@
     ContextMenu.prototype.selectAll = function(e, table) {
       table.clearActiveCells();
       return setTimeout(function() {
-        var row, _i, _len, _ref, _results;
-        _ref = table.rows;
-        _results = [];
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          row = _ref[_i];
-          _results.push(row.select());
+        var i, len, ref, results, row;
+        ref = table.rows;
+        results = [];
+        for (i = 0, len = ref.length; i < len; i++) {
+          row = ref[i];
+          results.push(row.select());
         }
-        return _results;
+        return results;
       }, 100);
     };
 
@@ -1304,12 +1357,12 @@
     };
 
     ContextMenu.prototype.removeRow = function(e, table) {
-      var cell, gridChange, rows, _i, _len, _ref;
+      var cell, gridChange, i, len, ref, rows;
       gridChange = new GridEdit.GridChange(table.activeCells);
       rows = {};
-      _ref = gridChange.cells;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        cell = _ref[_i];
+      ref = gridChange.cells;
+      for (i = 0, len = ref.length; i < len; i++) {
+        cell = ref[i];
         rows[cell.address[0]] = true;
       }
       return table.removeRows(Object.keys(rows));
@@ -1362,38 +1415,38 @@
     function Utilities() {}
 
     Utilities.prototype.setAttributes = function(el, attrs) {
-      var key, value, _results;
-      _results = [];
+      var key, results, value;
+      results = [];
       for (key in attrs) {
         value = attrs[key];
         if (value) {
-          _results.push(el.setAttribute(key, value));
+          results.push(el.setAttribute(key, value));
         } else {
-          _results.push(void 0);
+          results.push(void 0);
         }
       }
-      return _results;
+      return results;
     };
 
     Utilities.prototype.setStyles = function(el, styles) {
-      var key, value, _results;
-      _results = [];
+      var key, results, value;
+      results = [];
       for (key in styles) {
         value = styles[key];
-        _results.push(el.style[key] = "" + value + "px");
+        results.push(el.style[key] = value + "px");
       }
-      return _results;
+      return results;
     };
 
     Utilities.prototype.clearActiveCells = function(table) {
-      var activeCell, activeCells, index, redCell, redCells, _i, _j, _len, _len1;
+      var activeCell, activeCells, i, index, j, len, len1, redCell, redCells;
       redCells = table.redCells;
       activeCells = table.activeCells;
       if (table.openCell) {
         table.openCell.edit(table.openCell.control.value);
       }
       if (redCells.length > 0) {
-        for (index = _i = 0, _len = redCells.length; _i < _len; index = ++_i) {
+        for (index = i = 0, len = redCells.length; i < len; index = ++i) {
           redCell = redCells[index];
           if (redCell != null) {
             redCell.makeInactive();
@@ -1402,7 +1455,7 @@
         table.redCells = [];
       }
       if (activeCells.length > 0) {
-        for (index = _j = 0, _len1 = activeCells.length; _j < _len1; index = ++_j) {
+        for (index = j = 0, len1 = activeCells.length; j < len1; index = ++j) {
           activeCell = activeCells[index];
           if (activeCell != null) {
             activeCell.makeInactive();
@@ -1469,7 +1522,7 @@
     Utilities.prototype.fixHeaders = function(ge) {
       clearTimeout(this.fixHeadersBuffer);
       return this.fixHeadersBuffer = setTimeout((function() {
-        var backgroundColor, col, currentTH, currentTHBounds, currentTHElement, currentTHElementBounds, currentTHElements, doc, fakeTH, fakeTHead, fakeTR, fakeTable, geElement, geLeft, geTop, index, indexModifier, key, left, pageLeft, pageTop, table, value, _i, _len, _ref, _ref1;
+        var backgroundColor, col, currentTH, currentTHBounds, currentTHElement, currentTHElementBounds, currentTHElements, doc, fakeTH, fakeTHead, fakeTR, fakeTable, geElement, geLeft, geTop, i, index, indexModifier, key, left, len, pageLeft, pageTop, ref, ref1, table, value;
         indexModifier = ge.config.includeRowHandles ? 1 : 0;
         currentTH = ge.thead;
         currentTHElements = currentTH.getElementsByTagName('th');
@@ -1503,7 +1556,7 @@
         fakeTHead.ondragleave = currentTH.ondragleave;
         fakeTR = document.createElement('tr');
         left = 0;
-        for (index = _i = 0, _len = currentTHElements.length; _i < _len; index = ++_i) {
+        for (index = i = 0, len = currentTHElements.length; i < len; index = ++i) {
           currentTHElement = currentTHElements[index];
           currentTHElementBounds = currentTHElement.getBoundingClientRect();
           fakeTH = document.createElement('th');
@@ -1523,29 +1576,29 @@
             col = ge.cols[n];
             GridEdit.Utilities.prototype.clearActiveCells(ge);
             return setTimeout((function() {
-              var cell, _j, _len1, _ref, _results;
+              var cell, j, len1, ref, results;
               col.makeActive();
-              _ref = col.cells;
-              _results = [];
-              for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
-                cell = _ref[_j];
-                _results.push(cell.addToSelection());
+              ref = col.cells;
+              results = [];
+              for (j = 0, len1 = ref.length; j < len1; j++) {
+                cell = ref[j];
+                results.push(cell.addToSelection());
               }
-              return _results;
+              return results;
             }), 0);
           };
           col = ge.cols[index - indexModifier];
           if (col) {
             if (col.headerStyle) {
-              _ref = col.headerStyle;
-              for (key in _ref) {
-                value = _ref[key];
+              ref = col.headerStyle;
+              for (key in ref) {
+                value = ref[key];
                 fakeTH.style[key] = value;
               }
             } else {
-              _ref1 = col.style;
-              for (key in _ref1) {
-                value = _ref1[key];
+              ref1 = col.style;
+              for (key in ref1) {
+                value = ref1[key];
                 fakeTH.style[key] = value;
               }
             }
@@ -1570,10 +1623,10 @@
 }).call(this);
 ;(function() {
   GridEdit.Column = (function() {
-    function Column(attributes, table) {
-      var format, key, value, _ref;
+    function Column(attributes, table1) {
+      var format, key, ref, value;
       this.attributes = attributes;
-      this.table = table;
+      this.table = table1;
       this.id = this.index = this.table.cols.length;
       this.defaultValue = this.attributes.defaultValue;
       this.cellClass = this.attributes.cellClass;
@@ -1589,9 +1642,9 @@
           return v;
         }
       };
-      _ref = this.attributes;
-      for (key in _ref) {
-        value = _ref[key];
+      ref = this.attributes;
+      for (key in ref) {
+        value = ref[key];
         this[key] = value;
       }
       delete this.attributes;
@@ -1600,19 +1653,19 @@
     }
 
     Column.prototype.applyStyle = function() {
-      var styleName, _results, _results1;
+      var results, results1, styleName;
       if (this.headerStyle) {
-        _results = [];
+        results = [];
         for (styleName in this.headerStyle) {
-          _results.push(this.element.style[styleName] = this.headerStyle[styleName]);
+          results.push(this.element.style[styleName] = this.headerStyle[styleName]);
         }
-        return _results;
+        return results;
       } else {
-        _results1 = [];
+        results1 = [];
         for (styleName in this.style) {
-          _results1.push(this.element.style[styleName] = this.style[styleName]);
+          results1.push(this.element.style[styleName] = this.style[styleName]);
         }
-        return _results1;
+        return results1;
       }
     };
 
@@ -1639,16 +1692,16 @@
       col = this;
       table = col.table;
       this.element.onclick = function(e) {
-        var cell, _i, _len, _ref, _results;
+        var cell, i, len, ref, results;
         GridEdit.Utilities.prototype.clearActiveCells(table);
         col.makeActive();
-        _ref = col.cells;
-        _results = [];
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          cell = _ref[_i];
-          _results.push(cell.addToSelection());
+        ref = col.cells;
+        results = [];
+        for (i = 0, len = ref.length; i < len; i++) {
+          cell = ref[i];
+          results.push(cell.addToSelection());
         }
-        return _results;
+        return results;
       };
       return this.element.onmousedown = function(e) {
         if (e.which === 3) {
@@ -1665,14 +1718,14 @@
 
 }).call(this);
 ;(function() {
-  var __hasProp = {}.hasOwnProperty,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
 
   GridEdit.Row = (function() {
-    function Row(attributes, table) {
-      var row;
+    function Row(attributes, table1) {
+      var row, table;
       this.attributes = attributes;
-      this.table = table;
+      this.table = table1;
       this.id = this.table.rows.length;
       this.cells = [];
       this.index = this.table.rows.length;
@@ -1753,14 +1806,14 @@
     };
 
     Row.prototype.select = function() {
-      var cell, _i, _len, _ref, _results;
-      _ref = this.cells;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        cell = _ref[_i];
-        _results.push(cell.addToSelection());
+      var cell, j, len, ref, results;
+      ref = this.cells;
+      results = [];
+      for (j = 0, len = ref.length; j < len; j++) {
+        cell = ref[j];
+        results.push(cell.addToSelection());
       }
-      return _results;
+      return results;
     };
 
     Row.prototype.afterEdit = function() {
@@ -1785,19 +1838,19 @@
     -----------------------------------------------------------------------------------------
    */
 
-  GridEdit.GenericRow = (function(_super) {
-    __extends(GenericRow, _super);
+  GridEdit.GenericRow = (function(superClass) {
+    extend(GenericRow, superClass);
 
-    function GenericRow(attributes, table) {
-      var cell, col, i, _i, _len, _ref;
+    function GenericRow(attributes, table1) {
+      var cell, col, i, j, len, ref;
       this.attributes = attributes;
-      this.table = table;
+      this.table = table1;
       GenericRow.__super__.constructor.apply(this, arguments);
       this.editable = true;
       this.addHandle();
-      _ref = this.table.cols;
-      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
-        col = _ref[i];
+      ref = this.table.cols;
+      for (i = j = 0, len = ref.length; j < len; i = ++j) {
+        col = ref[i];
         cell = this.createCell(this.attributes[col.valueKey]);
         this.cells.push(cell);
         this.table.cols[i].cells.push(cell);
@@ -1817,12 +1870,12 @@
     -----------------------------------------------------------------------------------------
    */
 
-  GridEdit.StaticRow = (function(_super) {
-    __extends(StaticRow, _super);
+  GridEdit.StaticRow = (function(superClass) {
+    extend(StaticRow, superClass);
 
-    function StaticRow(attributes, table) {
+    function StaticRow(attributes, table1) {
       this.attributes = attributes;
-      this.table = table;
+      this.table = table1;
       StaticRow.__super__.constructor.apply(this, arguments);
       this.addHandle();
       this.editable = this.attributes.editable = false;
@@ -1842,22 +1895,22 @@
     -----------------------------------------------------------------------------------------
    */
 
-  GridEdit.SubTotalRow = (function(_super) {
-    __extends(SubTotalRow, _super);
+  GridEdit.SubTotalRow = (function(superClass) {
+    extend(SubTotalRow, superClass);
 
-    function SubTotalRow(attributes, table) {
-      var cell, col, i, value, _i, _len, _ref;
+    function SubTotalRow(attributes, table1) {
+      var cell, col, i, j, len, ref, value;
       this.attributes = attributes;
-      this.table = table;
+      this.table = table1;
       SubTotalRow.__super__.constructor.apply(this, arguments);
       this.subtotalColumns = {};
       this.labels = this.attributes.labels;
       this.running = this.attributes.running;
       this.alwaysPristine = true;
       this.addHandle();
-      _ref = this.table.cols;
-      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
-        col = _ref[i];
+      ref = this.table.cols;
+      for (i = j = 0, len = ref.length; j < len; i = ++j) {
+        col = ref[i];
         cell = new GridEdit.GenericCell('', this);
         cell.editable = false;
         if (this.labels) {
@@ -1876,26 +1929,26 @@
     }
 
     SubTotalRow.prototype.calculate = function() {
-      var cell, col, index, row, rowIndex, start, sub, total, _i, _j, _len, _len1, _ref, _ref1, _ref2, _results;
+      var cell, col, index, j, k, len, len1, ref, ref1, ref2, results, row, rowIndex, start, sub, total;
       start = -1;
       if (!this.running) {
-        _ref = this.table.subtotalRows;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          sub = _ref[_i];
+        ref = this.table.subtotalRows;
+        for (j = 0, len = ref.length; j < len; j++) {
+          sub = ref[j];
           rowIndex = sub.index;
           if (rowIndex < this.index && rowIndex > start) {
             start = rowIndex;
           }
         }
       }
-      _ref1 = this.subtotalColumns;
-      _results = [];
-      for (col in _ref1) {
-        index = _ref1[col];
+      ref1 = this.subtotalColumns;
+      results = [];
+      for (col in ref1) {
+        index = ref1[col];
         total = 0;
-        _ref2 = this.table.rows;
-        for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
-          row = _ref2[_j];
+        ref2 = this.table.rows;
+        for (k = 0, len1 = ref2.length; k < len1; k++) {
+          row = ref2[k];
           if (!(row.index > start)) {
             continue;
           }
@@ -1910,9 +1963,9 @@
             total += Number(cell.value());
           }
         }
-        _results.push(this.cells[index].value(total, false));
+        results.push(this.cells[index].value(total, false));
       }
-      return _results;
+      return results;
     };
 
     SubTotalRow.prototype.afterEdit = function() {};
@@ -1927,19 +1980,19 @@
     -----------------------------------------------------------------------------------------
    */
 
-  GridEdit.HeaderRow = (function(_super) {
-    __extends(HeaderRow, _super);
+  GridEdit.HeaderRow = (function(superClass) {
+    extend(HeaderRow, superClass);
 
-    function HeaderRow(attributes, table) {
-      var cell, col, i, _i, _len, _ref;
+    function HeaderRow(attributes, table1) {
+      var cell, col, i, j, len, ref;
       this.attributes = attributes;
-      this.table = table;
+      this.table = table1;
       HeaderRow.__super__.constructor.apply(this, arguments);
       this.editable = true;
       this.addHandle();
-      _ref = this.table.cols;
-      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
-        col = _ref[i];
+      ref = this.table.cols;
+      for (i = j = 0, len = ref.length; j < len; i = ++j) {
+        col = ref[i];
         cell = new GridEdit.HTMLCell(this.attributes[col.valueKey], this);
         cell.editable = true;
         this.cells.push(cell);
@@ -1956,15 +2009,15 @@
 
 }).call(this);
 ;(function() {
-  var __hasProp = {}.hasOwnProperty,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
 
   GridEdit.Cell = (function() {
-    function Cell(originalValue, row) {
+    function Cell(originalValue, row1) {
       this.originalValue = originalValue;
-      this.row = row;
+      this.row = row1;
       this.index = this.row.cells.length;
-      this.id = "" + this.row.id + "-" + this.index;
+      this.id = this.row.id + "-" + this.index;
       this.address = [this.row.id, this.index];
       this.table = this.row.table;
       this.col = this.table.cols[this.index];
@@ -2042,16 +2095,16 @@
     };
 
     Cell.prototype.applyStyle = function() {
-      var styleName, _results;
+      var results, styleName;
       if (this.col.cellClass) {
         this.element.classList.add(this.col.cellClass);
       }
       if (this.col.style) {
-        _results = [];
+        results = [];
         for (styleName in this.col.style) {
-          _results.push(this.element.style[styleName] = this.col.style[styleName]);
+          results.push(this.element.style[styleName] = this.col.style[styleName]);
         }
-        return _results;
+        return results;
       }
     };
 
@@ -2106,12 +2159,20 @@
     };
 
     Cell.prototype.showInactive = function() {
-      return this.element.style.backgroundColor = this.oldBackgroundColor;
+      return this.element.style.backgroundColor = this.oldBackgroundColor || '';
     };
 
     Cell.prototype.showUneditable = function() {
+      var cell;
       this.element.style.backgroundColor = this.table.theme.cells.uneditableColor;
-      return this.table.redCells.push(this);
+      if (this.table.mobile) {
+        cell = this;
+        return setTimeout(function() {
+          return cell.makeInactive();
+        }, 1000);
+      } else {
+        return this.table.redCells.push(this);
+      }
     };
 
 
@@ -2316,23 +2377,23 @@
     };
 
     Cell.prototype.next = function() {
-      var _ref;
-      return this.row.cells[this.index + 1] || ((_ref = this.row.below()) != null ? _ref.cells[0] : void 0);
+      var ref;
+      return this.row.cells[this.index + 1] || ((ref = this.row.below()) != null ? ref.cells[0] : void 0);
     };
 
     Cell.prototype.previous = function() {
-      var _ref;
-      return this.row.cells[this.index - 1] || ((_ref = this.row.above()) != null ? _ref.cells[this.row.cells.length - 1] : void 0);
+      var ref;
+      return this.row.cells[this.index - 1] || ((ref = this.row.above()) != null ? ref.cells[this.row.cells.length - 1] : void 0);
     };
 
     Cell.prototype.above = function() {
-      var _ref;
-      return (_ref = this.row.above()) != null ? _ref.cells[this.index] : void 0;
+      var ref;
+      return (ref = this.row.above()) != null ? ref.cells[this.index] : void 0;
     };
 
     Cell.prototype.below = function() {
-      var _ref;
-      return (_ref = this.row.below()) != null ? _ref.cells[this.index] : void 0;
+      var ref;
+      return (ref = this.row.below()) != null ? ref.cells[this.index] : void 0;
     };
 
     Cell.prototype.isBefore = function(cell) {
@@ -2426,7 +2487,7 @@
         };
       } else {
         this.element.onclick = function(e) {
-          var activateRow, c, cellFrom, cellFromCol, cellFromRow, cellToCol, cellToRow, cmd, col, ctrl, row, shift, _i, _j, _k, _l;
+          var activateRow, c, cellFrom, cellFromCol, cellFromRow, cellToCol, cellToRow, cmd, col, ctrl, j, k, l, m, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, row, shift;
           table.contextMenu.hideBorders();
           if (table.lastClickCell === cell) {
             if (GridEdit.Hook.prototype.run(cell, 'onDblClick', cell, e)) {
@@ -2445,12 +2506,12 @@
               shift = e.shiftKey;
               activateRow = function(row) {};
               if (cellFromCol <= cellToCol) {
-                for (col = _i = cellFromCol; cellFromCol <= cellToCol ? _i <= cellToCol : _i >= cellToCol; col = cellFromCol <= cellToCol ? ++_i : --_i) {
+                for (col = j = ref = cellFromCol, ref1 = cellToCol; ref <= ref1 ? j <= ref1 : j >= ref1; col = ref <= ref1 ? ++j : --j) {
                   c = table.getCell(row, col);
                   c.makeActive(false);
                 }
               } else {
-                for (col = _j = cellToCol; cellToCol <= cellFromCol ? _j <= cellFromCol : _j >= cellFromCol; col = cellToCol <= cellFromCol ? ++_j : --_j) {
+                for (col = k = ref2 = cellToCol, ref3 = cellFromCol; ref2 <= ref3 ? k <= ref3 : k >= ref3; col = ref2 <= ref3 ? ++k : --k) {
                   c = table.getCell(row, col);
                   c.makeActive(false);
                 }
@@ -2465,11 +2526,11 @@
                 cellToRow = cell.address[0];
                 cellToCol = cell.address[1];
                 if (cellFromRow <= cellToRow) {
-                  for (row = _k = cellFromRow; cellFromRow <= cellToRow ? _k <= cellToRow : _k >= cellToRow; row = cellFromRow <= cellToRow ? ++_k : --_k) {
+                  for (row = l = ref4 = cellFromRow, ref5 = cellToRow; ref4 <= ref5 ? l <= ref5 : l >= ref5; row = ref4 <= ref5 ? ++l : --l) {
                     activateRow(row);
                   }
                 } else {
-                  for (row = _l = cellToRow; cellToRow <= cellFromRow ? _l <= cellFromRow : _l >= cellFromRow; row = cellToRow <= cellFromRow ? ++_l : --_l) {
+                  for (row = m = ref6 = cellToRow, ref7 = cellFromRow; ref6 <= ref7 ? m <= ref7 : m >= ref7; row = ref6 <= ref7 ? ++m : --m) {
                     activateRow(row);
                   }
                 }
@@ -2518,11 +2579,11 @@
     -----------------------------------------------------------------------------------------
    */
 
-  GridEdit.StringCell = (function(_super) {
-    __extends(StringCell, _super);
+  GridEdit.StringCell = (function(superClass) {
+    extend(StringCell, superClass);
 
-    function StringCell(value, row) {
-      this.row = row;
+    function StringCell(value, row1) {
+      this.row = row1;
       StringCell.__super__.constructor.apply(this, arguments);
       this.type = 'string';
       this.initialize();
@@ -2539,11 +2600,11 @@
     -----------------------------------------------------------------------------------------
    */
 
-  GridEdit.NumberCell = (function(_super) {
-    __extends(NumberCell, _super);
+  GridEdit.NumberCell = (function(superClass) {
+    extend(NumberCell, superClass);
 
-    function NumberCell(value, row) {
-      this.row = row;
+    function NumberCell(value, row1) {
+      this.row = row1;
       NumberCell.__super__.constructor.apply(this, arguments);
       this.type = 'number';
       this.initialize();
@@ -2587,11 +2648,11 @@
 
   })(GridEdit.Cell);
 
-  GridEdit.CheckBoxCell = (function(_super) {
-    __extends(CheckBoxCell, _super);
+  GridEdit.CheckBoxCell = (function(superClass) {
+    extend(CheckBoxCell, superClass);
 
-    function CheckBoxCell(value, row) {
-      this.row = row;
+    function CheckBoxCell(value, row1) {
+      this.row = row1;
       CheckBoxCell.__super__.constructor.apply(this, arguments);
       this.type = 'checkbox';
       this.initialize();
@@ -2690,11 +2751,11 @@
   	-----------------------------------------------------------------------------------------
    */
 
-  GridEdit.DateCell = (function(_super) {
-    __extends(DateCell, _super);
+  GridEdit.DateCell = (function(superClass) {
+    extend(DateCell, superClass);
 
-    function DateCell(value, row) {
-      this.row = row;
+    function DateCell(value, row1) {
+      this.row = row1;
       DateCell.__super__.constructor.apply(this, arguments);
       this.type = 'date';
       this.initialize();
@@ -2714,6 +2775,7 @@
         }
       } catch (_error) {
         error = _error;
+        return this.control.value = this.toDateString(new Date(this.originalValue));
       }
     };
 
@@ -2728,13 +2790,14 @@
           this.control.valueAsDate = null;
         } catch (_error) {
           error = _error;
+          this.control.value = '';
         }
         return '';
       }
     };
 
     DateCell.prototype.setValue = function(newValue) {
-      this.source[this.valueKey] = new Date(newValue);
+      this.source[this.valueKey] = this.toDateObject(newValue);
       return this.setControlValue();
     };
 
@@ -2744,11 +2807,25 @@
         return this.control.valueAsDate = this.source[this.valueKey];
       } catch (_error) {
         error = _error;
+        return this.control.value = this.source[this.valueKey];
       }
     };
 
     DateCell.prototype.renderValue = function() {
       return this.element.textContent = this.col.format(this.toDateString(this.value()));
+    };
+
+    DateCell.prototype.toDateObject = function(passedString) {
+      var datePieces;
+      if (passedString == null) {
+        passedString = null;
+      }
+      if (passedString && passedString !== '') {
+        datePieces = passedString.split('-');
+        return new Date(datePieces[2], datePieces[0] - 1, datePieces[1]);
+      } else {
+        return null;
+      }
     };
 
     DateCell.prototype.toDateString = function(passedDate) {
@@ -2775,7 +2852,7 @@
     DateCell.prototype.toDate = function() {
       var input;
       input = document.createElement('input');
-      input.type = 'date';
+      input.type = 'text';
       input.value = this.toDateString();
       return input;
     };
@@ -2811,11 +2888,11 @@
   	-----------------------------------------------------------------------------------------
    */
 
-  GridEdit.HTMLCell = (function(_super) {
-    __extends(HTMLCell, _super);
+  GridEdit.HTMLCell = (function(superClass) {
+    extend(HTMLCell, superClass);
 
-    function HTMLCell(value, row) {
-      this.row = row;
+    function HTMLCell(value, row1) {
+      this.row = row1;
       HTMLCell.__super__.constructor.apply(this, arguments);
       this.type = 'html';
       this.initialize();
@@ -2858,11 +2935,11 @@
   	-----------------------------------------------------------------------------------------
    */
 
-  GridEdit.SelectCell = (function(_super) {
-    __extends(SelectCell, _super);
+  GridEdit.SelectCell = (function(superClass) {
+    extend(SelectCell, superClass);
 
-    function SelectCell(value, row) {
-      this.row = row;
+    function SelectCell(value, row1) {
+      this.row = row1;
       SelectCell.__super__.constructor.apply(this, arguments);
       this.type = 'select';
       this.initialize();
@@ -2876,16 +2953,16 @@
     };
 
     SelectCell.prototype.setControlValue = function() {
-      var cell, choice, index, option, subchoice, _i, _j, _len, _len1, _ref, _results;
+      var cell, choice, index, j, k, len, len1, option, ref, results, subchoice;
       cell = this;
       this.control.innerHTML = '';
-      _ref = this.meta.choices;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        choice = _ref[_i];
+      ref = this.meta.choices;
+      results = [];
+      for (j = 0, len = ref.length; j < len; j++) {
+        choice = ref[j];
         option = document.createElement("option");
         if (choice instanceof Array) {
-          for (index = _j = 0, _len1 = choice.length; _j < _len1; index = ++_j) {
+          for (index = k = 0, len1 = choice.length; k < len1; index = ++k) {
             subchoice = choice[index];
             if (index === 0) {
               option.value = subchoice;
@@ -2900,9 +2977,9 @@
         if (cell.value() === choice) {
           option.selected = true;
         }
-        _results.push(this.control.add(option));
+        results.push(this.control.add(option));
       }
-      return _results;
+      return results;
     };
 
     SelectCell.prototype.initControl = function() {
@@ -2937,22 +3014,22 @@
     };
 
     SelectCell.prototype.onKeyPress = function(key) {
-      var control, i, option, startsWith, _i, _len, _ref, _results;
+      var control, i, j, len, option, ref, results, startsWith;
       this.onSpaceKeyPress();
       startsWith = new RegExp('^' + key, 'i');
       control = this.control;
-      _ref = control.options;
-      _results = [];
-      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
-        option = _ref[i];
+      ref = control.options;
+      results = [];
+      for (i = j = 0, len = ref.length; j < len; i = ++j) {
+        option = ref[i];
         if (startsWith.test(option.value)) {
           control.selectedIndex = i;
           break;
         } else {
-          _results.push(void 0);
+          results.push(void 0);
         }
       }
-      return _results;
+      return results;
     };
 
     return SelectCell;
@@ -2965,11 +3042,11 @@
     -----------------------------------------------------------------------------------------
    */
 
-  GridEdit.TextAreaCell = (function(_super) {
-    __extends(TextAreaCell, _super);
+  GridEdit.TextAreaCell = (function(superClass) {
+    extend(TextAreaCell, superClass);
 
-    function TextAreaCell(value, row) {
-      this.row = row;
+    function TextAreaCell(value, row1) {
+      this.row = row1;
       TextAreaCell.__super__.constructor.apply(this, arguments);
       this.type = 'textarea';
       this.initialize();
@@ -2996,11 +3073,11 @@
     Special cell class used by GridEdit for specialty rows and cells
    */
 
-  GridEdit.GenericCell = (function(_super) {
-    __extends(GenericCell, _super);
+  GridEdit.GenericCell = (function(superClass) {
+    extend(GenericCell, superClass);
 
-    function GenericCell(value, row) {
-      this.row = row;
+    function GenericCell(value, row1) {
+      this.row = row1;
       GenericCell.__super__.constructor.apply(this, arguments);
       this.type = 'generic';
       this.initialize();
@@ -3020,9 +3097,9 @@
    */
 
   GridEdit.HandleCell = (function() {
-    function HandleCell(row) {
-      var node, table;
-      this.row = row;
+    function HandleCell(row1) {
+      var node, row, table;
+      this.row = row1;
       row = this.row;
       table = row.table;
       this.element = document.createElement('td');
@@ -3037,14 +3114,19 @@
         return row.table.selectRow(e, index);
       };
       this.element.ondragstart = function() {
-        GridEdit.Utilities.prototype.clearActiveCells(table);
+        var gridChange, i, j, ref, ref1;
+        row.cells[0].addToSelection();
+        gridChange = new GridEdit.GridChange(table.activeCells);
+        for (i = j = ref = gridChange.lowRow, ref1 = gridChange.highRow; ref <= ref1 ? j <= ref1 : j >= ref1; i = ref <= ref1 ? ++j : --j) {
+          table.rows[i].select();
+        }
         table.contextMenu.hideBorders();
-        row.select();
-        return table.draggingRow = row;
+        return table.draggingRow = gridChange;
       };
       this.element.ondragend = function() {
-        var insertAtIndex, lastDragOverIndex, modifier, rowToMoveIndex;
-        rowToMoveIndex = table.draggingRow.index;
+        var insertAtIndex, lastDragOverIndex, modifier, numRows, rowToMoveIndex;
+        rowToMoveIndex = table.draggingRow.lowRow;
+        numRows = table.draggingRow.highRow - table.draggingRow.lowRow + 1;
         lastDragOverIndex = table.lastDragOver.index;
         modifier = 0;
         if (lastDragOverIndex === 0) {
@@ -3062,7 +3144,7 @@
         table.lastDragOver.element.style.borderTop = table.lastDragOver.oldBorderTop;
         table.lastDragOver = null;
         if (insertAtIndex !== rowToMoveIndex) {
-          return table.moveRow(rowToMoveIndex, insertAtIndex);
+          return table.moveRows(rowToMoveIndex, insertAtIndex, numRows, true);
         }
       };
     }
@@ -3074,17 +3156,17 @@
 }).call(this);
 ;(function() {
   GridEdit.GridChange = (function() {
-    function GridChange(cells, value) {
-      var area, cell, change, colIndex, height, rowIndex, thisChange, useBlank, width, _i, _j, _len, _len1, _ref;
-      this.cells = cells;
+    function GridChange(cells1, value) {
+      var area, cell, change, colIndex, height, i, j, len, len1, ref, rowIndex, thisChange, useBlank, width;
+      this.cells = cells1;
       useBlank = value === 'ge-blank';
       this.changes = [];
       this.table = this.cells[0].col.table;
       this.borderStyle = this.table.theme.cells.selectionBorderStyle;
       this.highRow = 0;
       this.highCol = 0;
-      for (_i = 0, _len = cells.length; _i < _len; _i++) {
-        cell = cells[_i];
+      for (i = 0, len = cells.length; i < len; i++) {
+        cell = cells[i];
         rowIndex = cell.address[0];
         colIndex = cell.address[1];
         thisChange = {
@@ -3119,9 +3201,9 @@
         }
         this.changes.push(thisChange);
       }
-      _ref = this.changes;
-      for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
-        change = _ref[_j];
+      ref = this.changes;
+      for (j = 0, len1 = ref.length; j < len1; j++) {
+        change = ref[j];
         change.rowVector = change.row - this.firstCell.row;
         change.colVector = change.col - this.firstCell.col;
       }
@@ -3132,66 +3214,66 @@
     }
 
     GridChange.prototype.apply = function(x, y) {
-      var cell, change, _i, _len, _ref, _results;
+      var cell, change, i, len, ref, results;
       if (x === false || y === false) {
         x = this.firstCell.row;
         y = this.firstCell.col;
       }
-      _ref = this.changes;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        change = _ref[_i];
+      ref = this.changes;
+      results = [];
+      for (i = 0, len = ref.length; i < len; i++) {
+        change = ref[i];
         cell = this.table.getCell(x + change.rowVector, y + change.colVector);
         if (cell && cell.editable) {
           change.oldValue = cell.value();
-          _results.push(cell.value(change.value, false));
+          results.push(cell.value(change.value, false));
         } else {
-          _results.push(change.oldValue = '');
+          results.push(change.oldValue = '');
         }
       }
-      return _results;
+      return results;
     };
 
     GridChange.prototype.undo = function(x, y) {
-      var cell, change, _i, _len, _ref, _results;
+      var cell, change, i, len, ref, results;
       if (x === false || y === false) {
         x = this.firstCell.row;
         y = this.firstCell.col;
       }
-      _ref = this.changes;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        change = _ref[_i];
+      ref = this.changes;
+      results = [];
+      for (i = 0, len = ref.length; i < len; i++) {
+        change = ref[i];
         cell = this.table.getCell(x + change.rowVector, y + change.colVector);
         if (cell && cell.editable) {
-          _results.push(cell.value(change.oldValue, false));
+          results.push(cell.value(change.oldValue, false));
         } else {
-          _results.push(void 0);
+          results.push(void 0);
         }
       }
-      return _results;
+      return results;
     };
 
     GridChange.prototype.displayBorders = function() {
-      var cell, _i, _len, _ref, _results;
-      _ref = this.cells;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        cell = _ref[_i];
-        _results.push(this.addBorder(cell));
+      var cell, i, len, ref, results;
+      ref = this.cells;
+      results = [];
+      for (i = 0, len = ref.length; i < len; i++) {
+        cell = ref[i];
+        results.push(this.addBorder(cell));
       }
-      return _results;
+      return results;
     };
 
     GridChange.prototype.removeBorders = function() {
-      var cell, _i, _len, _ref, _results;
-      _ref = this.cells;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        cell = _ref[_i];
-        _results.push(cell.element.style.border = "");
+      var cell, i, len, ref, results;
+      ref = this.cells;
+      results = [];
+      for (i = 0, len = ref.length; i < len; i++) {
+        cell = ref[i];
+        results.push(cell.element.style.border = "");
       }
-      return _results;
+      return results;
     };
 
     GridChange.prototype.addBorder = function(cell) {
@@ -3243,43 +3325,43 @@
           break;
       }
       if (customTheme) {
-        this.themeName = "" + this.themeName + "-custom";
+        this.themeName = this.themeName + "-custom";
         this.apply(customTheme);
       }
     }
 
     Theme.prototype.apply = function(theme) {
-      var apply, k, self, v, _results;
+      var apply, k, results, self, v;
       self = this;
       apply = function(target, obj) {
-        var k, v, _results;
-        _results = [];
+        var k, results, v;
+        results = [];
         for (k in obj) {
           v = obj[k];
           if (typeof v === 'object') {
             if (!target[k]) {
               target[k] = {};
             }
-            _results.push(apply(target[k], v));
+            results.push(apply(target[k], v));
           } else {
-            _results.push(target[k] = v);
+            results.push(target[k] = v);
           }
         }
-        return _results;
+        return results;
       };
-      _results = [];
+      results = [];
       for (k in theme) {
         v = theme[k];
         if (typeof v === 'object') {
           if (!self[k]) {
             self[k] = {};
           }
-          _results.push(apply(self[k], v));
+          results.push(apply(self[k], v));
         } else {
-          _results.push(self[k] = v);
+          results.push(self[k] = v);
         }
       }
-      return _results;
+      return results;
     };
 
     Theme.prototype["default"] = {
@@ -3342,10 +3424,10 @@
     function Hook() {}
 
     Hook.prototype.run = function(obj, hookName) {
-      var arg, functionArguments, i, _i, _len;
+      var arg, functionArguments, i, j, len;
       if (obj[hookName]) {
         functionArguments = [];
-        for (i = _i = 0, _len = arguments.length; _i < _len; i = ++_i) {
+        for (i = j = 0, len = arguments.length; j < len; i = ++j) {
           arg = arguments[i];
           if (i < 2) {
             continue;
@@ -3363,6 +3445,8 @@
       config = table.config;
       table.beforeMoveRow = config.beforeMoveRow;
       table.afterMoveRow = config.afterMoveRow;
+      table.beforeMoveRows = config.beforeMoveRows;
+      table.afterMoveRows = config.afterMoveRows;
       table.beforeAddRow = config.beforeAddRow;
       table.afterAddRow = config.afterAddRow;
       table.beforeAddRows = config.beforeAddRows;

@@ -57,6 +57,10 @@ class GridEdit.ActionStack
           @table.addScatteredRows(action.rowObjects)
           break
 
+        when 'move-rows'
+          @table.moveRows(action.modifiedNewIndex, action.modifiedRowToMoveIndex, action.numRows, false)
+          break
+
   redo: ->
     if(@index < @actions.length - 1)
       @index++
@@ -98,4 +102,8 @@ class GridEdit.ActionStack
 
         when 'remove-rows'
           @table.removeRows(action.rowIndexes, false)
+          break
+
+        when 'move-rows'
+          @table.moveRows(action.originalRowToMoveIndex, action.originalNewIndex, action.numRows, false)
           break

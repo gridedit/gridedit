@@ -18,6 +18,10 @@ class GridEdit.Hook
     table.beforeMoveRow = config.beforeMoveRow
     table.afterMoveRow = config.afterMoveRow
 
+    # moveRows
+    table.beforeMoveRows = config.beforeMoveRows
+    table.afterMoveRows = config.afterMoveRows
+
     # addRow
     table.beforeAddRow = config.beforeAddRow
     table.afterAddRow = config.afterAddRow
