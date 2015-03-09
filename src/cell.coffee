@@ -86,11 +86,17 @@ class GridEdit.Cell
       @element.style.backgroundColor = @table.theme.cells.activeColor
 
   showInactive: ->
-    @element.style.backgroundColor = @oldBackgroundColor
+    @element.style.backgroundColor = @oldBackgroundColor or ''
 
   showUneditable: ->
     @element.style.backgroundColor = @table.theme.cells.uneditableColor
-    @table.redCells.push @
+    if @table.mobile
+      cell = @
+      setTimeout( ->
+        cell.makeInactive()
+      , 1000)
+    else
+      @table.redCells.push @
 
   ###
   	Edit
@@ -472,7 +478,7 @@ class GridEdit.DateCell extends GridEdit.Cell
     try
       @control.valueAsDate = new Date(@originalValue) if @originalValue
     catch error
-      # save Safari from error
+      @control.value = @toDateString(new Date(@originalValue))
 
   formatValue: (newValue) ->
     if newValue.length > 0
@@ -483,21 +489,28 @@ class GridEdit.DateCell extends GridEdit.Cell
       try
         @control.valueAsDate = null
       catch error
-        # save Safari from error
+        @control.value = ''
       ''
 
   setValue: (newValue) ->
-    @source[@valueKey] = new Date(newValue)
+    @source[@valueKey] = @toDateObject(newValue)
     @setControlValue()
 
   setControlValue: ->
     try
       @control.valueAsDate = @source[@valueKey]
     catch error
-      # save Safari from error
+      @control.value = @source[@valueKey]
 
   renderValue: ->
     @element.textContent = @col.format(@toDateString @value())
+
+  toDateObject: (passedString = null) ->
+    if passedString and passedString isnt ''
+      datePieces = passedString.split('-')
+      new Date(datePieces[2], (datePieces[0] - 1), datePieces[1])
+    else
+      null
 
   toDateString: (passedDate = null) ->
     if passedDate and passedDate isnt ''
@@ -514,7 +527,7 @@ class GridEdit.DateCell extends GridEdit.Cell
       ''
   toDate: ->
     input = document.createElement 'input'
-    input.type = 'date'
+    input.type = 'text'
     input.value = @toDateString()
     input
 
