@@ -1189,10 +1189,10 @@
       var menu;
       this.cell = cell1;
       if (this.active) {
-        if (!cell.isActive()) {
-          cell.makeActive();
+        if (!this.cell.isActive()) {
+          this.cell.makeActive();
         }
-        this.cells = cell.table.activeCells;
+        this.cells = this.cell.table.activeCells;
         GridEdit.Utilities.prototype.setStyles(this.element, {
           left: x,
           top: y
@@ -3156,17 +3156,18 @@
 }).call(this);
 ;(function() {
   GridEdit.GridChange = (function() {
-    function GridChange(cells1, value) {
-      var area, cell, change, colIndex, height, i, j, len, len1, ref, rowIndex, thisChange, useBlank, width;
-      this.cells = cells1;
+    function GridChange(cells, value) {
+      var area, cell, change, colIndex, height, i, j, len, len1, ref, ref1, rowIndex, thisChange, useBlank, width;
+      this.cells = cells;
       useBlank = value === 'ge-blank';
       this.changes = [];
       this.table = this.cells[0].col.table;
       this.borderStyle = this.table.theme.cells.selectionBorderStyle;
       this.highRow = 0;
       this.highCol = 0;
-      for (i = 0, len = cells.length; i < len; i++) {
-        cell = cells[i];
+      ref = this.cells;
+      for (i = 0, len = ref.length; i < len; i++) {
+        cell = ref[i];
         rowIndex = cell.address[0];
         colIndex = cell.address[1];
         thisChange = {
@@ -3201,9 +3202,9 @@
         }
         this.changes.push(thisChange);
       }
-      ref = this.changes;
-      for (j = 0, len1 = ref.length; j < len1; j++) {
-        change = ref[j];
+      ref1 = this.changes;
+      for (j = 0, len1 = ref1.length; j < len1; j++) {
+        change = ref1[j];
         change.rowVector = change.row - this.firstCell.row;
         change.colVector = change.col - this.firstCell.col;
       }
