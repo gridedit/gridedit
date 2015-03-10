@@ -137,8 +137,8 @@ class GridEdit.ContextMenu
 
   show: (x, y, @cell) ->
     if @active
-      cell.makeActive() if not cell.isActive()
-      @cells = cell.table.activeCells
+      @cell.makeActive() if not @cell.isActive()
+      @cells = @cell.table.activeCells
       GridEdit.Utilities::setStyles @element, {left: x, top: y}
       document.body.appendChild @element
       menu = @element
