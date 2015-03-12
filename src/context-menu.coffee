@@ -204,6 +204,19 @@ class GridEdit.ContextMenu
 
   sortFunc: (a, b) -> a.address[0] - b.address[0]
 
+  getUpperLeftPasteCell: ->
+    cells = @table.activeCells
+    lowCell = cells[0]
+    for cell in cells
+      row = cell.address[0]
+      col = cell.address[1]
+      if row < lowCell.address[0]
+        lowCell = cell
+      else
+        if row == lowCell.address[0]
+          lowCell = cell if col < lowCell.address[1]
+    lowCell
+
   displayBorders: ->
     @table.copiedGridChange.displayBorders() if @table.copiedGridChange
 
@@ -229,7 +242,7 @@ class GridEdit.ContextMenu
   paste: (e, table) ->
     menu = table.contextMenu
     menu.hide()
-    cell = menu.getTargetPasteCell()
+    cell = menu.getUpperLeftPasteCell()
 
     if cell.editable
       gridChange = table.copiedGridChange
@@ -241,7 +254,7 @@ class GridEdit.ContextMenu
 
   fill: (e, table) ->
     menu = table.contextMenu
-    cell = menu.getTargetPasteCell()
+    cell = menu.getUpperLeftPasteCell()
     fillValue = cell.value()
     gridChange = new GridEdit.GridChange(table.activeCells, fillValue)
     gridChange.apply(false, false)

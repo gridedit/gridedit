@@ -2,6 +2,7 @@ class GridEdit
   constructor: (@config, @actionStack) ->
     @dirtyCells = []
     @dirtyRows = []
+    @copiedGridChange = @config.copiedGridChange
     @uniqueValueKey = @config.uniqueValueKey
     @rowIndex = @config.rowIndex
     @useFixedHeaders = @config.useFixedHeaders
@@ -33,7 +34,6 @@ class GridEdit
       @set key, value for key, value of @config.custom when key of @config.custom
       delete @config.custom
     do @init if @config.initialize
-    @copiedCellMatrix = null
     @actionStack = new GridEdit.ActionStack(@) unless @actionStack
     if @config.selectedCell
       cell = @getCell(@config.selectedCell[0], @config.selectedCell[1])
@@ -129,6 +129,7 @@ class GridEdit
     if newConfig isnt null
       for optionKey, optionValue of newConfig
         config[optionKey] = newConfig[optionKey]
+    config.copiedGridChange = @copiedGridChange
     actionStack = @actionStack
     do @destroy
     @constructor(config, actionStack)
@@ -409,14 +410,14 @@ class GridEdit
     @setDirtyRows()
 
   insertBelow: ->
-    cell = @contextMenu.getTargetPasteCell()
+    cell = @contextMenu.getUpperLeftPasteCell()
     if GridEdit.Hook::run @, 'beforeInsertBelow', cell
       @addRow(cell.address[0] + 1)
       @setDirtyRows()
       GridEdit.Hook::run @, 'afterInsertBelow', cell
 
   insertAbove: ->
-    cell = @contextMenu.getTargetPasteCell()
+    cell = @contextMenu.getUpperLeftPasteCell()
     if GridEdit.Hook::run @, 'beforeInsertAbove', cell
       @addRow(cell.address[0])
       @setDirtyRows()

@@ -9,6 +9,7 @@
       this.actionStack = actionStack;
       this.dirtyCells = [];
       this.dirtyRows = [];
+      this.copiedGridChange = this.config.copiedGridChange;
       this.uniqueValueKey = this.config.uniqueValueKey;
       this.rowIndex = this.config.rowIndex;
       this.useFixedHeaders = this.config.useFixedHeaders;
@@ -49,7 +50,6 @@
       if (this.config.initialize) {
         this.init();
       }
-      this.copiedCellMatrix = null;
       if (!this.actionStack) {
         this.actionStack = new GridEdit.ActionStack(this);
       }
@@ -191,6 +191,7 @@
           config[optionKey] = newConfig[optionKey];
         }
       }
+      config.copiedGridChange = this.copiedGridChange;
       actionStack = this.actionStack;
       this.destroy();
       return this.constructor(config, actionStack);
@@ -735,7 +736,7 @@
 
     GridEdit.prototype.insertBelow = function() {
       var cell;
-      cell = this.contextMenu.getTargetPasteCell();
+      cell = this.contextMenu.getUpperLeftPasteCell();
       if (GridEdit.Hook.prototype.run(this, 'beforeInsertBelow', cell)) {
         this.addRow(cell.address[0] + 1);
         this.setDirtyRows();
@@ -745,7 +746,7 @@
 
     GridEdit.prototype.insertAbove = function() {
       var cell;
-      cell = this.contextMenu.getTargetPasteCell();
+      cell = this.contextMenu.getUpperLeftPasteCell();
       if (GridEdit.Hook.prototype.run(this, 'beforeInsertAbove', cell)) {
         this.addRow(cell.address[0]);
         this.setDirtyRows();
@@ -1264,6 +1265,27 @@
       return a.address[0] - b.address[0];
     };
 
+    ContextMenu.prototype.getUpperLeftPasteCell = function() {
+      var cell, cells, col, lowCell, row, _i, _len;
+      cells = this.table.activeCells;
+      lowCell = cells[0];
+      for (_i = 0, _len = cells.length; _i < _len; _i++) {
+        cell = cells[_i];
+        row = cell.address[0];
+        col = cell.address[1];
+        if (row < lowCell.address[0]) {
+          lowCell = cell;
+        } else {
+          if (row === lowCell.address[0]) {
+            if (col < lowCell.address[1]) {
+              lowCell = cell;
+            }
+          }
+        }
+      }
+      return lowCell;
+    };
+
     ContextMenu.prototype.displayBorders = function() {
       if (this.table.copiedGridChange) {
         return this.table.copiedGridChange.displayBorders();
@@ -1303,7 +1325,7 @@
       var cell, gridChange, menu, x, y;
       menu = table.contextMenu;
       menu.hide();
-      cell = menu.getTargetPasteCell();
+      cell = menu.getUpperLeftPasteCell();
       if (cell.editable) {
         gridChange = table.copiedGridChange;
         x = cell.address[0];
@@ -1323,7 +1345,7 @@
     ContextMenu.prototype.fill = function(e, table) {
       var cell, fillValue, gridChange, menu;
       menu = table.contextMenu;
-      cell = menu.getTargetPasteCell();
+      cell = menu.getUpperLeftPasteCell();
       fillValue = cell.value();
       gridChange = new GridEdit.GridChange(table.activeCells, fillValue);
       gridChange.apply(false, false);
@@ -2235,7 +2257,7 @@
           if (this.table.useFixedHeaders) {
             GridEdit.Utilities.prototype.fixHeaders(this.table);
           }
-          GridEdit.Hook.prototype.run(this, 'afterEdit', this, oldValue, newValue, this.table.contextMenu.getTargetPasteCell());
+          GridEdit.Hook.prototype.run(this, 'afterEdit', this, oldValue, newValue, this.table.contextMenu.getUpperLeftPasteCell());
           this.table.checkIfCellIsDirty(this);
           return newValue;
         } else {

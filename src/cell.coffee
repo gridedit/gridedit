@@ -129,7 +129,7 @@ class GridEdit.Cell
         @renderValue(newValue)
         @row.afterEdit()
         GridEdit.Utilities::fixHeaders(@table) if @table.useFixedHeaders
-        GridEdit.Hook::run @, 'afterEdit', @, oldValue, newValue, @table.contextMenu.getTargetPasteCell()
+        GridEdit.Hook::run @, 'afterEdit', @, oldValue, newValue, @table.contextMenu.getUpperLeftPasteCell()
         @table.checkIfCellIsDirty(@)
         return newValue
       else
