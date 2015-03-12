@@ -1189,10 +1189,10 @@
       var menu;
       this.cell = cell;
       if (this.active) {
-        if (!cell.isActive()) {
-          cell.makeActive();
+        if (!this.cell.isActive()) {
+          this.cell.makeActive();
         }
-        this.cells = cell.table.activeCells;
+        this.cells = this.cell.table.activeCells;
         GridEdit.Utilities.prototype.setStyles(this.element, {
           left: x,
           top: y
@@ -2162,12 +2162,20 @@
     };
 
     Cell.prototype.showInactive = function() {
-      return this.element.style.backgroundColor = this.oldBackgroundColor;
+      return this.element.style.backgroundColor = this.oldBackgroundColor || '';
     };
 
     Cell.prototype.showUneditable = function() {
+      var cell;
       this.element.style.backgroundColor = this.table.theme.cells.uneditableColor;
-      return this.table.redCells.push(this);
+      if (this.table.mobile) {
+        cell = this;
+        return setTimeout(function() {
+          return cell.makeInactive();
+        }, 1000);
+      } else {
+        return this.table.redCells.push(this);
+      }
     };
 
 
@@ -2770,6 +2778,7 @@
         }
       } catch (_error) {
         error = _error;
+        return this.control.value = this.toDateString(new Date(this.originalValue));
       }
     };
 
@@ -2784,13 +2793,14 @@
           this.control.valueAsDate = null;
         } catch (_error) {
           error = _error;
+          this.control.value = '';
         }
         return '';
       }
     };
 
     DateCell.prototype.setValue = function(newValue) {
-      this.source[this.valueKey] = new Date(newValue);
+      this.source[this.valueKey] = this.toDateObject(newValue);
       return this.setControlValue();
     };
 
@@ -2800,11 +2810,25 @@
         return this.control.valueAsDate = this.source[this.valueKey];
       } catch (_error) {
         error = _error;
+        return this.control.value = this.source[this.valueKey];
       }
     };
 
     DateCell.prototype.renderValue = function() {
       return this.element.textContent = this.col.format(this.toDateString(this.value()));
+    };
+
+    DateCell.prototype.toDateObject = function(passedString) {
+      var datePieces;
+      if (passedString == null) {
+        passedString = null;
+      }
+      if (passedString && passedString !== '') {
+        datePieces = passedString.split('-');
+        return new Date(datePieces[2], datePieces[0] - 1, datePieces[1]);
+      } else {
+        return null;
+      }
     };
 
     DateCell.prototype.toDateString = function(passedDate) {
@@ -2831,7 +2855,7 @@
     DateCell.prototype.toDate = function() {
       var input;
       input = document.createElement('input');
-      input.type = 'date';
+      input.type = 'text';
       input.value = this.toDateString();
       return input;
     };
@@ -3136,7 +3160,7 @@
 ;(function() {
   GridEdit.GridChange = (function() {
     function GridChange(cells, value) {
-      var area, cell, change, colIndex, height, rowIndex, thisChange, useBlank, width, _i, _j, _len, _len1, _ref;
+      var area, cell, change, colIndex, height, rowIndex, thisChange, useBlank, width, _i, _j, _len, _len1, _ref, _ref1;
       this.cells = cells;
       useBlank = value === 'ge-blank';
       this.changes = [];
@@ -3144,8 +3168,9 @@
       this.borderStyle = this.table.theme.cells.selectionBorderStyle;
       this.highRow = 0;
       this.highCol = 0;
-      for (_i = 0, _len = cells.length; _i < _len; _i++) {
-        cell = cells[_i];
+      _ref = this.cells;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        cell = _ref[_i];
         rowIndex = cell.address[0];
         colIndex = cell.address[1];
         thisChange = {
@@ -3180,9 +3205,9 @@
         }
         this.changes.push(thisChange);
       }
-      _ref = this.changes;
-      for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
-        change = _ref[_j];
+      _ref1 = this.changes;
+      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+        change = _ref1[_j];
         change.rowVector = change.row - this.firstCell.row;
         change.colVector = change.col - this.firstCell.col;
       }

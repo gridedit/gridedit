@@ -7,7 +7,7 @@ class GridEdit.GridChange
     @highRow = 0
     @highCol = 0
 
-    for cell in cells
+    for cell in @cells
       rowIndex = cell.address[0]
       colIndex = cell.address[1]
 
