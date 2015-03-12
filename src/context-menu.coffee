@@ -213,9 +213,9 @@ class GridEdit.ContextMenu
   cut: (e, table) ->
     menu = table.contextMenu
     menu.hideBorders()
+    table.copiedGridChange = new GridEdit.GridChange(table.activeCells)
     gridChange = new GridEdit.GridChange(table.activeCells, 'ge-blank')
     gridChange.apply(false, false)
-    table.copiedGridChange = gridChange
     table.addToStack({ type: 'cut', grid: gridChange })
     menu.displayBorders()
     menu.hide()
@@ -281,6 +281,7 @@ class GridEdit.ContextMenu
     classes.toggle 'disabled'
 
   execute: (actionCallback, event) ->
+    @table.openCell.hideControl() if @table.openCell
     if GridEdit.Hook::run @, 'beforeContextMenuAction', event, @table
       actionCallback event, @table
       table = @table

@@ -150,6 +150,7 @@ class GridEdit
             if action
               e.preventDefault();
               table.contextMenu.execute action, e
+
         else
           switch key
             when 8 # backspace

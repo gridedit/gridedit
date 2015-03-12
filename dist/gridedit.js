@@ -1280,9 +1280,9 @@
       var gridChange, menu;
       menu = table.contextMenu;
       menu.hideBorders();
+      table.copiedGridChange = new GridEdit.GridChange(table.activeCells);
       gridChange = new GridEdit.GridChange(table.activeCells, 'ge-blank');
       gridChange.apply(false, false);
-      table.copiedGridChange = gridChange;
       table.addToStack({
         type: 'cut',
         grid: gridChange
@@ -1385,6 +1385,9 @@
 
     ContextMenu.prototype.execute = function(actionCallback, event) {
       var table;
+      if (this.table.openCell) {
+        this.table.openCell.hideControl();
+      }
       if (GridEdit.Hook.prototype.run(this, 'beforeContextMenuAction', event, this.table)) {
         actionCallback(event, this.table);
         table = this.table;
