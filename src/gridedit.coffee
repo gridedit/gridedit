@@ -303,7 +303,7 @@ class GridEdit
 
   destroy: ->
     if @useFixedHeaders
-      document.body.removeChild @fixedHeader.table if @fixedHeader
+      document.body.removeChild @fixedHeader.table if @fixedHeader and @fixedHeader.table and @fixedHeader.table.parentNode
 
     @element.removeChild @tableEl
     for key of @

@@ -64,7 +64,7 @@ class GridEdit.Utilities
 
       if ge.fixedHeader
         table = ge.fixedHeader.table
-        ge.fixedHeader.table.parentNode.removeChild(table)
+        ge.fixedHeader.table.parentNode.removeChild(table) if table and table.parentNode
         backgroundColor = ge.fixedHeader.backgroundColor
       else
         backgroundColor = window.getComputedStyle(currentTH).backgroundColor
@@ -82,7 +82,7 @@ class GridEdit.Utilities
 
       currentTHBounds = currentTH.getBoundingClientRect()
       fakeTable = document.createElement 'table'
-      fakeTable.className = ge.tableEl.className
+      fakeTable.className = ge.tableEl.className + ' ge-fixed-table-header'
       fakeTable.style.position = 'absolute'
       fakeTable.style.top = (currentTHBounds.top + pageTop + geTop) + 'px'
       fakeTable.style.left = (currentTHBounds.left + pageLeft + geLeft) + 'px'

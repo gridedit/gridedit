@@ -522,7 +522,7 @@
     GridEdit.prototype.destroy = function() {
       var key, _results;
       if (this.useFixedHeaders) {
-        if (this.fixedHeader) {
+        if (this.fixedHeader && this.fixedHeader.table && this.fixedHeader.table.parentNode) {
           document.body.removeChild(this.fixedHeader.table);
         }
       }
@@ -1553,7 +1553,9 @@
         currentTHElements = currentTH.getElementsByTagName('th');
         if (ge.fixedHeader) {
           table = ge.fixedHeader.table;
-          ge.fixedHeader.table.parentNode.removeChild(table);
+          if (table && table.parentNode) {
+            ge.fixedHeader.table.parentNode.removeChild(table);
+          }
           backgroundColor = ge.fixedHeader.backgroundColor;
         } else {
           backgroundColor = window.getComputedStyle(currentTH).backgroundColor;
@@ -1569,7 +1571,7 @@
         geTop = geElement.scrollTop || 0;
         currentTHBounds = currentTH.getBoundingClientRect();
         fakeTable = document.createElement('table');
-        fakeTable.className = ge.tableEl.className;
+        fakeTable.className = ge.tableEl.className + ' ge-fixed-table-header';
         fakeTable.style.position = 'absolute';
         fakeTable.style.top = (currentTHBounds.top + pageTop + geTop) + 'px';
         fakeTable.style.left = (currentTHBounds.left + pageLeft + geLeft) + 'px';
