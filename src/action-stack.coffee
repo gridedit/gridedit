@@ -36,8 +36,12 @@ class GridEdit.ActionStack
           action.grid.undo(false, false)
           break
 
-        when 'paste'
+        when 'paste-pasteGrid'
           action.pasteGrid.undo(action.x, action.y)
+          break
+
+        when 'paste-copyGrid'
+          action.grid.undo(action.x, action.y)
           break
 
         when 'fill'
@@ -89,8 +93,12 @@ class GridEdit.ActionStack
           action.grid.apply(false, false)
           break
 
-        when 'paste'
+        when 'paste-pasteGrid'
           action.grid.applyTo(action.pasteGrid)
+          break
+
+        when 'paste-copyGrid'
+          action.grid.apply(action.x, action.y)
           break
 
         when 'fill'

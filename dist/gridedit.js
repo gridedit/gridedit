@@ -969,8 +969,11 @@
           case 'cut':
             action.grid.undo(false, false);
             break;
-          case 'paste':
+          case 'paste-pasteGrid':
             action.pasteGrid.undo(action.x, action.y);
+            break;
+          case 'paste-copyGrid':
+            action.grid.undo(action.x, action.y);
             break;
           case 'fill':
             action.grid.undo(false, false);
@@ -1016,8 +1019,11 @@
           case 'cut':
             action.grid.apply(false, false);
             break;
-          case 'paste':
+          case 'paste-pasteGrid':
             action.grid.applyTo(action.pasteGrid);
+            break;
+          case 'paste-copyGrid':
+            action.grid.apply(action.x, action.y);
             break;
           case 'fill':
             action.grid.apply(false, false);
@@ -1346,7 +1352,7 @@
     };
 
     ContextMenu.prototype.paste = function(e, table) {
-      var cell, gridChange, menu, pasteGridChange, x, y;
+      var cell, gridChange, gridChangeUsed, menu, pasteGridChange, x, y;
       menu = table.contextMenu;
       menu.hide();
       cell = menu.getUpperLeftPasteCell();
@@ -1354,15 +1360,21 @@
       if (cell.editable && gridChange) {
         pasteGridChange = new GridEdit.GridChange(table.activeCells);
         pasteGridChange.copyValues();
-        gridChange.applyTo(pasteGridChange);
+        gridChangeUsed = gridChange.applyTo(pasteGridChange);
         x = cell.address[0];
         y = cell.address[1];
-        if (gridChange) {
-          gridChange.apply(x, y);
+        if (gridChangeUsed === 'pasteGrid') {
           return table.addToStack({
-            type: 'paste',
+            type: 'paste-pasteGrid',
             grid: gridChange,
             pasteGrid: pasteGridChange,
+            x: x,
+            y: y
+          });
+        } else {
+          return table.addToStack({
+            type: 'paste-copyGrid',
+            grid: gridChange,
             x: x,
             y: y
           });
@@ -3270,10 +3282,11 @@
     }
 
     GridChange.prototype.applyTo = function(gridChange) {
-      var copyHeight, copyValue, copyWidth, i, j, k, pasteHeight, pasteWidth, ref, repeatsHeight, repeatsWidth, results, x, y;
+      var copyHeight, copyValue, copyWidth, currentX, currentY, i, j, k, l, pasteHeight, pasteWidth, ref, ref1, repeatsHeight, repeatsWidth, x, y;
       copyValue = this.changes[0].value;
       if (gridChange.scattered) {
-        return gridChange.fill(copyValue);
+        gridChange.fill(copyValue);
+        return 'pasteGrid';
       } else {
         copyWidth = this.width();
         copyHeight = this.height();
@@ -3282,28 +3295,23 @@
         if (pasteWidth < copyWidth || pasteHeight < copyHeight) {
           x = gridChange.firstCell.row;
           y = gridChange.firstCell.col;
-          return this.apply(x, y);
+          this.apply(x, y);
+          return 'copyGrid';
         } else {
           repeatsWidth = parseInt(pasteWidth / copyWidth);
           repeatsHeight = parseInt(pasteHeight / copyHeight);
           x = gridChange.firstCell.row;
           y = gridChange.firstCell.col;
-          results = [];
-          for (i = k = 0, ref = repeatsWidth; 0 <= ref ? k < ref : k > ref; i = 0 <= ref ? ++k : --k) {
-            y += i * copyWidth;
-            results.push((function() {
-              var l, ref1, results1;
-              results1 = [];
-              for (j = l = 0, ref1 = repeatsHeight; 0 <= ref1 ? l < ref1 : l > ref1; j = 0 <= ref1 ? ++l : --l) {
-                x += j * copyHeight;
-                results1.push(this.apply(x, y));
-              }
-              return results1;
-            }).call(this));
+          for (i = k = 0, ref = repeatsHeight; 0 <= ref ? k < ref : k > ref; i = 0 <= ref ? ++k : --k) {
+            currentX = x + (i * copyHeight);
+            for (j = l = 0, ref1 = repeatsWidth; 0 <= ref1 ? l < ref1 : l > ref1; j = 0 <= ref1 ? ++l : --l) {
+              currentY = y + (j * copyWidth);
+              this.apply(currentX, currentY);
+            }
           }
-          return results;
         }
       }
+      return 'pasteGrid';
     };
 
     GridChange.prototype.copyValues = function() {

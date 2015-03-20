@@ -248,12 +248,14 @@ class GridEdit.ContextMenu
     if cell.editable && gridChange
       pasteGridChange = new GridEdit.GridChange(table.activeCells)
       pasteGridChange.copyValues()
-      gridChange.applyTo(pasteGridChange);
+      gridChangeUsed = gridChange.applyTo(pasteGridChange);
       x = cell.address[0]
       y = cell.address[1]
-      if gridChange
-        gridChange.apply(x, y)
-        table.addToStack({ type: 'paste', grid: gridChange, pasteGrid: pasteGridChange, x: x, y: y })
+      if gridChangeUsed == 'pasteGrid'
+        table.addToStack({ type: 'paste-pasteGrid', grid: gridChange, pasteGrid: pasteGridChange, x: x, y: y })
+      else
+        table.addToStack({ type: 'paste-copyGrid', grid: gridChange, x: x, y: y })
+
 
   fill: (e, table) ->
     menu = table.contextMenu
