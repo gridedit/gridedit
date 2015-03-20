@@ -92,6 +92,7 @@ class GridEdit.ContextMenu
           continue if @userDefinedActions and (@userDefinedActions[actionName] || @userDefinedActions[actionName] == false)
           @addAction action
         for actionName, action of @userDefinedActions
+          continue if @userDefinedActions[actionName] == false
           @addAction action
 
     @element.appendChild @menu

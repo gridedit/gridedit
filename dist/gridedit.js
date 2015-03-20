@@ -1162,6 +1162,9 @@
           ref2 = this.userDefinedActions;
           for (actionName in ref2) {
             action = ref2[actionName];
+            if (this.userDefinedActions[actionName] === false) {
+              continue;
+            }
             this.addAction(action);
           }
         }
