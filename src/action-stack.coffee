@@ -1,5 +1,9 @@
 class GridEdit.ActionStack
   constructor: (@table) ->
+    @userDefinedActions = {
+      undo: {},
+      redo: {}
+    }
     @index = -1;
     @actions = [];
 
@@ -11,6 +15,12 @@ class GridEdit.ActionStack
       @actions = @actions.splice(0, @index + 1)
     @actions.push(actionObject)
     @index++;
+
+  addUndo: (actionName, f) ->
+    @userDefinedActions.undo[actionName] = f
+
+  addRedo: (actionName, f) ->
+    @userDefinedActions.redo[actionName] = f
 
   undo: ->
     if @index > -1
@@ -27,7 +37,7 @@ class GridEdit.ActionStack
           break
 
         when 'paste'
-          action.grid.undo(action.x, action.y)
+          action.pasteGrid.undo(action.x, action.y)
           break
 
         when 'fill'
@@ -61,6 +71,9 @@ class GridEdit.ActionStack
           @table.moveRows(action.modifiedNewIndex, action.modifiedRowToMoveIndex, action.numRows, false)
           break
 
+        else
+          @userDefinedActions.undo[action.type](action)
+
   redo: ->
     if(@index < @actions.length - 1)
       @index++
@@ -77,7 +90,7 @@ class GridEdit.ActionStack
           break
 
         when 'paste'
-          action.grid.apply(action.x, action.y)
+          action.grid.applyTo(action.pasteGrid)
           break
 
         when 'fill'
@@ -107,3 +120,6 @@ class GridEdit.ActionStack
         when 'move-rows'
           @table.moveRows(action.originalRowToMoveIndex, action.originalNewIndex, action.numRows, false)
           break
+
+        else
+          @userDefinedActions.redo[action.type](action)

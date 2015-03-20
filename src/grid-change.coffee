@@ -45,6 +45,60 @@ class GridEdit.GridChange
     area = width * height
     @scattered = @cells.length != area
 
+  applyTo: (gridChange) ->
+    copyValue = @changes[0].value
+
+    if gridChange.scattered
+      gridChange.fill(copyValue)
+    else
+      copyWidth = @width()
+      copyHeight = @height()
+      pasteWidth = gridChange.width()
+      pasteHeight = gridChange.height()
+
+      if pasteWidth < copyWidth or pasteHeight < copyHeight
+        x = gridChange.firstCell.row
+        y = gridChange.firstCell.col
+        @apply(x, y)
+      else
+        repeatsWidth = parseInt(pasteWidth / copyWidth)
+        repeatsHeight = parseInt(pasteHeight / copyHeight)
+        x = gridChange.firstCell.row
+        y = gridChange.firstCell.col
+
+        for i in [0...repeatsWidth]
+          y += (i * copyWidth)
+          for j in [0...repeatsHeight]
+            x += (j * copyHeight)
+            @apply(x, y)
+
+  copyValues: ->
+    x = @firstCell.row
+    y = @firstCell.col
+
+    for change in @changes
+      cell = @table.getCell(x + change.rowVector, y + change.colVector)
+      if cell and cell.editable
+        change.oldValue = cell.value()
+
+  width: ->
+    @highCol - @lowCol + 1
+
+  height: ->
+    @highRow - @lowRow + 1
+
+  fill: (value) ->
+    x = @firstCell.row
+    y = @firstCell.col
+
+    for change in @changes
+      cell = @table.getCell(x + change.rowVector, y + change.colVector)
+      if cell and cell.editable
+        change.oldValue = cell.value()
+        cell.value(value, false)
+      else
+        change.oldValue = ''
+
   apply: (x, y) ->
     if x == false or y == false
       x = @firstCell.row

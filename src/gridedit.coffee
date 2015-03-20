@@ -496,5 +496,11 @@ class GridEdit
   isDirty: ->
     @dirtyRows.length > 0 or @dirtyCells.length > 0
 
+  addUndoAction: (actionName, f) ->
+    @actionStack.addUndo(actionName, f)
+
+  addRedoAction: (actionName, f) ->
+    @actionStack.addRedo(actionName, f)
+
 root = exports ? window
 root.GridEdit = GridEdit
