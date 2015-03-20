@@ -50,6 +50,7 @@ class GridEdit.GridChange
 
     if gridChange.scattered
       gridChange.fill(copyValue)
+      return 'pasteGrid'
     else
       copyWidth = @width()
       copyHeight = @height()
@@ -60,17 +61,19 @@ class GridEdit.GridChange
         x = gridChange.firstCell.row
         y = gridChange.firstCell.col
         @apply(x, y)
+        return 'copyGrid'
       else
         repeatsWidth = parseInt(pasteWidth / copyWidth)
         repeatsHeight = parseInt(pasteHeight / copyHeight)
         x = gridChange.firstCell.row
         y = gridChange.firstCell.col
 
-        for i in [0...repeatsWidth]
-          y += (i * copyWidth)
-          for j in [0...repeatsHeight]
-            x += (j * copyHeight)
-            @apply(x, y)
+        for i in [0...repeatsHeight]
+          currentX = (x + (i * copyHeight))
+          for j in [0...repeatsWidth]
+            currentY = (y + (j * copyWidth))
+            @apply(currentX, currentY)
+    'pasteGrid'
 
   copyValues: ->
     x = @firstCell.row
