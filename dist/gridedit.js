@@ -2361,7 +2361,19 @@
       } else {
         control = this.control;
         return setTimeout(function() {
-          return control.focus();
+          var range;
+          control.focus();
+          if (control.setSelectionRange) {
+            return control.setSelectionRange(1, 1);
+          } else {
+            if (control.createTextRange) {
+              range = control.createTextRange();
+              range.collapse(true);
+              range.moveEnd('character', 1);
+              range.moveStart('character', 1);
+              return range.select();
+            }
+          }
         }, 0);
       }
     };

@@ -169,6 +169,15 @@ class GridEdit.Cell
       control = @control
       setTimeout(->
         control.focus()
+        if control.setSelectionRange
+          control.setSelectionRange(1, 1)
+        else
+          if control.createTextRange
+            range = control.createTextRange()
+            range.collapse(true)
+            range.moveEnd('character', 1)
+            range.moveStart('character', 1)
+            range.select()
       , 0)
 
   showControl: (value = null) ->
