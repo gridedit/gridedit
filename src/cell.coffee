@@ -169,14 +169,18 @@ class GridEdit.Cell
       control = @control
       setTimeout(->
         control.focus()
+        pos = 0
+        if control.value
+          pos = control.value.length
+
         if control.setSelectionRange
-          control.setSelectionRange(1, 1)
+          control.setSelectionRange(pos, pos)
         else
           if control.createTextRange
             range = control.createTextRange()
             range.collapse(true)
-            range.moveEnd('character', 1)
-            range.moveStart('character', 1)
+            range.moveEnd('character', pos)
+            range.moveStart('character', pos)
             range.select()
       , 0)
 

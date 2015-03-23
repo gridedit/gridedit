@@ -2361,16 +2361,20 @@
       } else {
         control = this.control;
         return setTimeout(function() {
-          var range;
+          var pos, range;
           control.focus();
+          pos = 0;
+          if (control.value) {
+            pos = control.value.length;
+          }
           if (control.setSelectionRange) {
-            return control.setSelectionRange(1, 1);
+            return control.setSelectionRange(pos, pos);
           } else {
             if (control.createTextRange) {
               range = control.createTextRange();
               range.collapse(true);
-              range.moveEnd('character', 1);
-              range.moveStart('character', 1);
+              range.moveEnd('character', pos);
+              range.moveStart('character', pos);
               return range.select();
             }
           }
