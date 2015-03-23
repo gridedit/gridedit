@@ -2693,6 +2693,18 @@
       this;
     }
 
+    NumberCell.prototype.focus = function() {
+      var control;
+      if (this.table.mobile) {
+        return this.control.focus();
+      } else {
+        control = this.control;
+        return setTimeout(function() {
+          return control.focus();
+        }, 0);
+      }
+    };
+
     NumberCell.prototype.initControl = function() {
       this.control = document.createElement('input');
       return this.control.type = 'number';

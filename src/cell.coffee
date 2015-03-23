@@ -378,6 +378,15 @@ class GridEdit.NumberCell extends GridEdit.Cell
     @initialize()
     @
 
+  focus: ->
+    if @table.mobile
+      @control.focus()
+    else
+      control = @control
+      setTimeout(->
+        control.focus()
+      , 0)
+
   initControl: ->
     @control = document.createElement 'input'
     @control.type = 'number'
