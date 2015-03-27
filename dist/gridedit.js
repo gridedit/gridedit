@@ -1620,6 +1620,7 @@
         fakeTable.style.left = (currentTHBounds.left + pageLeft + geLeft) + 'px';
         fakeTable.style.width = currentTHBounds.width + 'px';
         fakeTable.style.zIndex = 1039;
+        fakeTable.style.pointerEvents = 'none';
         fakeTHead = document.createElement('thead');
         fakeTHead.className = currentTH.className;
         fakeTHead.ondragenter = currentTH.ondragenter;
@@ -2361,7 +2362,23 @@
       } else {
         control = this.control;
         return setTimeout(function() {
-          return control.focus();
+          var pos, range;
+          control.focus();
+          pos = 0;
+          if (control.value) {
+            pos = control.value.length;
+          }
+          if (control.setSelectionRange) {
+            return control.setSelectionRange(pos, pos);
+          } else {
+            if (control.createTextRange) {
+              range = control.createTextRange();
+              range.collapse(true);
+              range.moveEnd('character', pos);
+              range.moveStart('character', pos);
+              return range.select();
+            }
+          }
         }, 0);
       }
     };
@@ -2680,6 +2697,18 @@
       this.initialize();
       this;
     }
+
+    NumberCell.prototype.focus = function() {
+      var control;
+      if (this.table.mobile) {
+        return this.control.focus();
+      } else {
+        control = this.control;
+        return setTimeout(function() {
+          return control.focus();
+        }, 0);
+      }
+    };
 
     NumberCell.prototype.initControl = function() {
       this.control = document.createElement('input');

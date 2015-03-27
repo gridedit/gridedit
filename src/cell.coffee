@@ -169,6 +169,19 @@ class GridEdit.Cell
       control = @control
       setTimeout(->
         control.focus()
+        pos = 0
+        if control.value
+          pos = control.value.length
+
+        if control.setSelectionRange
+          control.setSelectionRange(pos, pos)
+        else
+          if control.createTextRange
+            range = control.createTextRange()
+            range.collapse(true)
+            range.moveEnd('character', pos)
+            range.moveStart('character', pos)
+            range.select()
       , 0)
 
   showControl: (value = null) ->
@@ -368,6 +381,15 @@ class GridEdit.NumberCell extends GridEdit.Cell
     @type = 'number'
     @initialize()
     @
+
+  focus: ->
+    if @table.mobile
+      @control.focus()
+    else
+      control = @control
+      setTimeout(->
+        control.focus()
+      , 0)
 
   initControl: ->
     @control = document.createElement 'input'
