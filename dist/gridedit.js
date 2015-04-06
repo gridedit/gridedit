@@ -444,7 +444,11 @@
       results = [];
       for (j = 0, len = ref.length; j < len; j++) {
         cell = ref[j];
-        results.push(cell.value(''));
+        if (cell.editable) {
+          results.push(cell.value(''));
+        } else {
+          results.push(void 0);
+        }
       }
       return results;
     };
