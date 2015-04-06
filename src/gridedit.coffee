@@ -273,7 +273,7 @@ class GridEdit
 
   delete: ->
     for cell in @activeCells
-      cell.value('')
+      cell.value('') if cell.editable
 
   clearActiveCells: -> GridEdit.Utilities::clearActiveCells @
 
