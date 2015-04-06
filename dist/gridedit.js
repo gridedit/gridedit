@@ -439,18 +439,15 @@
     };
 
     GridEdit.prototype["delete"] = function() {
-      var cell, j, len, ref, results;
+      var cell, j, len, ref;
       ref = this.activeCells;
-      results = [];
       for (j = 0, len = ref.length; j < len; j++) {
         cell = ref[j];
         if (cell.editable) {
-          results.push(cell.value(''));
-        } else {
-          results.push(void 0);
+          cell.value('');
         }
       }
-      return results;
+      return true;
     };
 
     GridEdit.prototype.clearActiveCells = function() {
