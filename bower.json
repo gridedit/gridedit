@@ -3,10 +3,11 @@
   "description": "A simple & lightweight vanilla javascript library for creating a tablet friendly editable grid.",
   "authors": [
     {"name": "Ben Simmons", "email": "bdsimmons1@gmail.com"},
-    {"name": "Chuck Guilbert", "email": "chuck.guilbert@gmail.com"}
+    {"name": "Chuck Guilbert", "email": "chuck.guilbert@gmail.com"},
+    {"name": "Kyle Smith", "email": "kaywhyeleee@gmail.com"}
   ],
   "main": "dist/gridedit.js",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "homepage": "https://github.com/gridedit/gridedit.git",
   "dependencies": {}
 }
