@@ -337,7 +337,7 @@ class GridEdit.Cell
 
       @element.onmousedown = (e) ->
         if e.which is 3 # right mouse button
-          table.contextMenu.show(e.x, e.y, cell)
+          table.contextMenu.show(e.clientX, e.clientY, cell)
           return
         else
           unless e.shiftKey or e.ctrlKey or e.metaKey
