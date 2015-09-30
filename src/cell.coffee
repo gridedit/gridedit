@@ -220,7 +220,6 @@ class GridEdit.Cell
           cell.edit @value
         when 9 # tab
           cell.edit @value
-          table.moveTo table.nextCell()
 
   ###
   	Positioning
