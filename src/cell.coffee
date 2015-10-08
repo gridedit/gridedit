@@ -282,7 +282,7 @@ class GridEdit.Cell
         if table.openCell then table.openCell.hideControl()
       @element.ontouchend = (e) ->
         y = e.changedTouches[0].clientY
-        if e.changedTouches.length < 2 and (y is startY)
+        if e.changedTouches.length < 2 and (Math.abs(y - startY) < 3)
           e.preventDefault()
           cell.edit()
     else
