@@ -117,7 +117,9 @@
         colAttributes = ref[i];
         col = new GridEdit.Column(colAttributes, this);
         this.cols.push(col);
-        tr.appendChild(col.element);
+        if (col.element) {
+          tr.appendChild(col.element);
+        }
       }
       this.thead = document.createElement('thead');
       ge = this;
@@ -330,11 +332,11 @@
     };
 
     GridEdit.prototype.getCell = function(x, y) {
-      var e;
+      var e, error;
       try {
         return this.rows[x].cells[y];
-      } catch (_error) {
-        e = _error;
+      } catch (error) {
+        e = error;
       }
     };
 
@@ -1637,6 +1639,7 @@
           fakeTH.style.position = 'absolute';
           fakeTH.style.minWidth = currentTHElementBounds.width + 'px';
           fakeTH.style.maxWidth = currentTHElementBounds.width + 'px';
+          fakeTH.style.width = currentTHElementBounds.width + 'px';
           fakeTH.style.minHeight = currentTHElementBounds.height + 'px';
           fakeTH.style.maxHeight = currentTHElementBounds.height + 'px';
           fakeTH.style.left = left + 'px';
@@ -1703,9 +1706,6 @@
       this.defaultValue = this.attributes.defaultValue;
       this.cellClass = this.attributes.cellClass;
       this.cells = [];
-      this.element = document.createElement('th');
-      this.textNode = document.createTextNode(this.attributes.label);
-      this.element.appendChild(this.textNode);
       format = this.attributes.format;
       this.format = function(v) {
         if (format) {
@@ -1719,9 +1719,14 @@
         value = ref[key];
         this[key] = value;
       }
+      if (this.attributes.label) {
+        this.element = document.createElement('th');
+        this.textNode = document.createTextNode(this.attributes.label);
+        this.element.appendChild(this.textNode);
+        this.applyStyle();
+        this.events();
+      }
       delete this.attributes;
-      this.applyStyle();
-      this.events();
     }
 
     Column.prototype.applyStyle = function() {
@@ -1798,6 +1803,7 @@
       var row, table;
       this.attributes = attributes;
       this.table = table1;
+      this.source = this.attributes;
       this.id = this.table.rows.length;
       this.cells = [];
       this.index = this.table.rows.length;
@@ -2128,7 +2134,10 @@
     };
 
     Cell.prototype.initEditable = function() {
-      return this.editable = this.col.editable !== false;
+      this.editable = this.col.editable !== false;
+      if (this.editable) {
+        return this.element.classList.add('editable');
+      }
     };
 
     Cell.prototype.initValueKey = function() {
@@ -2407,9 +2416,14 @@
     };
 
     Cell.prototype.renderControl = function() {
-      GridEdit.Utilities.prototype.setStyles(this.control, this.position());
-      this.table.element.appendChild(this.control);
-      return this.control.style.position = 'absolute';
+      var pos;
+      pos = this.position();
+      GridEdit.Utilities.prototype.setStyles(this.control, {
+        width: pos.width,
+        height: pos.height
+      });
+      this.element.appendChild(this.control);
+      return this.element.style.backgroundColor = 'white';
     };
 
     Cell.prototype.hideControl = function() {
@@ -2433,8 +2447,7 @@
           case 13:
             return cell.edit(this.value);
           case 9:
-            cell.edit(this.value);
-            return moveTo(table.nextCell());
+            return cell.edit(this.value);
         }
       };
     };
@@ -2568,7 +2581,7 @@
         return this.element.ontouchend = function(e) {
           var y;
           y = e.changedTouches[0].clientY;
-          if (e.changedTouches.length < 2 && (y === startY)) {
+          if (e.changedTouches.length < 2 && (Math.abs(y - startY) < 3)) {
             e.preventDefault();
             return cell.edit();
           }
@@ -2629,7 +2642,7 @@
         };
         this.element.onmousedown = function(e) {
           if (e.which === 3) {
-            table.contextMenu.show(e.x, e.y, cell);
+            table.contextMenu.show(e.clientX, e.clientY, cell);
             return;
           } else {
             if (!(e.shiftKey || e.ctrlKey || e.metaKey)) {
@@ -2867,20 +2880,20 @@
     };
 
     DateCell.prototype.initControl = function() {
-      var error;
+      var error, error1;
       this.control = this.toDate();
       try {
         if (this.originalValue) {
           return this.control.valueAsDate = new Date(this.originalValue);
         }
-      } catch (_error) {
-        error = _error;
+      } catch (error1) {
+        error = error1;
         return this.control.value = this.toDateString(new Date(this.originalValue));
       }
     };
 
     DateCell.prototype.formatValue = function(newValue) {
-      var error;
+      var error, error1;
       if (newValue.length > 0) {
         return this.toDateString(Date.parse(newValue));
       } else if (newValue instanceof Date) {
@@ -2888,8 +2901,8 @@
       } else if (newValue.length === 0) {
         try {
           this.control.valueAsDate = null;
-        } catch (_error) {
-          error = _error;
+        } catch (error1) {
+          error = error1;
           this.control.value = '';
         }
         return '';
@@ -2902,11 +2915,11 @@
     };
 
     DateCell.prototype.setControlValue = function() {
-      var error;
+      var error, error1;
       try {
         return this.control.valueAsDate = this.source[this.valueKey];
-      } catch (_error) {
-        error = _error;
+      } catch (error1) {
+        error = error1;
         return this.control.value = this.source[this.valueKey];
       }
     };
