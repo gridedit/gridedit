@@ -211,6 +211,7 @@ class GridEdit.Cell
         height: pos.height
       }
     )
+    @element.innerHTML = ''
     @element.appendChild(@control)
     @element.style.backgroundColor = 'white'
 
