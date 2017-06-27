@@ -4,16 +4,22 @@ class GridEdit.Column
     @defaultValue = @attributes.defaultValue
     @cellClass = @attributes.cellClass
     @cells = []
-    @element = document.createElement 'th'
-    @textNode = document.createTextNode @attributes.label
-    @element.appendChild @textNode
+
     format = @attributes.format
     @format = (v) -> if format then format(v) else v
     for key, value of @attributes
       @[key] = value
+
+    if @attributes.label
+      @element = document.createElement 'th'
+      @textNode = document.createTextNode(@attributes.label)
+      @element.appendChild(@textNode)
+      @applyStyle()
+      do @events
+
+
     delete @attributes
-    @applyStyle()
-    do @events
+
 
   applyStyle: ->
     if @headerStyle

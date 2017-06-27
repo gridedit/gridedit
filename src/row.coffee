@@ -1,5 +1,6 @@
 class GridEdit.Row
   constructor: (@attributes, @table) ->
+    @source = @attributes
     @id = @table.rows.length
     @cells = []
     @index = @table.rows.length
@@ -189,4 +190,3 @@ class GridEdit.HeaderRow extends GridEdit.Row
 
     delete @attributes
     @
-

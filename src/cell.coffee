@@ -28,7 +28,10 @@ class GridEdit.Cell
 
   initOriginalValue: -> @originalValue = '' if @originalValue == undefined
   initSourceValue: -> @source[@valueKey] = @originalValue
-  initEditable: -> @editable = @col.editable != false
+  initEditable: ->
+    @editable = @col.editable != false
+    if(@editable)
+      @element.classList.add('editable')
   initValueKey: -> @valueKey = @col.valueKey
   initSource: -> @source = @table.config.rows[@address[0]]
   initControl: -> @control = document.createElement 'input'
@@ -200,9 +203,16 @@ class GridEdit.Cell
     @control.value = value
 
   renderControl: ->
-    GridEdit.Utilities::setStyles @control, @position()
-    @table.element.appendChild @control
-    @control.style.position = 'absolute'
+    pos = @position()
+    GridEdit.Utilities::setStyles(
+      @control,
+      {
+        width: pos.width,
+        height: pos.height
+      }
+    )
+    @element.appendChild(@control)
+    @element.style.backgroundColor = 'white'
 
   hideControl: ->
     if GridEdit.Hook::run @, 'beforeControlHide', @

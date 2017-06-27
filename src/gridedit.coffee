@@ -81,7 +81,7 @@ class GridEdit
     for colAttributes, i in @config.cols
       col = new GridEdit.Column(colAttributes, @)
       @cols.push col
-      tr.appendChild col.element
+      tr.appendChild col.element if col.element
     @thead = document.createElement 'thead'
     ge = @
     @thead.ondragenter = () ->
