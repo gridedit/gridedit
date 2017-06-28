@@ -121,18 +121,18 @@ class GridEdit.Cell
 	  -----------------------------------------------------------------------------------------
   ###
 
-  value: (newValue = null, addToStack=true) ->
+  value: (newValue = null, addToStack=true, ignoreHooks) ->
     currentValue = @source[@valueKey]
     if newValue isnt null and newValue isnt currentValue
       newValue = @formatValue(newValue)
       oldValue = @value()
-      if GridEdit.Hook::run @, 'beforeEdit', @, oldValue, newValue
+      if ignoreHooks or GridEdit.Hook::run(@, 'beforeEdit', @, oldValue, newValue)
         @table.addToStack { type: 'cell-edit', oldValue: oldValue, newValue: newValue, address: @address } if addToStack
         @setValue(newValue)
         @renderValue(newValue)
         @row.afterEdit()
         GridEdit.Utilities::fixHeaders(@table) if @table.useFixedHeaders
-        GridEdit.Hook::run @, 'afterEdit', @, oldValue, newValue, @table.contextMenu.getUpperLeftPasteCell()
+        GridEdit.Hook::run(@, 'afterEdit', @, oldValue, newValue, @table.contextMenu.getUpperLeftPasteCell()) unless ignoreHooks
         @table.checkIfCellIsDirty(@)
         return newValue
       else
