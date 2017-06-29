@@ -4,8 +4,27 @@ class GridEdit
 
   getId: -> GridEdit::id = GridEdit::id + 1
 
+  grids: []
+
+  initializeContextMenuEvent: ->
+    return if GridEdit::_contextMenuEventHasBeenInitialized
+    document.addEventListener('contextmenu', (e) ->
+      clickIsWithinGrid = false
+      for grid in GridEdit::grids
+        if grid.contextMenu.element is e.target or grid.isDescendant(e.target)
+          clickIsWithinGrid = true
+        else
+          grid.contextMenu.hide()
+      e.preventDefault() if clickIsWithinGrid
+      not clickIsWithinGrid
+    )
+    GridEdit::_contextMenuEventHasBeenInitialized = true
+
   constructor: (@config, @actionStack) ->
-    @id = GridEdit::getId()
+    @config.id = @id = @config.id or GridEdit::getId()
+    GridEdit::grids.push(@)
+    GridEdit::initializeContextMenuEvent()
+
     @dirtyCells = []
     @dirtyRows = []
     @copiedGridChange = @config.copiedGridChange
@@ -205,13 +224,16 @@ class GridEdit
     @element.onscroll = (e) ->
       table.openCell.reposition() if table.openCell
       GridEdit.Utilities::repositionFixedHeader(table) if table.useFixedHeaders
-    @tableEl.oncontextmenu = (e) -> false
-    document.oncontextmenu = (e) ->
-      return false if table.contextMenu.element is e.target
-      true
+    # @tableEl.oncontextmenu = (e) -> false
     document.addEventListener('click', (e) ->
         activeCell = table.firstActiveCell()
-        return if table.isDescendant(e.target) or table.contextMenu.isVisible()
+        if table.isDescendant(e.target)
+          return
+        else
+          if table.contextMenu.isVisible()
+            return if table.contextMenu.isDescendant(e.target)
+          else
+            table.contextMenu.hide()
         # the user clicked the cell control
         return if e.target is activeCell?.control
         # save the edit to the cell that was previously being edited

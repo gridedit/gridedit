@@ -257,6 +257,12 @@ class GridEdit.ContextMenu
       else
         table.addToStack({ type: 'paste-copyGrid', grid: gridChange, x: x, y: y })
 
+  isDescendant: (child) ->
+    node = child.parentNode
+    while node?
+      return true if node is @element
+      node = node.parentNode
+    false
 
   fill: (e, table) ->
     menu = table.contextMenu
