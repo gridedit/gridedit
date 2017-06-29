@@ -1,5 +1,30 @@
 class GridEdit
+
+  id: 0
+
+  getId: -> GridEdit::id = GridEdit::id + 1
+
+  grids: []
+
+  initializeContextMenuEvent: ->
+    return if GridEdit::_contextMenuEventHasBeenInitialized
+    document.addEventListener('contextmenu', (e) ->
+      clickIsWithinGrid = false
+      for grid in GridEdit::grids
+        if grid.contextMenu.element is e.target or grid.isDescendant(e.target)
+          clickIsWithinGrid = true
+        else
+          grid.contextMenu.hide()
+      e.preventDefault() if clickIsWithinGrid
+      not clickIsWithinGrid
+    )
+    GridEdit::_contextMenuEventHasBeenInitialized = true
+
   constructor: (@config, @actionStack) ->
+    @config.id = @id = @config.id or GridEdit::getId()
+    GridEdit::grids.push(@)
+    GridEdit::initializeContextMenuEvent()
+
     @dirtyCells = []
     @dirtyRows = []
     @copiedGridChange = @config.copiedGridChange
@@ -134,11 +159,11 @@ class GridEdit
     do @destroy
     @constructor(config, actionStack)
 
-  hideControl: -> @openCell.edit @openCell.control.value if @openCell
+  hideControl: -> @openCell.edit(@openCell.control.value) if @openCell
 
   events: ->
     table = @
-    document.onkeydown = (e) ->
+    document.addEventListener('keydown', (e) ->
       if table.activeCell()
         key = e.keyCode
         shift = e.shiftKey
@@ -163,7 +188,7 @@ class GridEdit
               e.preventDefault()
               if shift then table.moveTo table.previousCell() else table.moveTo table.nextCell()
             when 13 # enter
-              table.activeCell().onReturnKeyPress()
+              table.activeCell().onReturnKeyPress() unless table.activeCell().isBeingEdited()
               break
             when 16 # shift
               break
@@ -192,23 +217,32 @@ class GridEdit
             else
               key = key - 48 if key in [96..111] # for numpad
               table.openCellAndPopulateInitialValue(shift, key)
+    )
 
     window.onresize = -> GridEdit.Utilities::setStyles table.openCell.control, table.openCell.position() if table.openCell
     window.onscroll = -> table.openCell.reposition() if table.openCell
     @element.onscroll = (e) ->
       table.openCell.reposition() if table.openCell
       GridEdit.Utilities::repositionFixedHeader(table) if table.useFixedHeaders
-    @tableEl.oncontextmenu = (e) -> false
-    document.oncontextmenu = (e) ->
-      return false if table.contextMenu.element is e.target
-      true
-    document.onclick = (e) ->
-      activeCell = table.firstActiveCell()
-      unless table.isDescendant e.target or table.contextMenu.isVisible()
-        unless e.target is activeCell?.control
-          activeCell?.edit(activeCell?.control.value) if activeCell?.isBeingEdited()
-          GridEdit.Utilities::clearActiveCells table
-      table.contextMenu.hide()
+    # @tableEl.oncontextmenu = (e) -> false
+    document.addEventListener('click', (e) ->
+        activeCell = table.firstActiveCell()
+        if table.isDescendant(e.target)
+          return
+        else
+          if table.contextMenu.isVisible()
+            return if table.contextMenu.isDescendant(e.target)
+          else
+            table.contextMenu.hide()
+        # the user clicked the cell control
+        return if e.target is activeCell?.control
+        # save the edit to the cell that was previously being edited
+        activeCell.edit(activeCell.control.value) if activeCell?.isBeingEdited()
+        # clear any active cells of the table
+        table.clearActiveCells()
+        # hide the context menu
+        table.contextMenu.hide()
+      )
 
   render: ->
     @element = document.querySelectorAll(@config.element || '#gridedit')[0] if @element.hasChildNodes()
@@ -266,9 +300,9 @@ class GridEdit
 
   edit: (cell, newValue = null) ->
     if newValue isnt null
-      cell?.cellTypeObject.edit newValue
+      cell?.cellTypeObject.edit(newValue)
     else
-      cell.cellTypeObject.edit()
+      cell.cellTypeObject.edit(newValue)
       false
 
   delete: ->
@@ -276,7 +310,7 @@ class GridEdit
       cell.value('') if cell.editable
     true
 
-  clearActiveCells: -> GridEdit.Utilities::clearActiveCells @
+  clearActiveCells: -> GridEdit.Utilities::clearActiveCells(@)
 
   setSelection: ->
     if @selectionStart and @selectionEnd and @selectionStart isnt @selectionEnd
@@ -456,7 +490,7 @@ class GridEdit
       cmd = e.metaKey
 
       if !(ctrl or cmd)
-        GridEdit.Utilities::clearActiveCells(@)
+        @clearActiveCells()
 
       if shift
         diff = currentRowIndex - index
