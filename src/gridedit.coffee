@@ -1,5 +1,11 @@
 class GridEdit
+
+  id: 0
+
+  getId: -> GridEdit::id = GridEdit::id + 1
+
   constructor: (@config, @actionStack) ->
+    @id = GridEdit::getId()
     @dirtyCells = []
     @dirtyRows = []
     @copiedGridChange = @config.copiedGridChange
@@ -138,7 +144,7 @@ class GridEdit
 
   events: ->
     table = @
-    document.onkeydown = (e) ->
+    document.addEventListener('keydown', (e) ->
       if table.activeCell()
         key = e.keyCode
         shift = e.shiftKey
@@ -192,6 +198,7 @@ class GridEdit
             else
               key = key - 48 if key in [96..111] # for numpad
               table.openCellAndPopulateInitialValue(shift, key)
+    )
 
     window.onresize = -> GridEdit.Utilities::setStyles table.openCell.control, table.openCell.position() if table.openCell
     window.onscroll = -> table.openCell.reposition() if table.openCell
@@ -202,13 +209,18 @@ class GridEdit
     document.oncontextmenu = (e) ->
       return false if table.contextMenu.element is e.target
       true
-    document.onclick = (e) ->
-      activeCell = table.firstActiveCell()
-      unless table.isDescendant e.target or table.contextMenu.isVisible()
-        unless e.target is activeCell?.control
-          activeCell?.edit(activeCell?.control.value) if activeCell?.isBeingEdited()
-          GridEdit.Utilities::clearActiveCells table
-      table.contextMenu.hide()
+    document.addEventListener('click', (e) ->
+        activeCell = table.firstActiveCell()
+        return if table.isDescendant(e.target) or table.contextMenu.isVisible()
+        # the user clicked the cell control
+        return if e.target is activeCell?.control
+        # save the edit to the cell that was previously being edited
+        activeCell.edit(activeCell.control.value) if activeCell?.isBeingEdited()
+        # clear any active cells of the table
+        GridEdit.Utilities::clearActiveCells table
+        # hide the context menu
+        table.contextMenu.hide()
+      )
 
   render: ->
     @element = document.querySelectorAll(@config.element || '#gridedit')[0] if @element.hasChildNodes()
