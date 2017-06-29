@@ -159,7 +159,7 @@ class GridEdit
     do @destroy
     @constructor(config, actionStack)
 
-  hideControl: -> @openCell.edit @openCell.control.value if @openCell
+  hideControl: -> @openCell.edit(@openCell.control.value) if @openCell
 
   events: ->
     table = @
@@ -188,7 +188,7 @@ class GridEdit
               e.preventDefault()
               if shift then table.moveTo table.previousCell() else table.moveTo table.nextCell()
             when 13 # enter
-              table.activeCell().onReturnKeyPress()
+              table.activeCell().onReturnKeyPress() unless table.activeCell().isBeingEdited()
               break
             when 16 # shift
               break
@@ -239,7 +239,7 @@ class GridEdit
         # save the edit to the cell that was previously being edited
         activeCell.edit(activeCell.control.value) if activeCell?.isBeingEdited()
         # clear any active cells of the table
-        GridEdit.Utilities::clearActiveCells table
+        table.clearActiveCells()
         # hide the context menu
         table.contextMenu.hide()
       )
@@ -300,9 +300,9 @@ class GridEdit
 
   edit: (cell, newValue = null) ->
     if newValue isnt null
-      cell?.cellTypeObject.edit newValue
+      cell?.cellTypeObject.edit(newValue)
     else
-      cell.cellTypeObject.edit()
+      cell.cellTypeObject.edit(newValue)
       false
 
   delete: ->
@@ -310,7 +310,7 @@ class GridEdit
       cell.value('') if cell.editable
     true
 
-  clearActiveCells: -> GridEdit.Utilities::clearActiveCells @
+  clearActiveCells: -> GridEdit.Utilities::clearActiveCells(@)
 
   setSelection: ->
     if @selectionStart and @selectionEnd and @selectionStart isnt @selectionEnd
@@ -490,7 +490,7 @@ class GridEdit
       cmd = e.metaKey
 
       if !(ctrl or cmd)
-        GridEdit.Utilities::clearActiveCells(@)
+        @clearActiveCells()
 
       if shift
         diff = currentRowIndex - index

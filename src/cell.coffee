@@ -71,14 +71,14 @@ class GridEdit.Cell
 
   makeActive: (clearActiveCells = true) ->
     @table.hideControl()
-    GridEdit.Utilities::clearActiveCells @table if clearActiveCells
+    GridEdit.Utilities::clearActiveCells(@table) if clearActiveCells
     unless @isActive()
       if GridEdit.Hook::run @, 'beforeActivate', @
         @showActive()
         @table.activeCells.push @
         @table.selectionStart = @
         openCell = @table.openCell
-        openCell.edit openCell.control.value if openCell
+        openCell.edit(openCell.control.value) if openCell
         GridEdit.Hook::run @, 'afterActivate', @
 
   makeInactive: -> @showInactive()
@@ -106,11 +106,11 @@ class GridEdit.Cell
 	  -----------------------------------------------------------------------------------------
   ###
 
-  edit: (value = null) ->
+  edit: (value = null, addToStack = true, ignoreHooks = false) ->
     if @editable
       if value isnt null
-        @value value
         @hideControl() if @isBeingEdited()
+        @value(value, addToStack, ignoreHooks)
       else
         @showControl()
     else
@@ -123,20 +123,24 @@ class GridEdit.Cell
 
   value: (newValue = null, addToStack=true, ignoreHooks) ->
     currentValue = @source[@valueKey]
-    if newValue isnt null and newValue isnt currentValue
-      newValue = @formatValue(newValue)
-      oldValue = @value()
-      if ignoreHooks or GridEdit.Hook::run(@, 'beforeEdit', @, oldValue, newValue)
-        @table.addToStack { type: 'cell-edit', oldValue: oldValue, newValue: newValue, address: @address } if addToStack
+    if newValue isnt null
+      if newValue isnt currentValue
+        newValue = @formatValue(newValue)
+        oldValue = @value()
+        if ignoreHooks or GridEdit.Hook::run(@, 'beforeEdit', @, oldValue, newValue)
+          @table.addToStack { type: 'cell-edit', oldValue: oldValue, newValue: newValue, address: @address } if addToStack
+          @setValue(newValue)
+          @renderValue(newValue)
+          @row.afterEdit()
+          GridEdit.Utilities::fixHeaders(@table) if @table.useFixedHeaders
+          GridEdit.Hook::run(@, 'afterEdit', @, oldValue, newValue, @table.contextMenu.getUpperLeftPasteCell()) unless ignoreHooks
+          @table.checkIfCellIsDirty(@)
+          return newValue
+        else
+          currentValue
+      else # newValue is currentValue
         @setValue(newValue)
         @renderValue(newValue)
-        @row.afterEdit()
-        GridEdit.Utilities::fixHeaders(@table) if @table.useFixedHeaders
-        GridEdit.Hook::run(@, 'afterEdit', @, oldValue, newValue, @table.contextMenu.getUpperLeftPasteCell()) unless ignoreHooks
-        @table.checkIfCellIsDirty(@)
-        return newValue
-      else
-        currentValue
     else
       currentValue
 
@@ -149,7 +153,6 @@ class GridEdit.Cell
     else
       @element.style.color = @originalColor or ''
       @element.textContent = @col.format(value)
-
 
   ###
     Dirty
@@ -213,13 +216,14 @@ class GridEdit.Cell
     )
     @element.innerHTML = ''
     @element.appendChild(@control)
-    @element.style.backgroundColor = 'white'
+    @element.classList.add('show-control')
 
   hideControl: ->
     if GridEdit.Hook::run @, 'beforeControlHide', @
       @control.parentNode.removeChild(@control) if @isBeingEdited()
       @table.openCell = null
       GridEdit.Hook::run @, 'afterControlHide', @
+      @element.classList.remove('show-control')
 
   applyControlBehavior: ->
     cell = @
@@ -228,9 +232,9 @@ class GridEdit.Cell
       key = e.which
       switch key
         when 13 # return
-          cell.edit @value
+          cell.edit(@value)
         when 9 # tab
-          cell.edit @value
+          cell.edit(@value)
 
   ###
   	Positioning
@@ -272,8 +276,7 @@ class GridEdit.Cell
 	  -----------------------------------------------------------------------------------------
   ###
 
-  onReturnKeyPress: ->
-    @table.moveTo @table.belowCell()
+  onReturnKeyPress: -> @table.moveTo @table.belowCell() unless @.isBeingEdited()
   onSpaceKeyPress: -> @edit()
   onKeyPress:(value) -> @showControl(value)
 
@@ -289,7 +292,7 @@ class GridEdit.Cell
       startY = null
       @element.ontouchstart = (e) ->
         startY = e.changedTouches[0].clientY
-        GridEdit.Utilities::clearActiveCells table
+        GridEdit.Utilities::clearActiveCells(table)
         if table.openCell then table.openCell.hideControl()
       @element.ontouchend = (e) ->
         y = e.changedTouches[0].clientY
@@ -456,7 +459,7 @@ class GridEdit.CheckBoxCell extends GridEdit.Cell
 
   edit: () -> false
   initControl: -> @toggle()
-  renderControl: -> GridEdit.Utilities::clearActiveCells @table
+  renderControl: -> GridEdit.Utilities::clearActiveCells(@table)
   isBeingEdited: -> false
 
   toggle: ->
@@ -643,7 +646,7 @@ class GridEdit.SelectCell extends GridEdit.Cell
     @setControlValue()
     select.classList.add @table.theme.inputs.select.className
     select.onchange = (e) ->
-      cell.edit e.target.value
+      cell.edit(e.target.value)
 
   select: -> false
 
