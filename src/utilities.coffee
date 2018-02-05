@@ -28,9 +28,13 @@ class GridEdit.Utilities
     if table.selectedCol then table.selectedCol.makeInactive()
   capitalize: (string) -> string.toLowerCase().replace /\b./g, (a) -> a.toUpperCase()
 
-  valueFromKey: (key, shift) ->
-    char = String.fromCharCode key
-    if shift then char else char.toLowerCase()
+  valueFromKey = (key, shift) ->
+	  chrCode = key - (48 * Math.floor(key / 48))
+	  char = String.fromCharCode(if 96 <= key then chrCode else key)
+	  if shift
+	    String.fromCharCode key
+	  else
+	    char.toLowerCase()
 
   getScreenDimensions: ->
     w = window
